@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getPortfolio } from '../utils/api';
-import { PortfolioItem } from '../types';
+import type { PortfolioItem } from '../types/index';
 
 const Portfolio = () => {
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getCV } from '../utils/api';
-import { CVData } from '../types';
+import type { CVData } from '../types/index';
 
 const CV = () => {
   const [cv, setCv] = useState<CVData | null>(null);

@@ -1,6 +1,6 @@
 import { useState, FormEvent } from 'react';
 import { submitContact } from '../utils/api';
-import { ContactFormData } from '../types';
+import type { ContactFormData } from '../types/index';
 
 const Contact = () => {
   const [formData, setFormData] = useState<ContactFormData>({
