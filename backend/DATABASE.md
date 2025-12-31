@@ -4,7 +4,8 @@
 
 ### Start Database
 ```bash
-# From project root
+# From backend directory
+cd backend
 docker-compose up -d
 
 # Or if already running the manual container, it will continue to work
@@ -13,6 +14,8 @@ docker start portfolio-postgres
 
 ### Stop Database
 ```bash
+# From backend directory
+cd backend
 docker-compose down  # Stops but keeps data
 docker-compose down -v  # ⚠️ Stops AND deletes all data!
 ```

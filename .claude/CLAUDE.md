@@ -23,11 +23,14 @@ source venv/bin/activate  # or venv\Scripts\activate on Windows
 pip install -r requirements.txt
 cp .env.example .env
 
+# Start PostgreSQL database
+docker-compose up -d
+
 # Run development server (port 5000)
 python run.py
 
 # Or from project root
-cd backend && source venv/bin/activate && python run.py
+cd backend && docker-compose up -d && source venv/bin/activate && python run.py
 ```
 
 ### Frontend (React + Vite)
