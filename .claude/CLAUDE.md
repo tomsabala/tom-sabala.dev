@@ -116,9 +116,11 @@ Typically requires two terminal sessions - backend on port 5000, frontend on por
 ## Coding Conventions
 
 ### Naming Style
-- **Variables and methods**: Use **camelCase** style (e.g., `myProject`, `getUserData()`)
-- **Note**: This applies to both frontend (JavaScript/TypeScript) and backend (Python)
+- **Python variables and methods**: Use **camelCase** style (e.g., `myProject`, `getUserData()`)
   - ⚠️ This overrides Python's PEP 8 convention (which recommends snake_case)
+- **Database tables and columns**: Use **snake_case** style (e.g., `created_at`, `user_id`)
+  - This follows SQL/PostgreSQL conventions
+- **JavaScript/TypeScript**: Use **camelCase** style (standard for JS/TS)
 
 ### Code Style
 - Use meaningful variable and function names
