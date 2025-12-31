@@ -4,7 +4,7 @@ api_bp = Blueprint('api', __name__)
 
 
 @api_bp.route('/health', methods=['GET'])
-def health_check():
+def healthCheck():
     """Health check endpoint"""
     return jsonify({
         'status': 'healthy',
@@ -13,10 +13,10 @@ def health_check():
 
 
 @api_bp.route('/portfolio', methods=['GET'])
-def get_portfolio():
+def getPortfolio():
     """Get portfolio items"""
     # TODO: Replace with database/file-based storage
-    portfolio_items = [
+    portfolioItems = [
         {
             'id': 1,
             'title': 'Sample Project 1',
@@ -39,15 +39,15 @@ def get_portfolio():
 
     return jsonify({
         'success': True,
-        'data': portfolio_items
+        'data': portfolioItems
     }), 200
 
 
 @api_bp.route('/cv', methods=['GET'])
-def get_cv():
+def getCv():
     """Get CV/Resume data"""
     # TODO: Replace with database/file-based storage
-    cv_data = {
+    cvData = {
         'personal_info': {
             'name': 'Tom Sabala',
             'title': 'Software Engineer',
@@ -82,7 +82,7 @@ def get_cv():
 
     return jsonify({
         'success': True,
-        'data': cv_data
+        'data': cvData
     }), 200
 
 
@@ -92,8 +92,8 @@ def contact():
     data = request.get_json()
 
     # Validate required fields
-    required_fields = ['name', 'email', 'message']
-    if not all(field in data for field in required_fields):
+    requiredFields = ['name', 'email', 'message']
+    if not all(field in data for field in requiredFields):
         return jsonify({
             'success': False,
             'error': 'Missing required fields'
