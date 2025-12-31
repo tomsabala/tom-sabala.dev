@@ -110,6 +110,18 @@ Typically requires two terminal sessions - backend on port 5000, frontend on por
 - **Roadmap**: High-level project roadmap is in `ROADMAP.md` at project root
 - When planning new features or phases, create detailed markdown files in `.claude/features/` for reference
 
+## Coding Conventions
+
+### Naming Style
+- **Variables and methods**: Use **camelCase** style (e.g., `myProject`, `getUserData()`)
+- **Note**: This applies to both frontend (JavaScript/TypeScript) and backend (Python)
+  - ⚠️ This overrides Python's PEP 8 convention (which recommends snake_case)
+
+### Code Style
+- Use meaningful variable and function names
+- Add comments for complex logic
+- Follow existing code patterns in the project
+
 ## Important Notes
 
 - The backend uses Flask's application factory pattern (`create_app()`)
