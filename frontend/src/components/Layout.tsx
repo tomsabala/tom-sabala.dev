@@ -84,8 +84,7 @@ const Layout = () => {
 
             {/* Copyright */}
             <div className="text-gray-500 text-xs self-end">
-              <p>© 2025 by Tom Sabala.</p>
-              <p>Powered and secured by Wix</p>
+              <p>© 2025 Tom Sabala. All rights reserved.</p>
             </div>
           </div>
         </div>
