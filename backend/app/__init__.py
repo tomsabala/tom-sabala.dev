@@ -25,8 +25,8 @@ def create_app():
     migrate.init_app(app, db)
 
     # CORS configuration
-    cors_origins = os.getenv('CORS_ORIGINS', 'http://localhost:5173').split(',')
-    CORS(app, origins=cors_origins)
+    corsOrigins = os.getenv('CORS_ORIGINS', 'http://localhost:5173').split(',')
+    CORS(app, origins=corsOrigins)
 
     # Import models (required for Flask-Migrate to detect them)
     with app.app_context():
