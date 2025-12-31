@@ -104,6 +104,12 @@ Typically requires two terminal sessions - backend on port 5000, frontend on por
 
 **Current Limitation:** Portfolio items and CV data are hardcoded in `backend/app/routes.py`. Contact form submissions are only logged to console. Future implementation will require database integration and email service.
 
+## Planning & Documentation
+
+- **Feature Plans**: Detailed implementation plans for features are saved in `.claude/features/` directory
+- **Roadmap**: High-level project roadmap is in `ROADMAP.md` at project root
+- When planning new features or phases, create detailed markdown files in `.claude/features/` for reference
+
 ## Important Notes
 
 - The backend uses Flask's application factory pattern (`create_app()`)
