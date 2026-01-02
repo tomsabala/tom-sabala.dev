@@ -1,5 +1,5 @@
 import { useState, FormEvent } from 'react';
-import { submitContact } from '../utils/api';
+import { submitContact } from '../repositories/contactRepository';
 import type { ContactFormData } from '../types/index';
 
 const Contact = () => {

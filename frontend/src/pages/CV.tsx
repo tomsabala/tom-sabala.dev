@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getCV } from '../utils/api';
+import { getCV } from '../repositories/resumeRepository';
 import type { CVData } from '../types/index';
 
 const CV = () => {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getPortfolio } from '../utils/api';
+import { getPortfolio } from '../repositories/portfolioRepository';
 import type { PortfolioItem } from '../types/index';
 
 const Portfolio = () => {
