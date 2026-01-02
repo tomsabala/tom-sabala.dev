@@ -99,5 +99,5 @@ def contact():
     else:
         return jsonify({
             'success': False,
-            'error': 'Failed to send message. Please try again later.'
+            'error': error
         }), 500
