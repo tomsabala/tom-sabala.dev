@@ -1,20 +1,34 @@
 # Portfolio Website Development Roadmap
 
-## Current Status
-✅ Flask backend API structure
-✅ React frontend with routing
-✅ Basic UI/UX theme implemented (Wix-inspired design)
-✅ Contact form UI (frontend only)
-✅ **PostgreSQL database setup with Docker**
-✅ **5 database models created (Project, User, Resume, About, ContactSubmission)**
-✅ **Migration system configured with incremental IDs**
-✅ **Coding conventions established (camelCase Python, snake_case DB)**
+## Current Status (Updated: 2026-01-02)
+
+### ✅ Completed
+- Flask backend API structure
+- React frontend with routing
+- Basic UI/UX theme implemented (Wix-inspired design)
+- Contact form UI (frontend only)
+- **PostgreSQL database setup with Docker**
+- **5 database models created (Project, User, Resume, About, ContactSubmission)**
+- **Migration system configured with incremental IDs**
+- **Initial migration created (001_initial_database_schema.py)**
+- **Database seed script created (seed.py - untracked)**
+- **Coding conventions established (camelCase Python, snake_case DB)**
+
+### 🔴 Critical Gap
+**API routes are still using hardcoded data instead of database!**
+- `backend/app/routes.py` returns hardcoded arrays/objects
+- Need to implement actual database CRUD operations
+
+### 📍 Current Phase
+**Phase 1.2: Backend API Implementation** (0% complete)
+- Focus: Connect existing database models to API routes
+- Priority: Replace hardcoded data with database queries
 
 ---
 
 ## Phase 1: Core Content & Database Setup
 
-### 1.1 Database Setup
+### 1.1 Database Setup ✅ **COMPLETE**
 - [x] Choose database (PostgreSQL recommended for production, SQLite for dev)
   - ✅ PostgreSQL 16 via Docker
   - ✅ Database: `dev_db`, User: `admin_dev`
@@ -40,25 +54,29 @@
   - ✅ Using `.env` file with `DATABASE_URL`
   - ✅ Docker Compose for local PostgreSQL
 
-### 1.2 Backend API Implementation
+### 1.2 Backend API Implementation 🎯 **NEXT PHASE - START HERE**
+
+⚠️ **Current Issue:** Routes in `backend/app/routes.py` return hardcoded data. Need to implement database queries.
+
 - [ ] **Portfolio/Projects API**
-  - GET `/api/portfolio` - List all projects
-  - POST `/api/portfolio` - Add new project (admin only)
-  - PUT `/api/portfolio/:id` - Update project (admin only)
-  - DELETE `/api/portfolio/:id` - Delete project (admin only)
+  - [ ] GET `/api/portfolio` - List all projects (replace hardcoded data with `Project.query.all()`)
+  - [ ] POST `/api/portfolio` - Add new project (admin only - requires auth)
+  - [ ] PUT `/api/portfolio/:id` - Update project (admin only - requires auth)
+  - [ ] DELETE `/api/portfolio/:id` - Delete project (admin only - requires auth)
 
 - [ ] **CV/Resume API**
-  - GET `/api/cv` - Get CV data
-  - PUT `/api/cv` - Update CV data (admin only)
+  - [ ] GET `/api/cv` - Get CV data (replace hardcoded data with `Resume.query.first()`)
+  - [ ] PUT `/api/cv` - Update CV data (admin only - requires auth)
 
 - [ ] **Contact Form API**
-  - POST `/api/contact` - Submit contact form
-  - GET `/api/contact` - List all submissions (admin only)
-  - Implement email notifications (SendGrid, Mailgun, or SMTP)
+  - [ ] POST `/api/contact` - Submit contact form (currently only logs, need to save to `ContactSubmission` table)
+  - [ ] GET `/api/contact` - List all submissions (admin only - requires auth)
+  - [ ] Implement email notifications (SendGrid, Mailgun, or SMTP)
 
-### 1.3 Content Management
-- [ ] Add real portfolio projects data
-- [ ] Add real CV/resume content
+### 1.3 Content Management ⏸️ **BLOCKED** (Requires 1.2 first)
+- [ ] Run seed script to populate database (`python backend/seed.py`)
+- [ ] Add real portfolio projects data (replace seed data)
+- [ ] Add real CV/resume content (replace seed data)
 - [ ] Upload and optimize project images
 - [ ] Set up file/image storage (local or cloud: AWS S3, Cloudinary)
 
@@ -348,12 +366,33 @@
 
 ---
 
-## Next Steps
+## Next Steps (Updated: 2026-01-02)
 
-**Week 1-2:**
-1. Replace placeholder content (photo, about text)
-2. Set up PostgreSQL database
-3. Create database models (Portfolio, CV, Contact)
-4. Implement backend CRUD operations
+### Immediate Priority - Phase 1.2: Backend API Implementation
 
-**Start with Quick Wins to see immediate progress!**
+**Step 1: Connect Database to API Routes**
+1. ✅ ~~Set up PostgreSQL database~~ (DONE)
+2. ✅ ~~Create database models~~ (DONE)
+3. **🎯 START HERE:** Implement database queries in `backend/app/routes.py`:
+   - Replace hardcoded portfolio data with `Project.query.all()`
+   - Replace hardcoded CV data with `Resume.query.first()`
+   - Save contact submissions to `ContactSubmission` table
+4. Run seed script to populate database: `cd backend && python seed.py`
+5. Test API endpoints return database data
+
+**Step 2: Add CRUD Operations** (Can be done in parallel or after authentication)
+- Implement POST/PUT/DELETE for projects
+- Implement PUT for CV
+- Implement GET for contact submissions
+- Add email notifications for contact form
+
+**Step 3: Authentication** (Phase 2.1 - Optional for now, needed for admin endpoints)
+- JWT authentication system
+- Protect admin-only routes
+
+**Alternative Quick Path (Skip auth for now):**
+- Focus on read-only endpoints first (GET routes)
+- Use seed data for content
+- Implement admin features (POST/PUT/DELETE) later with authentication
+
+**Start with connecting the database to existing GET routes - immediate progress!**
