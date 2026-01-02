@@ -10,7 +10,25 @@ class EmailService:
     """Service class for handling email operations"""
 
     @staticmethod
-    def sendEmail(fromEmail, subject, body):
+    def _getContent(name: str, email: str, message: str):
+
+        # Construct email content
+        subject = f"Portfolio Contact: Message from {name}"
+        body = f"""
+        <html>
+            <body>
+                <h2>New Contact Form Submission</h2>
+                <p><strong>From:</strong> {name}</p>
+                <p><strong>Email:</strong> {email}</p>
+                <p><strong>Message:</strong></p>
+                <p>{message}</p>
+            </body>
+        </html>
+        """
+        return subject, body
+
+    @staticmethod
+    def sendEmail(fromEmail: str, name: str, email: str, message: str):
         """
         Send email via SendGrid
 
@@ -33,6 +51,8 @@ class EmailService:
 
         if not sendgridFromEmail or not toEmail:
             return (False, 'Email addresses not configured')
+
+        subject, body = EmailService._getContent(name, email, message)
 
         # Create and send email
         try:

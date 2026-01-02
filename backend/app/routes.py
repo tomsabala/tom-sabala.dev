@@ -70,25 +70,12 @@ def contact():
             'error': 'Missing required fields'
         }), 400
 
-    # Construct email content
-    subject = f"Portfolio Contact: Message from {data['name']}"
-    body = f"""
-    <html>
-        <body>
-            <h2>New Contact Form Submission</h2>
-            <p><strong>From:</strong> {data['name']}</p>
-            <p><strong>Email:</strong> {data['email']}</p>
-            <p><strong>Message:</strong></p>
-            <p>{data['message']}</p>
-        </body>
-    </html>
-    """
-
     # Send email using EmailService
     success, error = EmailService.sendEmail(
         fromEmail=data['email'],
-        subject=subject,
-        body=body
+        name=data['name'],
+        email=data['email'],
+        message=data['message']
     )
 
     if success:
