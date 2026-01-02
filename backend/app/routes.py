@@ -1,4 +1,6 @@
 from flask import Blueprint, jsonify, request
+from app.services import EmailService
+from app.dao import ProjectDAO, ResumeDAO
 
 api_bp = Blueprint('api', __name__)
 
@@ -14,81 +16,50 @@ def healthCheck():
 
 @api_bp.route('/portfolio', methods=['GET'])
 def getPortfolio():
-    """Get portfolio items"""
-    # TODO: Replace with database/file-based storage
-    portfolioItems = [
-        {
-            'id': 1,
-            'title': 'Sample Project 1',
-            'description': 'A full-stack web application built with React and Flask',
-            'technologies': ['React', 'Flask', 'PostgreSQL'],
-            'github_url': 'https://github.com/yourusername/project1',
-            'live_url': 'https://project1.example.com',
-            'image_url': '/images/project1.png'
-        },
-        {
-            'id': 2,
-            'title': 'Sample Project 2',
-            'description': 'Mobile application for task management',
-            'technologies': ['Flutter', 'Firebase'],
-            'github_url': 'https://github.com/yourusername/project2',
-            'live_url': None,
-            'image_url': '/images/project2.png'
-        }
-    ]
+    """Get portfolio items from database"""
+    try:
+        projects = ProjectDAO.getAllProjects()
+        portfolioItems = [project.toDict() for project in projects]
 
-    return jsonify({
-        'success': True,
-        'data': portfolioItems
-    }), 200
+        return jsonify({
+            'success': True,
+            'data': portfolioItems
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 
 @api_bp.route('/cv', methods=['GET'])
 def getCv():
-    """Get CV/Resume data"""
-    # TODO: Replace with database/file-based storage
-    cvData = {
-        'personal_info': {
-            'name': 'Tom Sabala',
-            'title': 'Software Engineer',
-            'email': 'tom@sabala.dev',
-            'location': 'Your Location',
-            'summary': 'Passionate software engineer with expertise in full-stack development'
-        },
-        'experience': [
-            {
-                'company': 'Company Name',
-                'position': 'Software Engineer',
-                'start_date': '2022-01',
-                'end_date': 'Present',
-                'description': 'Building scalable web applications',
-                'technologies': ['React', 'Python', 'Flask', 'PostgreSQL']
-            }
-        ],
-        'education': [
-            {
-                'institution': 'University Name',
-                'degree': 'Bachelor of Science in Computer Science',
-                'start_date': '2018',
-                'end_date': '2022'
-            }
-        ],
-        'skills': {
-            'languages': ['Python', 'JavaScript', 'TypeScript', 'Dart'],
-            'frameworks': ['React', 'Flask', 'Flutter'],
-            'tools': ['Git', 'Docker', 'PostgreSQL']
-        }
-    }
+    """Get CV/Resume data from database"""
+    try:
+        resume = ResumeDAO.getResume()
 
-    return jsonify({
-        'success': True,
-        'data': cvData
-    }), 200
+        if not resume:
+            return jsonify({
+                'success': False,
+                'error': 'No resume data found. Please run the seed script.'
+            }), 404
+
+        cvData = resume.toDict()
+
+        return jsonify({
+            'success': True,
+            'data': cvData
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 
 @api_bp.route('/contact', methods=['POST'])
 def contact():
-    """Handle contact form submissions"""
+    """Handle contact form submissions - send email via SendGrid"""
     data = request.get_json()
 
     # Validate required fields
@@ -99,11 +70,20 @@ def contact():
             'error': 'Missing required fields'
         }), 400
 
-    # TODO: Implement email sending or database storage
-    # For now, just log and return success
-    print(f"Contact form submission from {data['name']} ({data['email']}): {data['message']}")
+    # Send email using EmailService
+    success, error = EmailService.sendContactEmail(
+        name=data['name'],
+        email=data['email'],
+        message=data['message']
+    )
 
-    return jsonify({
-        'success': True,
-        'message': 'Thank you for your message! I will get back to you soon.'
-    }), 200
+    if success:
+        return jsonify({
+            'success': True,
+            'message': 'Thank you for your message! I will get back to you soon.'
+        }), 200
+    else:
+        return jsonify({
+            'success': False,
+            'error': 'Failed to send message. Please try again later.'
+        }), 500
