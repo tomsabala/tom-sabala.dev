@@ -53,11 +53,6 @@ export interface User {
   lastLogin: string | null;
 }
 
-export interface LoginCredentials {
-  email: string;
-  password: string;
-}
-
 export interface AuthResponse {
   success: boolean;
   message?: string;

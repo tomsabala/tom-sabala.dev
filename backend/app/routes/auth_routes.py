@@ -78,44 +78,6 @@ def googleLogin():
         return jsonify({'success': False, 'error': f'Server error: {str(e)}'}), 500
 
 
-@auth_bp.route('/login', methods=['POST'])
-def login():
-    """
-    Login endpoint - authenticates user and sets JWT cookies
-
-    Request body:
-        {
-            "email": "user@example.com",
-            "password": "password123"
-        }
-
-    Returns:
-        200: Login successful with user data and JWT cookies set
-        400: Missing email or password
-        401: Invalid credentials
-    """
-    data = request.get_json()
-    if not data or 'email' not in data or 'password' not in data:
-        return jsonify({'success': False, 'error': 'Email and password required'}), 400
-
-    user, error = AuthService.authenticateUser(data['email'], data['password'])
-    if error or not user:
-        return jsonify({'success': False, 'error': error or 'Authentication failed'}), 401
-
-    tokens = AuthService.generateTokens(user.id)
-    AuthService.updateLoginTimestamp(user.id)
-
-    response = make_response(jsonify({
-        'success': True,
-        'message': 'Login successful',
-        'data': {'user': user.toDict()}
-    }), 200)
-
-    set_access_cookies(response, tokens['accessToken'])
-    set_refresh_cookies(response, tokens['refreshToken'])
-    return response
-
-
 @auth_bp.route('/logout', methods=['POST'])
 @jwt_required()
 def logout():

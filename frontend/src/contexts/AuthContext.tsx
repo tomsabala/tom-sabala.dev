@@ -14,11 +14,6 @@ interface User {
   lastLogin: string | null;
 }
 
-interface LoginCredentials {
-  email: string;
-  password: string;
-}
-
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
@@ -26,7 +21,6 @@ interface AuthState {
 }
 
 interface AuthContextType extends AuthState {
-  login: (credentials: LoginCredentials) => Promise<{ success: boolean; error?: string }>;
   googleLogin: (credential: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
@@ -88,29 +82,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   /**
-   * Login user with credentials
-   */
-  const login = async (credentials: LoginCredentials) => {
-    try {
-      const response = await authRepository.login(credentials);
-      if (response.success && response.data?.user) {
-        setAuthState({
-          user: response.data.user,
-          isAuthenticated: true,
-          isLoading: false,
-        });
-        return { success: true };
-      }
-      return { success: false, error: response.error || 'Login failed' };
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.response?.data?.error || 'Login failed',
-      };
-    }
-  };
-
-  /**
    * Login user with Google OAuth
    */
   const googleLogin = async (credential: string) => {
@@ -167,7 +138,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     <AuthContext.Provider
       value={{
         ...authState,
-        login,
         googleLogin,
         logout,
         checkAuth,

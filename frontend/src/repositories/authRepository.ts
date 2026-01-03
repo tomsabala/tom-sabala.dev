@@ -3,15 +3,7 @@
  * Handles all authentication-related API calls
  */
 import { apiClient } from './apiClient';
-import type { LoginCredentials, AuthResponse } from '../types';
-
-/**
- * Login user and set JWT cookies
- */
-export const login = async (credentials: LoginCredentials): Promise<AuthResponse> => {
-  const response = await apiClient.post('/auth/login', credentials);
-  return response.data;
-};
+import type { AuthResponse } from '../types';
 
 /**
  * Google OAuth login - verify Google ID token and set JWT cookies
