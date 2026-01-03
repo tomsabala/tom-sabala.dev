@@ -64,6 +64,14 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
     };
   }, [isOpen, onClose]);
 
+  // Reset states when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setIsLoading(false);
+      setError('');
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
