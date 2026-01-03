@@ -9,7 +9,9 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(200), unique=True, nullable=False)
-    passwordHash = db.Column('password_hash', db.String(255), nullable=False)
+    passwordHash = db.Column('password_hash', db.String(255), nullable=True)  # Nullable for OAuth users
+    googleId = db.Column('google_id', db.String(255), unique=True, nullable=True)  # Google OAuth ID
+    profilePicture = db.Column('profile_picture', db.String(500), nullable=True)  # Google profile picture URL
     createdAt = db.Column('created_at', db.DateTime, nullable=False, default=datetime.utcnow)
     lastLogin = db.Column('last_login', db.DateTime, nullable=True)
 
@@ -19,6 +21,8 @@ class User(db.Model):
 
     def checkPassword(self, password):
         """Check if the provided password matches the hash"""
+        if not self.passwordHash:
+            return False
         return check_password_hash(self.passwordHash, password)
 
     def toDict(self):
@@ -27,6 +31,7 @@ class User(db.Model):
             'id': self.id,
             'username': self.username,
             'email': self.email,
+            'profilePicture': self.profilePicture,
             'createdAt': self.createdAt.isoformat() if self.createdAt else None,
             'lastLogin': self.lastLogin.isoformat() if self.lastLogin else None
         }
