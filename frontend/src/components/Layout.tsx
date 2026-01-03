@@ -50,22 +50,23 @@ const Layout = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f5f5f5] flex flex-col">
-      {/* Header Navigation */}
-      <nav className="bg-white border-b border-gray-200">
+    <div className="h-screen bg-[#f5f5f5] flex flex-col">
+      {/* Fixed Header Navigation */}
+      <nav className="fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-40">
         <div className="max-w-7xl mx-auto px-8 py-4">
           <div className="flex justify-between items-center">
-            {/* Logo/Name - Hidden login trigger */}
-            <div
-              onClick={handleHeaderClick}
-              className="flex items-center space-x-2 cursor-pointer select-none"
+            {/* Logo/Name - Hidden login trigger (only when not authenticated) */}
+            <Link
+              to="/"
+              onClick={!isAuthenticated ? handleHeaderClick : undefined}
+              className="flex items-center space-x-2 cursor-pointer select-none hover:opacity-80 transition-opacity"
             >
               <div className="w-8 h-8 bg-orange-400 rounded-full"></div>
               <div>
                 <span className="font-semibold text-gray-900">Tom Sabala</span>
                 <span className="text-gray-500 text-sm ml-2">Software Engineer</span>
               </div>
-            </div>
+            </Link>
 
             {/* Navigation Links */}
             <div className="flex items-center space-x-1 text-sm text-gray-600">
@@ -98,13 +99,13 @@ const Layout = () => {
         </div>
       </nav>
 
-      {/* Main Content */}
-      <main className="flex-1">
+      {/* Scrollable Main Content */}
+      <main className="flex-1 overflow-y-auto pt-[72px] pb-[100px]">
         <Outlet />
       </main>
 
-      {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 mt-auto">
+      {/* Fixed Footer */}
+      <footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40">
         <div className="max-w-7xl mx-auto px-8 py-6">
           <div className="flex justify-between items-start">
             {/* Phone */}
