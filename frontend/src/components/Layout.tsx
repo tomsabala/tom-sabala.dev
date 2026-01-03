@@ -1,20 +1,71 @@
 import { Link, Outlet } from 'react-router-dom';
+import { useState, useRef, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import LoginModal from './LoginModal';
 
 const Layout = () => {
+  const { isAuthenticated, logout } = useAuth();
+  const [clickCount, setClickCount] = useState(0);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const clickTimestamps = useRef<number[]>([]);
+
+  // Handle header clicks for hidden login trigger
+  const handleHeaderClick = () => {
+    const now = Date.now();
+
+    // Add current timestamp
+    clickTimestamps.current.push(now);
+
+    // Remove timestamps older than 2 seconds
+    clickTimestamps.current = clickTimestamps.current.filter(
+      timestamp => now - timestamp <= 2000
+    );
+
+    // Update click count
+    setClickCount(clickTimestamps.current.length);
+
+    // Open modal if 7 clicks within 2 seconds
+    if (clickTimestamps.current.length >= 7) {
+      setIsLoginModalOpen(true);
+      // Reset counter
+      clickTimestamps.current = [];
+      setClickCount(0);
+    }
+  };
+
+  // Reset click count after 2 seconds of no clicks
+  useEffect(() => {
+    if (clickCount > 0) {
+      const timer = setTimeout(() => {
+        setClickCount(0);
+        clickTimestamps.current = [];
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [clickCount]);
+
+  // Handle logout
+  const handleLogout = async () => {
+    await logout();
+  };
+
   return (
     <div className="min-h-screen bg-[#f5f5f5] flex flex-col">
       {/* Header Navigation */}
       <nav className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-8 py-4">
           <div className="flex justify-between items-center">
-            {/* Logo/Name */}
-            <Link to="/" className="flex items-center space-x-2">
+            {/* Logo/Name - Hidden login trigger */}
+            <div
+              onClick={handleHeaderClick}
+              className="flex items-center space-x-2 cursor-pointer select-none"
+            >
               <div className="w-8 h-8 bg-orange-400 rounded-full"></div>
               <div>
                 <span className="font-semibold text-gray-900">Tom Sabala</span>
                 <span className="text-gray-500 text-sm ml-2">Software Engineer</span>
               </div>
-            </Link>
+            </div>
 
             {/* Navigation Links */}
             <div className="flex items-center space-x-1 text-sm text-gray-600">
@@ -29,6 +80,19 @@ const Layout = () => {
               <Link to="/contact" className="hover:text-gray-900 transition-colors">
                 Contact
               </Link>
+
+              {/* Sign Out Button (only shown when authenticated) */}
+              {isAuthenticated && (
+                <>
+                  <span className="text-gray-400">|</span>
+                  <button
+                    onClick={handleLogout}
+                    className="text-orange-500 hover:text-orange-600 transition-colors font-medium"
+                  >
+                    Sign Out
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -89,6 +153,12 @@ const Layout = () => {
           </div>
         </div>
       </footer>
+
+      {/* Login Modal */}
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+      />
     </div>
   );
 };
