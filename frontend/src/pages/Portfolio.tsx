@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { getPortfolio } from '../repositories/portfolioRepository';
+import { useAuth } from '../contexts/AuthContext';
 import type { PortfolioItem } from '../types/index';
 
 const Portfolio = () => {
+  const { isAuthenticated } = useAuth();
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +44,7 @@ const Portfolio = () => {
   }
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-gray-50 py-12">
+    <div className="py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-12">
@@ -51,6 +53,21 @@ const Portfolio = () => {
             A collection of projects showcasing my skills in full-stack development,
             problem-solving, and building scalable applications.
           </p>
+
+          {/* Admin: Add Project Button */}
+          {isAuthenticated && (
+            <div className="mt-6">
+              <button
+                onClick={() => alert('Add Project feature coming soon!')}
+                className="bg-orange-500 hover:bg-orange-600 text-white font-medium px-6 py-3 rounded-lg transition-colors shadow-md hover:shadow-lg flex items-center gap-2 mx-auto"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Add New Project
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Project Grid */}
@@ -119,6 +136,34 @@ const Portfolio = () => {
                     </a>
                   )}
                 </div>
+
+                {/* Admin: Edit/Delete Buttons */}
+                {isAuthenticated && (
+                  <div className="flex gap-2 pt-4 border-t border-gray-100 mt-4">
+                    <button
+                      onClick={() => alert(`Edit project: ${item.title}`)}
+                      className="flex-1 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded transition-colors flex items-center justify-center gap-1"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (window.confirm(`Delete "${item.title}"?`)) {
+                          alert(`Delete project: ${item.title}`);
+                        }
+                      }}
+                      className="flex-1 bg-red-500 hover:bg-red-600 text-white text-sm font-medium px-4 py-2 rounded transition-colors flex items-center justify-center gap-1"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      Delete
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           ))}
