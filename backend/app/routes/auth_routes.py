@@ -7,8 +7,75 @@ from flask_jwt_extended import (
     set_refresh_cookies, unset_jwt_cookies, create_access_token
 )
 from app.services import AuthService
+from app.services.google_oauth_service import GoogleOAuthService
+from app.dao import UserDAO
 
 auth_bp = Blueprint('auth', __name__)
+
+
+@auth_bp.route('/google', methods=['POST'])
+def googleLogin():
+    """
+    Google OAuth login endpoint - verifies Google ID token and creates session
+
+    Request body:
+        {
+            "credential": "google-id-token-here"
+        }
+
+    Returns:
+        200: Login successful with user data and JWT cookies set
+        400: Missing credential or invalid token
+        403: Email not whitelisted
+        500: Server error
+    """
+    data = request.get_json()
+
+    if not data or 'credential' not in data:
+        return jsonify({'success': False, 'error': 'Google credential required'}), 400
+
+    # Verify Google token
+    userInfo, error = GoogleOAuthService.verifyGoogleToken(data['credential'])
+    if error or not userInfo:
+        return jsonify({'success': False, 'error': error or 'Invalid Google token'}), 400
+
+    # Check email verification
+    if not userInfo.get('emailVerified'):
+        return jsonify({'success': False, 'error': 'Email not verified by Google'}), 400
+
+    # Check whitelist
+    if not GoogleOAuthService.isEmailWhitelisted(userInfo['email']):
+        return jsonify({
+            'success': False,
+            'error': 'Access denied. Your email is not authorized.'
+        }), 403
+
+    try:
+        # Create or update user in database
+        user = UserDAO.createOrUpdateGoogleUser(
+            googleId=userInfo['googleId'],
+            email=userInfo['email'],
+            name=userInfo['name'],
+            profilePicture=userInfo.get('picture')
+        )
+
+        # Generate JWT tokens
+        tokens = AuthService.generateTokens(user.id)
+        UserDAO.updateLastLogin(user.id)
+
+        # Set cookies and return response
+        response = make_response(jsonify({
+            'success': True,
+            'message': 'Login successful',
+            'data': {'user': user.toDict()}
+        }), 200)
+
+        set_access_cookies(response, tokens['accessToken'])
+        set_refresh_cookies(response, tokens['refreshToken'])
+        return response
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Server error: {str(e)}'}), 500
 
 
 @auth_bp.route('/login', methods=['POST'])
