@@ -14,6 +14,14 @@ export const login = async (credentials: LoginCredentials): Promise<AuthResponse
 };
 
 /**
+ * Google OAuth login - verify Google ID token and set JWT cookies
+ */
+export const googleLogin = async (credential: string): Promise<AuthResponse> => {
+  const response = await apiClient.post('/auth/google', { credential });
+  return response.data;
+};
+
+/**
  * Logout user and clear JWT cookies
  */
 export const logout = async (): Promise<AuthResponse> => {

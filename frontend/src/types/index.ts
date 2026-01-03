@@ -48,6 +48,7 @@ export interface User {
   id: number;
   username: string;
   email: string;
+  profilePicture?: string;
   createdAt: string;
   lastLogin: string | null;
 }
@@ -62,19 +63,6 @@ export interface AuthResponse {
   message?: string;
   data?: { user: User };
   error?: string;
-}
-
-export interface AuthState {
-  user: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-}
-
-export interface AuthContextType extends AuthState {
-  login: (credentials: LoginCredentials) => Promise<{ success: boolean; error?: string }>;
-  logout: () => Promise<void>;
-  checkAuth: () => Promise<void>;
-  refreshToken: () => Promise<boolean>;
 }
 
 // Dashboard Types

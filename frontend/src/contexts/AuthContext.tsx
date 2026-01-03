@@ -3,8 +3,35 @@
  * Provides authentication state and methods to all components
  */
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { AuthContextType, AuthState, LoginCredentials } from '../types';
 import * as authRepository from '../repositories/authRepository';
+
+interface User {
+  id: number;
+  username: string;
+  email: string;
+  profilePicture?: string;
+  createdAt: string;
+  lastLogin: string | null;
+}
+
+interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
+interface AuthState {
+  user: User | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+}
+
+interface AuthContextType extends AuthState {
+  login: (credentials: LoginCredentials) => Promise<{ success: boolean; error?: string }>;
+  googleLogin: (credential: string) => Promise<{ success: boolean; error?: string }>;
+  logout: () => Promise<void>;
+  checkAuth: () => Promise<void>;
+  refreshToken: () => Promise<boolean>;
+}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -21,7 +48,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Check authentication status on mount
   useEffect(() => {
-    checkAuth();
+    checkAuth().catch(err => {
+      console.error('Auth check failed:', err);
+      // Set loading to false even if check fails
+      setAuthState({
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+      });
+    });
   }, []);
 
   /**
@@ -76,6 +111,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   /**
+   * Login user with Google OAuth
+   */
+  const googleLogin = async (credential: string) => {
+    try {
+      const response = await authRepository.googleLogin(credential);
+      if (response.success && response.data?.user) {
+        setAuthState({
+          user: response.data.user,
+          isAuthenticated: true,
+          isLoading: false,
+        });
+        return { success: true };
+      }
+      return { success: false, error: response.error || 'Google login failed' };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.error || 'Google login failed',
+      };
+    }
+  };
+
+  /**
    * Logout user and clear authentication state
    */
   const logout = async () => {
@@ -110,6 +168,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       value={{
         ...authState,
         login,
+        googleLogin,
         logout,
         checkAuth,
         refreshToken,
