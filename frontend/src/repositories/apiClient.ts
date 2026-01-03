@@ -26,8 +26,15 @@ apiClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // If 401 and not already retried
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Don't retry if:
+    // 1. Already retried
+    // 2. The request itself was to /auth/refresh (prevent infinite loop)
+    // 3. Not a 401 error
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !originalRequest.url?.includes('/auth/refresh')
+    ) {
       originalRequest._retry = true;
 
       try {
@@ -37,8 +44,8 @@ apiClient.interceptors.response.use(
         // Retry the original request
         return apiClient(originalRequest);
       } catch (refreshError) {
-        // Refresh failed - redirect to login
-        window.location.href = '/login';
+        // Refresh failed - user can re-login via hidden trigger
+        // Don't redirect since there's no /login page
         return Promise.reject(refreshError);
       }
     }
