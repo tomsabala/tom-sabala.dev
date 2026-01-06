@@ -46,7 +46,7 @@ def create_app():
          origins=corsOrigins,
          supports_credentials=True,  # CRITICAL for cookies
          allow_headers=['Content-Type', 'Authorization'],
-         expose_headers=['Content-Type'])
+         expose_headers=['Content-Type', 'Content-Disposition'])  # Content-Disposition for file downloads
 
     # Import models (required for Flask-Migrate to detect them)
     with app.app_context():
