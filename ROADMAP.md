@@ -1,6 +1,6 @@
 # Portfolio Website Development Roadmap
 
-## Current Status (Updated: 2026-01-02)
+## Current Status (Updated: 2026-01-06)
 
 ### ✅ Completed
 - Flask backend API structure
@@ -13,16 +13,26 @@
 - **Initial migration created (001_initial_database_schema.py)**
 - **Database seed script created (seed.py - untracked)**
 - **Coding conventions established (camelCase Python, snake_case DB)**
-
-### 🔴 Critical Gap
-**API routes are still using hardcoded data instead of database!**
-- `backend/app/routes.py` returns hardcoded arrays/objects
-- Need to implement actual database CRUD operations
+- **✅ Phase 1.2: Backend API Implementation - COMPLETE**
+  - All routes use database queries (no hardcoded data!)
+  - DAO pattern implemented (ProjectDAO, ResumeDAO, UserDAO)
+  - Service layer created (AuthService, EmailService, GoogleOAuthService)
+  - Routes organized by domain (portfolio_routes, resume_routes, contact_routes, auth_routes)
+- **✅ Phase 2.1: Authentication System - COMPLETE**
+  - Google OAuth integration
+  - JWT token management with cookies
+  - Protected admin routes with @jwt_required()
+  - Email whitelist for access control
+- **🟡 Phase 2.2: Admin Panel - 40% COMPLETE**
+  - Frontend AuthContext and LoginModal implemented
+  - Hidden login trigger (click header 7 times)
+  - Admin controls visible on Portfolio page
+  - ❌ Admin buttons not yet connected to APIs
 
 ### 📍 Current Phase
-**Phase 1.2: Backend API Implementation** (0% complete)
-- Focus: Connect existing database models to API routes
-- Priority: Replace hardcoded data with database queries
+**Phase 2.2: Admin Panel (Frontend)** (~40% complete)
+- Focus: Connect admin UI controls to backend APIs
+- Priority: Implement Add/Edit/Delete modals and API calls for portfolio management
 
 ---
 
@@ -54,26 +64,26 @@
   - ✅ Using `.env` file with `DATABASE_URL`
   - ✅ Docker Compose for local PostgreSQL
 
-### 1.2 Backend API Implementation 🎯 **NEXT PHASE - START HERE**
+### 1.2 Backend API Implementation ✅ **COMPLETE**
 
-⚠️ **Current Issue:** Routes in `backend/app/routes.py` return hardcoded data. Need to implement database queries.
+✅ **All routes now use database queries via DAO pattern!**
 
-- [ ] **Portfolio/Projects API**
-  - [ ] GET `/api/portfolio` - List all projects (replace hardcoded data with `Project.query.all()`)
-  - [ ] POST `/api/portfolio` - Add new project (admin only - requires auth)
-  - [ ] PUT `/api/portfolio/:id` - Update project (admin only - requires auth)
-  - [ ] DELETE `/api/portfolio/:id` - Delete project (admin only - requires auth)
+- [x] **Portfolio/Projects API**
+  - [x] GET `/api/portfolio` - List all projects (using `ProjectDAO.getAllProjects()`)
+  - [x] POST `/api/portfolio` - Add new project (admin only - JWT protected)
+  - [x] PUT `/api/portfolio/:id` - Update project (admin only - JWT protected)
+  - [x] DELETE `/api/portfolio/:id` - Delete project (admin only - JWT protected)
 
-- [ ] **CV/Resume API**
-  - [ ] GET `/api/cv` - Get CV data (replace hardcoded data with `Resume.query.first()`)
-  - [ ] PUT `/api/cv` - Update CV data (admin only - requires auth)
+- [x] **CV/Resume API**
+  - [x] GET `/api/cv` - Get CV data (using `ResumeDAO.getResume()`)
+  - [x] PUT `/api/cv` - Update CV data (admin only - JWT protected)
 
-- [ ] **Contact Form API**
-  - [ ] POST `/api/contact` - Submit contact form (currently only logs, need to save to `ContactSubmission` table)
-  - [ ] GET `/api/contact` - List all submissions (admin only - requires auth)
-  - [ ] Implement email notifications (SendGrid, Mailgun, or SMTP)
+- [x] **Contact Form API**
+  - [x] POST `/api/contact` - Submit contact form (sends email via SendGrid)
+  - [ ] GET `/api/contact` - List all submissions (admin only - not yet implemented)
+  - [x] Email notifications (SendGrid integration complete)
 
-### 1.3 Content Management ⏸️ **BLOCKED** (Requires 1.2 first)
+### 1.3 Content Management 🎯 **READY TO START**
 - [ ] Run seed script to populate database (`python backend/seed.py`)
 - [ ] Add real portfolio projects data (replace seed data)
 - [ ] Add real CV/resume content (replace seed data)
@@ -84,26 +94,33 @@
 
 ## Phase 2: Authentication & Admin Panel
 
-### 2.1 Authentication System
-- [ ] Choose auth method (JWT recommended)
-- [ ] Implement user model (admin only for now)
-- [ ] Create authentication endpoints:
-  - POST `/api/auth/login` - Admin login
-  - POST `/api/auth/logout` - Logout
-  - GET `/api/auth/me` - Get current user
-- [ ] Add password hashing (bcrypt)
-- [ ] Implement JWT token generation and validation
-- [ ] Add protected route middleware
+### 2.1 Authentication System ✅ **COMPLETE**
+- [x] Choose auth method (Google OAuth + JWT)
+- [x] Implement user model (Google OAuth integration)
+- [x] Create authentication endpoints:
+  - [x] POST `/api/auth/google` - Google OAuth login
+  - [x] POST `/api/auth/logout` - Logout
+  - [x] GET `/api/auth/me` - Get current user
+  - [x] POST `/api/auth/refresh` - Refresh access token
+  - [x] GET `/api/auth/check` - Check authentication status
+- [x] JWT token generation and validation (with cookies)
+- [x] Protected route middleware (`@jwt_required()`)
+- [x] Email whitelist for access control
 
-### 2.2 Admin Panel (Frontend)
-- [ ] Create admin login page
+### 2.2 Admin Panel (Frontend) 🟡 **40% COMPLETE - IN PROGRESS**
+- [x] Create admin login modal (hidden trigger: click header 7x)
+- [x] Frontend AuthContext for state management
+- [x] Admin controls visible on Portfolio page
 - [ ] Admin dashboard layout
 - [ ] Portfolio management interface:
-  - Add/edit/delete projects
-  - Upload project images
+  - [ ] Add project modal with form
+  - [ ] Edit project modal with form
+  - [ ] Delete project with confirmation
+  - [ ] Connect buttons to API calls
+  - [ ] Upload project images
 - [ ] CV management interface
 - [ ] Contact form inbox
-- [ ] Protected admin routes
+- [x] Protected admin routes (frontend context-based)
 
 ---
 
@@ -303,41 +320,59 @@
 
 ---
 
-## Quick Wins (Start Here!)
+## Quick Wins
 
-1. **Replace placeholders** (1-2 hours)
+### ✅ Completed Quick Wins
+1. ✅ **Database setup** - PostgreSQL with Docker
+2. ✅ **Contact form backend** - Saves to DB + sends email via SendGrid
+3. ✅ **Authentication** - Google OAuth + JWT (better than originally planned!)
+
+### 🎯 Next Quick Wins (Do These!)
+
+1. **Run seed script** (~5 minutes)
+   - `cd backend && python seed.py`
+   - Populate database with sample projects
+
+2. **Connect admin buttons** (2-3 hours)
+   - Create ProjectFormModal component
+   - Wire up Add/Edit/Delete to API calls
+   - See immediate portfolio management working!
+
+3. **Replace placeholders** (1-2 hours)
    - Add your real photo
    - Write your "About Me" section
+   - Update seed data with real projects
 
-2. **Set up database locally** (2-3 hours)
-   - Install PostgreSQL
-   - Create basic models
-   - Populate with sample data
-
-3. **Implement contact form backend** (2-3 hours)
-   - Save submissions to database
-   - Send email notifications
-
-4. **Add 2-3 real projects** (2-4 hours)
-   - Add to database
-   - Test portfolio page
-
-5. **Basic authentication** (4-6 hours)
-   - Simple JWT auth
-   - Protect admin endpoints
+4. **Test end-to-end admin workflow** (30 minutes)
+   - Login with Google OAuth
+   - Add a new project through admin UI
+   - Edit and delete projects
+   - Verify changes persist in database
 
 ---
 
-## Estimated Timeline
+## Progress & Timeline
 
-- **Phase 1-2**: 2-3 weeks (Database + Backend APIs + Auth)
+**Overall Progress: ~35% Complete** 🎉
+
+- ✅ **Phase 1.1-1.2**: Database + Backend APIs (COMPLETE)
+- ✅ **Phase 2.1**: Authentication (COMPLETE)
+- 🟡 **Phase 2.2**: Admin Panel Frontend (40% complete - IN PROGRESS)
+- ⏳ **Phase 1.3**: Content Management (Ready to start)
+- ⏳ **Phase 3**: Security (Not started)
+- ⏳ **Phase 4**: Design enhancements + Features (Not started)
+- ⏳ **Phase 5**: Testing (Not started)
+- ⏳ **Phase 6-7**: Deployment (Not started)
+
+**Remaining Timeline Estimate:**
+- **Phase 2.2 completion**: ~1-2 weeks (Admin UI)
+- **Phase 1.3**: ~1 week (Content + Images)
 - **Phase 3**: 1 week (Security)
 - **Phase 4**: 2-3 weeks (Design enhancements + Features)
 - **Phase 5**: 1-2 weeks (Testing)
 - **Phase 6-7**: 1 week (Deployment)
-- **Phase 8**: 1-2 days (Custom domain)
 
-**Total: ~8-12 weeks** (working part-time)
+**Estimated Time to MVP: ~4-6 weeks** (working part-time)
 
 ---
 
@@ -366,33 +401,37 @@
 
 ---
 
-## Next Steps (Updated: 2026-01-02)
+## Next Steps (Updated: 2026-01-06)
 
-### Immediate Priority - Phase 1.2: Backend API Implementation
+### Immediate Priority - Phase 2.2: Admin Panel Frontend
 
-**Step 1: Connect Database to API Routes**
-1. ✅ ~~Set up PostgreSQL database~~ (DONE)
-2. ✅ ~~Create database models~~ (DONE)
-3. **🎯 START HERE:** Implement database queries in `backend/app/routes.py`:
-   - Replace hardcoded portfolio data with `Project.query.all()`
-   - Replace hardcoded CV data with `Resume.query.first()`
-   - Save contact submissions to `ContactSubmission` table
-4. Run seed script to populate database: `cd backend && python seed.py`
-5. Test API endpoints return database data
+**✅ Completed:**
+1. ✅ Backend API with database integration (Phase 1.2)
+2. ✅ Google OAuth + JWT authentication (Phase 2.1)
+3. ✅ Admin login modal and AuthContext
 
-**Step 2: Add CRUD Operations** (Can be done in parallel or after authentication)
-- Implement POST/PUT/DELETE for projects
-- Implement PUT for CV
-- Implement GET for contact submissions
-- Add email notifications for contact form
+**🎯 Current Focus: Connect Admin UI to Backend APIs**
 
-**Step 3: Authentication** (Phase 2.1 - Optional for now, needed for admin endpoints)
-- JWT authentication system
-- Protect admin-only routes
+**Step 1: Portfolio Management UI** (Highest Priority)
+1. Create `ProjectFormModal` component for Add/Edit operations
+2. Connect "Add New Project" button to open modal
+3. Connect "Edit" button to open modal with existing data
+4. Connect "Delete" button to API call with confirmation
+5. Implement form validation and error handling
+6. Add success/error notifications
 
-**Alternative Quick Path (Skip auth for now):**
-- Focus on read-only endpoints first (GET routes)
-- Use seed data for content
-- Implement admin features (POST/PUT/DELETE) later with authentication
+**Step 2: Content Population**
+1. Run seed script: `cd backend && python seed.py`
+2. Test that portfolio items display correctly
+3. Add real project data through admin interface
 
-**Start with connecting the database to existing GET routes - immediate progress!**
+**Step 3: CV and Contact Management** (Secondary Priority)
+1. Add CV edit interface on CV page (admin only)
+2. Create contact submissions inbox page
+3. Implement GET `/api/contact` endpoint for submissions list
+
+**Step 4: Image Upload** (Future Enhancement)
+- Implement image upload for project images
+- Set up cloud storage (Cloudinary/AWS S3)
+
+**Quick Win:** Focus on getting Add/Edit/Delete working for projects first - this will provide immediate value for managing portfolio content!

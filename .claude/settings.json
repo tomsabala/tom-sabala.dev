@@ -1,0 +1,20 @@
+{
+  "bashPermissions": {
+    "mode": "allowlist",
+    "allowPatterns": [
+      "git rev-parse --show-toplevel*",
+      "git rev-parse*",
+      "git diff*",
+      "git status*",
+      "rg *",
+      "grep *",
+      "bash -lc*",
+      "pwd",
+      "cd *",
+      "echo *",
+      "head *",
+      "set -euo pipefail*",
+      "*"
+    ]
+  }
+}

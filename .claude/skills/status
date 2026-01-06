@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+
+# Claude Code Skill: Project Status Analyzer
+# Analyzes markdown files for TODOs and validates against codebase
+
+cat << 'PROMPT'
+Please analyze the project status by doing the following:
+
+1. **Scan all markdown documentation files** (especially in .claude/ directory and ROADMAP.md):
+   - Look for checkbox items [ ] and [x]
+   - Identify TODO items, implementation steps, and features
+   - Note which items are marked complete vs incomplete
+
+2. **Categorize by status**:
+   - ✅ COMPLETED: Items marked [x] or explicitly stated as complete
+   - 🔄 IN PROGRESS: Items marked as in progress or partially complete
+   - ⏸️ BLOCKED: Items marked as blocked or dependent on other tasks
+   - ❌ NOT STARTED: Items marked [ ] or not yet implemented
+
+3. **Validate against actual codebase**:
+   - Check if completed items are actually implemented in the code
+   - Identify discrepancies between documentation and reality
+   - Look for implemented features not documented
+   - Verify file paths and code mentioned in the docs actually exist
+
+4. **Provide a summary report** with:
+   - Overall project completion percentage by phase/feature
+   - Current phase/focus area
+   - Next priority tasks (top 3-5)
+   - Any blockers or issues found
+   - Discrepancies between docs and codebase
+
+5. **Output format**:
+   ```
+   # Project Status Report (Generated: DATE)
+
+   ## Summary
+   - Overall Progress: X%
+   - Current Phase: [Phase name]
+   - Last Updated: [When docs were last updated]
+
+   ## Phase Status Breakdown
+
+   ### Phase 1: [Name] (X% complete)
+   ✅ Completed: [count]
+   🔄 In Progress: [count]
+   ❌ Not Started: [count]
+
+   [List key items in each category]
+
+   ## Validation Issues
+   - [Any discrepancies between docs and code]
+
+   ## Next Steps (Priority Order)
+   1. [Highest priority task]
+   2. [Second priority]
+   3. [Third priority]
+
+   ## Recommendations
+   - [Suggestions based on current state]
+   ```
+
+Please provide a comprehensive status report now.
+PROMPT
