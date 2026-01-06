@@ -54,4 +54,47 @@ apiClient.interceptors.response.use(
   }
 );
 
+/**
+ * File upload API client for multipart/form-data
+ * Used for PDF uploads and other file operations
+ */
+export const fileUploadClient = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'multipart/form-data',
+  },
+  withCredentials: true, // CRITICAL: Enables HttpOnly cookies for JWT auth
+});
+
+/**
+ * Apply same 401 interceptor to file upload client
+ * Ensures file uploads can also refresh tokens automatically
+ */
+fileUploadClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !originalRequest.url?.includes('/auth/refresh')
+    ) {
+      originalRequest._retry = true;
+
+      try {
+        // Attempt to refresh the token using main apiClient
+        await apiClient.post('/auth/refresh');
+
+        // Retry the original file upload request
+        return fileUploadClient(originalRequest);
+      } catch (refreshError) {
+        return Promise.reject(refreshError);
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
 export default apiClient;
