@@ -67,3 +67,27 @@ export interface DashboardStats {
   lastLogin: string | null;
   adminUser: User | null;
 }
+
+// Resume PDF Types
+export interface ResumePdfVersion {
+  id: number;
+  fileName: string;
+  filePath: string;
+  fileSize: number;
+  mimeType: string;
+  isActive: boolean;
+  uploadedBy: {
+    id: number;
+    username: string;
+    email: string;
+  } | null;
+  createdAt: string;
+  deletedAt: string | null;
+}
+
+export interface PdfUploadResponse {
+  success: boolean;
+  message?: string;
+  data?: ResumePdfVersion;
+  error?: string;
+}
