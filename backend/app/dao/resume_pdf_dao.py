@@ -94,35 +94,44 @@ class ResumePdfDAO:
     @staticmethod
     def setActiveVersion(versionId):
         """
-        Set a specific version as active (restore from history)
+        Set a specific version as active by creating a new history entry
+        Creates a new database record that references the same file
         Deactivates all other versions
-        If version was soft-deleted, it will be restored (deletedAt cleared)
 
         Args:
             versionId (int): Version ID to activate
 
         Returns:
-            ResumePdfVersion: Activated version or None if not found
+            ResumePdfVersion: New activated version or None if source not found
 
         Raises:
             Exception: If database operation fails
         """
         try:
-            version = ResumePdfVersion.query.get(versionId)
+            # Get the source version to copy from
+            sourceVersion = ResumePdfVersion.query.get(versionId)
 
-            if not version:
+            if not sourceVersion:
                 return None
 
-            # Deactivate all versions
+            # Deactivate all existing versions
             ResumePdfVersion.query.filter_by(isActive=True).update({'isActive': False})
 
-            # Activate selected version and restore if deleted
-            version.isActive = True
-            version.deletedAt = None  # Clear soft delete timestamp
+            # Create new version with same file data (references same file on disk)
+            newVersion = ResumePdfVersion(
+                fileName=sourceVersion.fileName,
+                filePath=sourceVersion.filePath,
+                fileSize=sourceVersion.fileSize,
+                mimeType=sourceVersion.mimeType,
+                isActive=True,
+                uploadedByUserId=sourceVersion.uploadedByUserId,
+                createdAt=datetime.utcnow()  # New timestamp for reactivation
+            )
 
+            db.session.add(newVersion)
             db.session.commit()
 
-            return version
+            return newVersion
         except Exception as e:
             db.session.rollback()
             raise Exception(f"Failed to set active version: {str(e)}")
