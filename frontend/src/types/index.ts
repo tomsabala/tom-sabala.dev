@@ -6,6 +6,24 @@ export interface PortfolioItem {
   github_url?: string;
   live_url?: string;
   image_url?: string;
+  isVisible: boolean;
+  displayOrder: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ProjectFormData {
+  title: string;
+  description: string;
+  technologies: string[];
+  github_url?: string;
+  live_url?: string;
+  image_url?: string;
+}
+
+export interface ProjectOrderUpdate {
+  id: number;
+  displayOrder: number;
 }
 
 export interface CVData {
