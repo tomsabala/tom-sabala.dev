@@ -23,11 +23,9 @@
   - JWT token management with cookies
   - Protected admin routes with @jwt_required()
   - Email whitelist for access control
-- **✅ Phase 2.2: Admin Panel - Resume PDF Management COMPLETE**
+- **✅ Phase 2.2: Admin Panel - Resume & Portfolio Management COMPLETE**
   - Frontend AuthContext and LoginModal implemented
   - Hidden login trigger (click header 7 times)
-  - Admin controls visible on Portfolio page
-  - ❌ Portfolio admin buttons not yet connected to APIs
   - ✅ **Resume PDF Management System** (Complete)
     - PDF upload with drag-and-drop interface
     - Version history with soft delete
@@ -36,12 +34,23 @@
     - Download functionality with forced download in all browsers
     - Minimum 2-second loading time for better UX
     - Three-dots dropdown menu for version actions
+  - ✅ **Portfolio Project Management System** (Complete)
+    - Add/Edit/Delete projects with modal forms
+    - Hide/Display toggle for visibility control
+    - Drag-and-drop reordering with @dnd-kit
+    - Image upload with drag-and-drop (jpg, png, webp, gif, max 5MB)
+    - Image preview and serving
+    - Three-dots dropdown menu for actions
+    - Hidden badge for invisible projects
+    - Success/error toast messages
+    - Separate admin and public views
 
 ### 📍 Current Phase
-**Phase 2.2: Admin Panel (Frontend)** (~55% complete)
+**Phase 2.2: Admin Panel (Frontend)** (~85% complete)
 - ✅ Resume PDF Management: Complete
-- 🎯 Next Focus: Portfolio management UI
-- Priority: Implement Add/Edit/Delete modals and API calls for portfolio projects
+- ✅ Portfolio Management: Complete
+- 🎯 Next Focus: Content population and contact form inbox
+- Priority: Run seed script and add real project data
 
 ---
 
@@ -78,10 +87,14 @@
 ✅ **All routes now use database queries via DAO pattern!**
 
 - [x] **Portfolio/Projects API**
-  - [x] GET `/api/portfolio` - List all projects (using `ProjectDAO.getAllProjects()`)
+  - [x] GET `/api/portfolio` - List all projects (with optional `?includeHidden=true` for admin)
   - [x] POST `/api/portfolio` - Add new project (admin only - JWT protected)
   - [x] PUT `/api/portfolio/:id` - Update project (admin only - JWT protected)
   - [x] DELETE `/api/portfolio/:id` - Delete project (admin only - JWT protected)
+  - [x] PATCH `/api/portfolio/:id/visibility` - Toggle project visibility (admin only)
+  - [x] PATCH `/api/portfolio/reorder` - Update display order for multiple projects (admin only)
+  - [x] POST `/api/portfolio/upload-image` - Upload project image (admin only)
+  - [x] GET `/api/portfolio/images/:filename` - Serve project images (public)
 
 - [x] **CV/Resume API**
   - [x] GET `/api/cv` - Get CV data (using `ResumeDAO.getResume()`)
@@ -116,17 +129,26 @@
 - [x] Protected route middleware (`@jwt_required()`)
 - [x] Email whitelist for access control
 
-### 2.2 Admin Panel (Frontend) 🟡 **55% COMPLETE - IN PROGRESS**
+### 2.2 Admin Panel (Frontend) 🟡 **85% COMPLETE - IN PROGRESS**
 - [x] Create admin login modal (hidden trigger: click header 7x)
 - [x] Frontend AuthContext for state management
 - [x] Admin controls visible on Portfolio page
 - [ ] Admin dashboard layout
-- [ ] Portfolio management interface:
-  - [ ] Add project modal with form
-  - [ ] Edit project modal with form
-  - [ ] Delete project with confirmation
-  - [ ] Connect buttons to API calls
-  - [ ] Upload project images
+- [x] **Portfolio Management Interface** ✅ **COMPLETE**
+  - [x] Add project modal with form validation
+  - [x] Edit project modal with pre-filled data
+  - [x] Delete project with confirmation (hard delete)
+  - [x] Hide/Display toggle (visibility management)
+  - [x] Drag-and-drop reordering with @dnd-kit
+  - [x] Image upload with drag-and-drop (jpg, png, webp, gif, max 5MB)
+  - [x] Image preview and serving
+  - [x] Three-dots dropdown menu for actions
+  - [x] Hidden badge for invisible projects
+  - [x] Success/error toast messages
+  - [x] Separate admin and public views
+  - [x] Database models (isVisible, displayOrder fields)
+  - [x] Backend DAO and routes
+  - [x] File storage service for project images
 - [x] **CV/Resume PDF Management** ✅ **COMPLETE**
   - [x] PDF upload with drag-and-drop
   - [x] Version history list with metadata
@@ -349,6 +371,8 @@
 1. ✅ **Database setup** - PostgreSQL with Docker
 2. ✅ **Contact form backend** - Saves to DB + sends email via SendGrid
 3. ✅ **Authentication** - Google OAuth + JWT (better than originally planned!)
+4. ✅ **Resume PDF Management** - Complete upload/version/download system
+5. ✅ **Portfolio Management** - Full CRUD with drag-and-drop, image upload, visibility toggle
 
 ### 🎯 Next Quick Wins (Do These!)
 
@@ -356,48 +380,50 @@
    - `cd backend && python seed.py`
    - Populate database with sample projects
 
-2. **Connect admin buttons** (2-3 hours)
-   - Create ProjectFormModal component
-   - Wire up Add/Edit/Delete to API calls
-   - See immediate portfolio management working!
+2. **Add real content through admin UI** (1-2 hours)
+   - Login with Google OAuth
+   - Add real projects with images
+   - Upload your actual resume PDF
+   - Test drag-and-drop reordering
 
 3. **Replace placeholders** (1-2 hours)
    - Add your real photo
    - Write your "About Me" section
-   - Update seed data with real projects
+   - Update project descriptions
 
-4. **Test end-to-end admin workflow** (30 minutes)
-   - Login with Google OAuth
-   - Add a new project through admin UI
-   - Edit and delete projects
-   - Verify changes persist in database
+4. **Test end-to-end workflow** (30 minutes)
+   - Test portfolio: Add/Edit/Delete/Hide/Reorder
+   - Test resume: Upload/Activate/Download
+   - Test contact form submission
+   - Verify all changes persist in database
 
 ---
 
 ## Progress & Timeline
 
-**Overall Progress: ~40% Complete** 🎉
+**Overall Progress: ~55% Complete** 🎉
 
 - ✅ **Phase 1.1-1.2**: Database + Backend APIs (COMPLETE)
 - ✅ **Phase 2.1**: Authentication (COMPLETE)
-- 🟡 **Phase 2.2**: Admin Panel Frontend (55% complete - IN PROGRESS)
+- 🟡 **Phase 2.2**: Admin Panel Frontend (85% complete - IN PROGRESS)
   - ✅ Resume PDF Management (COMPLETE)
-  - ⏳ Portfolio Management UI (Next priority)
-- ⏳ **Phase 1.3**: Content Management (Ready to start)
+  - ✅ Portfolio Management (COMPLETE)
+  - ⏳ Contact Form Inbox (Next priority)
+- ⏳ **Phase 1.3**: Content Management (Ready to start - NEXT)
 - ⏳ **Phase 3**: Security (Not started)
-- 🟡 **Phase 4**: Design enhancements + Features (Partially started - Resume features)
+- 🟡 **Phase 4**: Design enhancements + Features (Partially started - Resume & Portfolio features)
 - ⏳ **Phase 5**: Testing (Not started)
 - ⏳ **Phase 6-7**: Deployment (Not started)
 
 **Remaining Timeline Estimate:**
-- **Phase 2.2 completion**: ~1-2 weeks (Admin UI)
+- **Phase 2.2 completion**: ~1 week (Contact inbox)
 - **Phase 1.3**: ~1 week (Content + Images)
 - **Phase 3**: 1 week (Security)
 - **Phase 4**: 2-3 weeks (Design enhancements + Features)
 - **Phase 5**: 1-2 weeks (Testing)
 - **Phase 6-7**: 1 week (Deployment)
 
-**Estimated Time to MVP: ~4-6 weeks** (working part-time)
+**Estimated Time to MVP: ~3-4 weeks** (working part-time)
 
 ---
 
@@ -428,7 +454,7 @@
 
 ## Next Steps (Updated: 2026-01-08)
 
-### Immediate Priority - Phase 2.2: Admin Panel Frontend
+### Immediate Priority - Phase 1.3 & 2.2: Content & Contact Inbox
 
 **✅ Completed:**
 1. ✅ Backend API with database integration (Phase 1.2)
@@ -439,29 +465,34 @@
    - Two-tab admin interface, download functionality
    - Backend: ResumePdfVersion model, DAO, routes, file storage
    - Frontend: Upload form, history list, PDF viewer, three-dots menu
+5. ✅ **Portfolio Management System** (Complete - Jan 2026)
+   - Add/Edit/Delete projects with modal forms
+   - Hide/Display toggle for visibility control
+   - Drag-and-drop reordering with @dnd-kit
+   - Image upload with drag-and-drop support
+   - Three-dots dropdown menu with actions
+   - Backend: isVisible/displayOrder fields, image storage, visibility/reorder endpoints
+   - Frontend: ProjectFormModal, ImageUploadField, ProjectCard with admin controls
 
-**🎯 Current Focus: Connect Admin UI to Backend APIs**
+**🎯 Current Focus: Content Population & Contact Management**
 
-**Step 1: Portfolio Management UI** (Highest Priority)
-1. Create `ProjectFormModal` component for Add/Edit operations
-2. Connect "Add New Project" button to open modal
-3. Connect "Edit" button to open modal with existing data
-4. Connect "Delete" button to API call with confirmation
-5. Implement form validation and error handling
-6. Add success/error notifications
-
-**Step 2: Content Population**
+**Step 1: Content Population** (Highest Priority)
 1. Run seed script: `cd backend && python seed.py`
 2. Test that portfolio items display correctly
 3. Add real project data through admin interface
+4. Upload real project images
+5. Update "About Me" content
+6. Replace placeholder profile photo
 
-**Step 3: Contact Management** (Secondary Priority)
-1. ✅ ~~CV PDF management~~ (COMPLETE)
-2. Create contact submissions inbox page
-3. Implement GET `/api/contact` endpoint for submissions list
+**Step 2: Contact Management** (Secondary Priority)
+1. Create contact submissions inbox page (admin only)
+2. Implement GET `/api/contact` endpoint for submissions list
+3. Add filtering and search for contact submissions
+4. Mark as read/unread functionality
 
-**Step 4: Image Upload** (Future Enhancement)
-- Implement image upload for project images
-- Set up cloud storage (Cloudinary/AWS S3)
+**Step 3: Security Hardening** (Phase 3)
+- Add rate limiting to contact form
+- Implement reCAPTCHA or hCaptcha
+- Add honeypot fields for spam prevention
 
-**Quick Win:** Focus on getting Add/Edit/Delete working for projects first - this will provide immediate value for managing portfolio content!
+**Quick Win:** With portfolio management complete, focus on populating the site with real content to make it production-ready!
