@@ -96,12 +96,13 @@ class ResumePdfDAO:
         """
         Set a specific version as active (restore from history)
         Deactivates all other versions
+        If version was soft-deleted, it will be restored (deletedAt cleared)
 
         Args:
             versionId (int): Version ID to activate
 
         Returns:
-            ResumePdfVersion: Activated version or None if not found/deleted
+            ResumePdfVersion: Activated version or None if not found
 
         Raises:
             Exception: If database operation fails
@@ -109,14 +110,16 @@ class ResumePdfDAO:
         try:
             version = ResumePdfVersion.query.get(versionId)
 
-            if not version or version.deletedAt is not None:
+            if not version:
                 return None
 
             # Deactivate all versions
             ResumePdfVersion.query.filter_by(isActive=True).update({'isActive': False})
 
-            # Activate selected version
+            # Activate selected version and restore if deleted
             version.isActive = True
+            version.deletedAt = None  # Clear soft delete timestamp
+
             db.session.commit()
 
             return version

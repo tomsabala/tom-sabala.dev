@@ -16,7 +16,7 @@ const PdfHistoryList: React.FC<PdfHistoryListProps> = ({ onVersionChange }) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await resumeRepository.getPdfHistory(false);
+      const response = await resumeRepository.getPdfHistory(true); // Include deleted versions
       if (response.success) {
         setVersions(response.data || []);
       } else {
@@ -51,7 +51,7 @@ const PdfHistoryList: React.FC<PdfHistoryListProps> = ({ onVersionChange }) => {
   };
 
   const handleDelete = async (versionId: number) => {
-    if (!confirm('Are you sure you want to delete this version?')) {
+    if (!confirm('Are you sure you want to deactivate this version? It will remain in history and can be reactivated later.')) {
       return;
     }
 
@@ -111,64 +111,94 @@ const PdfHistoryList: React.FC<PdfHistoryListProps> = ({ onVersionChange }) => {
 
   return (
     <div className="space-y-3">
-      {versions.map((version) => (
-        <div
-          key={version.id}
-          className={`border rounded-lg p-4 ${
-            version.isActive ? 'border-orange-500 bg-orange-50' : 'border-gray-300'
-          }`}
-        >
-          <div className="flex items-start justify-between">
-            {/* Version Info */}
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <h4 className="font-medium text-gray-900">{version.fileName}</h4>
-                {version.isActive && (
-                  <span className="px-2 py-1 text-xs font-medium bg-orange-500 text-white rounded">
-                    Active
-                  </span>
-                )}
-              </div>
-              <div className="mt-2 space-y-1 text-sm text-gray-600">
-                <p>
-                  <span className="font-medium">Uploaded:</span>{' '}
-                  {formatDate(version.createdAt)}
-                </p>
-                <p>
-                  <span className="font-medium">Size:</span>{' '}
-                  {formatFileSize(version.fileSize)}
-                </p>
-                {version.uploadedBy && (
-                  <p>
-                    <span className="font-medium">By:</span>{' '}
-                    {version.uploadedBy.username}
-                  </p>
-                )}
-              </div>
-            </div>
+      {versions.map((version) => {
+        const isDeleted = version.deletedAt !== null;
 
-            {/* Actions */}
-            <div className="flex gap-2 ml-4">
-              {!version.isActive && (
-                <button
-                  onClick={() => handleActivate(version.id)}
-                  disabled={actionLoading === version.id}
-                  className="px-3 py-1 text-sm bg-orange-500 text-white rounded hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {actionLoading === version.id ? 'Activating...' : 'Activate'}
-                </button>
-              )}
-              <button
-                onClick={() => handleDelete(version.id)}
-                disabled={actionLoading === version.id}
-                className="px-3 py-1 text-sm border border-red-300 text-red-600 rounded hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {actionLoading === version.id ? 'Deleting...' : 'Delete'}
-              </button>
+        return (
+          <div
+            key={version.id}
+            className={`border rounded-lg p-4 ${
+              version.isActive
+                ? 'border-orange-500 bg-orange-50'
+                : isDeleted
+                  ? 'border-gray-200 bg-gray-50 opacity-75'
+                  : 'border-gray-300'
+            }`}
+          >
+            <div className="flex items-start justify-between">
+              {/* Version Info */}
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <h4 className={`font-medium ${isDeleted ? 'text-gray-500' : 'text-gray-900'}`}>
+                    {version.fileName}
+                  </h4>
+                  {version.isActive && (
+                    <span className="px-2 py-1 text-xs font-medium bg-orange-500 text-white rounded">
+                      Active
+                    </span>
+                  )}
+                  {isDeleted && (
+                    <span className="px-2 py-1 text-xs font-medium bg-gray-400 text-white rounded">
+                      Deleted
+                    </span>
+                  )}
+                </div>
+                <div className="mt-2 space-y-1 text-sm text-gray-600">
+                  <p>
+                    <span className="font-medium">Uploaded:</span>{' '}
+                    {formatDate(version.createdAt)}
+                  </p>
+                  <p>
+                    <span className="font-medium">Size:</span>{' '}
+                    {formatFileSize(version.fileSize)}
+                  </p>
+                  {version.uploadedBy && (
+                    <p>
+                      <span className="font-medium">By:</span>{' '}
+                      {version.uploadedBy.username}
+                    </p>
+                  )}
+                  {isDeleted && (
+                    <p>
+                      <span className="font-medium">Deleted:</span>{' '}
+                      {formatDate(version.deletedAt!)}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2 ml-4">
+                {!version.isActive && (
+                  <button
+                    onClick={() => handleActivate(version.id)}
+                    disabled={actionLoading === version.id}
+                    className={`px-3 py-1 text-sm rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
+                      isDeleted
+                        ? 'bg-green-500 text-white hover:bg-green-600'
+                        : 'bg-orange-500 text-white hover:bg-orange-600'
+                    }`}
+                  >
+                    {actionLoading === version.id
+                      ? (isDeleted ? 'Restoring...' : 'Activating...')
+                      : (isDeleted ? 'Restore' : 'Activate')
+                    }
+                  </button>
+                )}
+                {!isDeleted && (
+                  <button
+                    onClick={() => handleDelete(version.id)}
+                    disabled={actionLoading === version.id}
+                    className="px-3 py-1 text-sm border border-red-300 text-red-600 rounded hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {actionLoading === version.id ? 'Deleting...' : 'Delete'}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 };
