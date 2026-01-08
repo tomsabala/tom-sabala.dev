@@ -12,6 +12,8 @@ class Project(db.Model):
     githubUrl = db.Column('github_url', db.String(500), nullable=True)
     liveUrl = db.Column('live_url', db.String(500), nullable=True)
     imageUrl = db.Column('image_url', db.String(500), nullable=True)
+    isVisible = db.Column('is_visible', db.Boolean, nullable=False, default=True)
+    displayOrder = db.Column('display_order', db.Integer, nullable=False, default=0)
     createdAt = db.Column('created_at', db.DateTime, nullable=False, default=datetime.utcnow)
     updatedAt = db.Column('updated_at', db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -22,9 +24,11 @@ class Project(db.Model):
             'title': self.title,
             'description': self.description,
             'technologies': self.technologies,
-            'githubUrl': self.githubUrl,
-            'liveUrl': self.liveUrl,
-            'imageUrl': self.imageUrl,
+            'github_url': self.githubUrl,
+            'live_url': self.liveUrl,
+            'image_url': self.imageUrl,
+            'isVisible': self.isVisible,
+            'displayOrder': self.displayOrder,
             'createdAt': self.createdAt.isoformat() if self.createdAt else None,
             'updatedAt': self.updatedAt.isoformat() if self.updatedAt else None
         }
