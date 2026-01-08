@@ -111,6 +111,7 @@ Typically requires two terminal sessions - backend on port 5000, frontend on por
 
 - **Feature Plans**: Detailed implementation plans for features are saved in `.claude/features/` directory
 - **Roadmap**: High-level project roadmap is in `ROADMAP.md` at project root
+- **Production Deployment**: All production deployment tasks, checklists, and configuration notes should be added to `.claude/PRODUCTION_DEPLOYMENT.md`
 - When planning new features or phases, create detailed markdown files in `.claude/features/` for reference
 
 ## Coding Conventions
