@@ -124,10 +124,13 @@ def getActivePdf():
 def getPdfFile():
     """
     Serve the active PDF resume file (public endpoint)
-    Frontend controls whether to view inline or download
+    Supports ?download=true query parameter to force download
+
+    Query params:
+        download (bool): If true, serves as attachment (forces download)
 
     Returns:
-        200: PDF file (served inline)
+        200: PDF file (inline or download based on query param)
         404: No active PDF or file not found
         500: Server error
     """
@@ -149,11 +152,14 @@ def getPdfFile():
                 'error': 'PDF file not found on server'
             }), 404
 
-        # Send file inline (frontend controls view/download via download attribute)
+        # Check if download is requested via query parameter
+        download = request.args.get('download', 'false').lower() == 'true'
+
+        # Send file inline or as attachment based on query parameter
         return send_file(
             filePath,
             mimetype='application/pdf',
-            as_attachment=False,  # Inline by default
+            as_attachment=download,  # True forces download, False shows inline
             download_name=activePdf.fileName
         )
     except Exception as e:

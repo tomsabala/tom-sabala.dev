@@ -34,12 +34,20 @@ export const getActivePdf = async () => {
 };
 
 /**
- * Get PDF file URL for viewing/downloading (public)
- * Frontend controls whether to view inline or download via HTML attributes
+ * Get PDF file URL for inline viewing (public)
  */
 export const getPdfFileUrl = () => {
   const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
   return `${baseUrl}/cv/pdf/file`;
+};
+
+/**
+ * Get PDF file URL for forced download (public)
+ * Uses download query parameter to force browser download
+ */
+export const getPdfDownloadUrl = () => {
+  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  return `${baseUrl}/cv/pdf/file?download=true`;
 };
 
 /**
