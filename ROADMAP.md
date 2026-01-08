@@ -1,6 +1,6 @@
 # Portfolio Website Development Roadmap
 
-## Current Status (Updated: 2026-01-06)
+## Current Status (Updated: 2026-01-08)
 
 ### ✅ Completed
 - Flask backend API structure
@@ -23,16 +23,25 @@
   - JWT token management with cookies
   - Protected admin routes with @jwt_required()
   - Email whitelist for access control
-- **🟡 Phase 2.2: Admin Panel - 40% COMPLETE**
+- **✅ Phase 2.2: Admin Panel - Resume PDF Management COMPLETE**
   - Frontend AuthContext and LoginModal implemented
   - Hidden login trigger (click header 7 times)
   - Admin controls visible on Portfolio page
-  - ❌ Admin buttons not yet connected to APIs
+  - ❌ Portfolio admin buttons not yet connected to APIs
+  - ✅ **Resume PDF Management System** (Complete)
+    - PDF upload with drag-and-drop interface
+    - Version history with soft delete
+    - Activate/deactivate functionality (creates new history entries)
+    - Two-tab admin interface (Web View + Admin Panel)
+    - Download functionality with forced download in all browsers
+    - Minimum 2-second loading time for better UX
+    - Three-dots dropdown menu for version actions
 
 ### 📍 Current Phase
-**Phase 2.2: Admin Panel (Frontend)** (~40% complete)
-- Focus: Connect admin UI controls to backend APIs
-- Priority: Implement Add/Edit/Delete modals and API calls for portfolio management
+**Phase 2.2: Admin Panel (Frontend)** (~55% complete)
+- ✅ Resume PDF Management: Complete
+- 🎯 Next Focus: Portfolio management UI
+- Priority: Implement Add/Edit/Delete modals and API calls for portfolio projects
 
 ---
 
@@ -107,7 +116,7 @@
 - [x] Protected route middleware (`@jwt_required()`)
 - [x] Email whitelist for access control
 
-### 2.2 Admin Panel (Frontend) 🟡 **40% COMPLETE - IN PROGRESS**
+### 2.2 Admin Panel (Frontend) 🟡 **55% COMPLETE - IN PROGRESS**
 - [x] Create admin login modal (hidden trigger: click header 7x)
 - [x] Frontend AuthContext for state management
 - [x] Admin controls visible on Portfolio page
@@ -118,7 +127,18 @@
   - [ ] Delete project with confirmation
   - [ ] Connect buttons to API calls
   - [ ] Upload project images
-- [ ] CV management interface
+- [x] **CV/Resume PDF Management** ✅ **COMPLETE**
+  - [x] PDF upload with drag-and-drop
+  - [x] Version history list with metadata
+  - [x] Activate/deactivate versions (soft delete with new history entries)
+  - [x] Two-tab interface (Web View + Admin Panel)
+  - [x] PDF viewer with pagination
+  - [x] Download functionality (forced download in all browsers)
+  - [x] Minimum 2-second loading time
+  - [x] Three-dots dropdown menu for actions
+  - [x] Database models (ResumePdfVersion)
+  - [x] Backend DAO and routes
+  - [x] File storage service
 - [ ] Contact form inbox
 - [x] Protected admin routes (frontend context-based)
 
@@ -161,11 +181,14 @@
   - Filter by technology/category
   - Search functionality
 
-- [ ] **CV/Resume Page**
-  - Timeline design for experience
-  - Skills visualization
-  - PDF download option
-  - Print-friendly styling
+- [x] **CV/Resume Page** ✅ **PDF Features Complete**
+  - [x] PDF upload and management system
+  - [x] Version history with activate/deactivate
+  - [x] PDF viewer with pagination controls
+  - [x] Download functionality
+  - [ ] Timeline design for JSON resume data (future)
+  - [ ] Skills visualization (future)
+  - [ ] Print-friendly styling (future)
 
 - [ ] **Contact Page**
   - Form validation with clear error messages
@@ -353,14 +376,16 @@
 
 ## Progress & Timeline
 
-**Overall Progress: ~35% Complete** 🎉
+**Overall Progress: ~40% Complete** 🎉
 
 - ✅ **Phase 1.1-1.2**: Database + Backend APIs (COMPLETE)
 - ✅ **Phase 2.1**: Authentication (COMPLETE)
-- 🟡 **Phase 2.2**: Admin Panel Frontend (40% complete - IN PROGRESS)
+- 🟡 **Phase 2.2**: Admin Panel Frontend (55% complete - IN PROGRESS)
+  - ✅ Resume PDF Management (COMPLETE)
+  - ⏳ Portfolio Management UI (Next priority)
 - ⏳ **Phase 1.3**: Content Management (Ready to start)
 - ⏳ **Phase 3**: Security (Not started)
-- ⏳ **Phase 4**: Design enhancements + Features (Not started)
+- 🟡 **Phase 4**: Design enhancements + Features (Partially started - Resume features)
 - ⏳ **Phase 5**: Testing (Not started)
 - ⏳ **Phase 6-7**: Deployment (Not started)
 
@@ -401,7 +426,7 @@
 
 ---
 
-## Next Steps (Updated: 2026-01-06)
+## Next Steps (Updated: 2026-01-08)
 
 ### Immediate Priority - Phase 2.2: Admin Panel Frontend
 
@@ -409,6 +434,11 @@
 1. ✅ Backend API with database integration (Phase 1.2)
 2. ✅ Google OAuth + JWT authentication (Phase 2.1)
 3. ✅ Admin login modal and AuthContext
+4. ✅ **Resume PDF Management System** (Complete - Jan 2026)
+   - PDF upload, version history, activate/deactivate
+   - Two-tab admin interface, download functionality
+   - Backend: ResumePdfVersion model, DAO, routes, file storage
+   - Frontend: Upload form, history list, PDF viewer, three-dots menu
 
 **🎯 Current Focus: Connect Admin UI to Backend APIs**
 
@@ -425,8 +455,8 @@
 2. Test that portfolio items display correctly
 3. Add real project data through admin interface
 
-**Step 3: CV and Contact Management** (Secondary Priority)
-1. Add CV edit interface on CV page (admin only)
+**Step 3: Contact Management** (Secondary Priority)
+1. ✅ ~~CV PDF management~~ (COMPLETE)
 2. Create contact submissions inbox page
 3. Implement GET `/api/contact` endpoint for submissions list
 
