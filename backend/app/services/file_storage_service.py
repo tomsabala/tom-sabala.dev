@@ -16,8 +16,11 @@ class FileStorageService:
 
     UPLOAD_DIR = os.getenv('UPLOAD_DIR', 'uploads')
     RESUMES_SUBDIR = 'resumes'
+    PROJECTS_SUBDIR = 'projects'
     MAX_FILE_SIZE = int(os.getenv('MAX_FILE_SIZE_MB', '10')) * 1024 * 1024  # Convert MB to bytes
     ALLOWED_EXTENSIONS = os.getenv('ALLOWED_EXTENSIONS', 'pdf').split(',')
+    IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif']
+    MAX_IMAGE_SIZE = 5 * 1024 * 1024  # 5MB
 
     @classmethod
     def _getResumeDir(cls):
@@ -153,6 +156,94 @@ class FileStorageService:
         """
         absolutePath = cls.getFilePath(relativePath)
         return os.path.exists(absolutePath)
+
+    # ========================================
+    # PROJECT IMAGE METHODS
+    # ========================================
+
+    @classmethod
+    def _getProjectsDir(cls):
+        """Get absolute path to projects directory, create if doesn't exist"""
+        baseDir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+        projectsDir = os.path.join(baseDir, cls.UPLOAD_DIR, cls.PROJECTS_SUBDIR)
+
+        # Create directory if it doesn't exist
+        os.makedirs(projectsDir, exist_ok=True)
+
+        return projectsDir
+
+    @classmethod
+    def validateImage(cls, file: FileStorage):
+        """
+        Validate uploaded image file
+
+        Args:
+            file: Werkzeug FileStorage object
+
+        Returns:
+            tuple: (is_valid: bool, error_message: str or None)
+        """
+        if not file or file.filename == '':
+            return False, 'No file provided'
+
+        # Check extension
+        if '.' not in file.filename:
+            return False, 'File must have an extension'
+
+        ext = file.filename.rsplit('.', 1)[1].lower()
+        if ext not in cls.IMAGE_EXTENSIONS:
+            return False, f'Only {", ".join(cls.IMAGE_EXTENSIONS).upper()} files allowed'
+
+        # Check file size (seek to end, get position, then reset)
+        file.seek(0, os.SEEK_END)
+        size = file.tell()
+        file.seek(0)  # Reset to beginning for later use
+
+        if size > cls.MAX_IMAGE_SIZE:
+            maxMb = cls.MAX_IMAGE_SIZE / (1024 * 1024)
+            return False, f'Image too large. Maximum size: {maxMb:.0f}MB'
+
+        if size == 0:
+            return False, 'Image file is empty'
+
+        return True, None
+
+    @classmethod
+    def saveProjectImage(cls, file: FileStorage):
+        """
+        Save uploaded project image to local storage
+
+        Args:
+            file: Werkzeug FileStorage object
+
+        Returns:
+            tuple: (original_filename: str, relative_path: str, file_size: int)
+
+        Raises:
+            Exception: If save fails
+        """
+        try:
+            # Generate unique filename with UUID prefix
+            originalFilename = secure_filename(file.filename)
+            uniqueId = uuid.uuid4().hex[:12]
+            filename = f"{uniqueId}_{originalFilename}"
+
+            # Get absolute path
+            projectsDir = cls._getProjectsDir()
+            absolutePath = os.path.join(projectsDir, filename)
+
+            # Save file to disk
+            file.save(absolutePath)
+
+            # Get file size
+            fileSize = os.path.getsize(absolutePath)
+
+            # Return relative path for database storage (platform-independent)
+            relativePath = os.path.join(cls.UPLOAD_DIR, cls.PROJECTS_SUBDIR, filename)
+
+            return originalFilename, relativePath, fileSize
+        except Exception as e:
+            raise Exception(f"Failed to save image: {str(e)}")
 
 
 # Future: CloudStorageService for production

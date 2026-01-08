@@ -1,9 +1,12 @@
 """
 Portfolio routes - public viewing and admin CRUD operations
 """
-from flask import Blueprint, request, jsonify
+import os
+from flask import Blueprint, request, jsonify, send_file
 from flask_jwt_extended import jwt_required, verify_jwt_in_request
+from werkzeug.utils import secure_filename
 from app.dao import ProjectDAO
+from app.services.file_storage_service import FileStorageService
 
 portfolio_bp = Blueprint('portfolio', __name__)
 
@@ -213,14 +216,12 @@ def uploadProjectImage():
     """
     Upload project image (admin only)
 
-    NOTE: This is a stub implementation. FileStorageService integration pending.
-
     Requires: Valid JWT access token
 
     Request: multipart/form-data with 'file' field
 
     Returns:
-        200: Image uploaded successfully (stub - returns placeholder)
+        200: Image uploaded successfully
         400: No file provided or validation failed
         500: Server error
     """
@@ -230,16 +231,54 @@ def uploadProjectImage():
 
         file = request.files['file']
 
-        # TODO: Implement FileStorageService.validateImage() and saveProjectImage()
-        # For now, return stub response
+        # Validate image
+        isValid, error = FileStorageService.validateImage(file)
+        if not isValid:
+            return jsonify({'success': False, 'error': error}), 400
+
+        # Save image
+        originalFilename, relativePath, fileSize = FileStorageService.saveProjectImage(file)
+
+        # Return image URL (API path to serve the image)
+        # Extract just the filename from the relative path
+        filename = os.path.basename(relativePath)
+        imageUrl = f'/api/portfolio/images/{filename}'
+
         return jsonify({
             'success': True,
             'data': {
-                'imageUrl': '/uploads/projects/placeholder.jpg',
-                'fileName': file.filename,
-                'fileSize': 0
-            },
-            'message': 'STUB: Image upload not yet implemented'
+                'imageUrl': imageUrl,
+                'fileName': originalFilename,
+                'fileSize': fileSize
+            }
         }), 200
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@portfolio_bp.route('/portfolio/images/<filename>', methods=['GET'])
+def serveProjectImage(filename):
+    """
+    Serve project image file (public endpoint)
+
+    Args:
+        filename (str): Name of the image file
+
+    Returns:
+        200: Image file
+        404: Image not found
+        500: Server error
+    """
+    try:
+        # Secure the filename to prevent directory traversal attacks
+        filename = secure_filename(filename)
+        relativePath = f"uploads/projects/{filename}"
+        filePath = FileStorageService.getFilePath(relativePath)
+
+        if not os.path.exists(filePath):
+            return jsonify({'success': False, 'error': 'Image not found'}), 404
+
+        # Send file with appropriate mimetype (auto-detected)
+        return send_file(filePath)
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
