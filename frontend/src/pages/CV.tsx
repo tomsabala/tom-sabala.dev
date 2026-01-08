@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import * as resumeRepository from '../repositories/resumeRepository';
 import PdfViewer from '../components/PdfViewer';
@@ -11,14 +11,25 @@ const CV = () => {
   const [activePdf, setActivePdf] = useState<ResumePdfVersion | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [activeTab, setActiveTab] = useState<'view' | 'admin'>('view');
   const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
-  // Load active PDF
+  // Loading timing state
+  const loadStartTime = useRef<number>(0);
+  const loadTimeoutId = useRef<NodeJS.Timeout | null>(null);
+
+  // Load active PDF with minimum 2-second loading time
   const loadActivePdf = async () => {
+    loadStartTime.current = Date.now();
     setLoading(true);
     setError(null);
+
+    // Clear any pending timeout
+    if (loadTimeoutId.current) {
+      clearTimeout(loadTimeoutId.current);
+    }
+
     try {
       const response = await resumeRepository.getActivePdf();
       if (response.success && response.data) {
@@ -34,18 +45,35 @@ const CV = () => {
         setError(err.response?.data?.error || 'Failed to load PDF');
       }
     } finally {
-      setLoading(false);
+      // Enforce minimum 2 second loading time
+      const elapsed = Date.now() - loadStartTime.current;
+      const minLoadTime = 2000;
+
+      if (elapsed < minLoadTime) {
+        loadTimeoutId.current = setTimeout(() => {
+          setLoading(false);
+        }, minLoadTime - elapsed);
+      } else {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
     loadActivePdf();
+    return () => {
+      // Cleanup: clear timeout on unmount
+      if (loadTimeoutId.current) {
+        clearTimeout(loadTimeoutId.current);
+      }
+    };
   }, []);
 
   const handleUploadSuccess = () => {
     setUploadSuccess('PDF uploaded successfully!');
     setUploadError(null);
     setTimeout(() => setUploadSuccess(null), 5000);
+    setActiveTab('view'); // Auto-switch to view tab
     loadActivePdf();
   };
 
@@ -56,13 +84,8 @@ const CV = () => {
   };
 
   const handleDownload = () => {
-    const downloadUrl = resumeRepository.getPdfFileUrl();
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = activePdf?.fileName || 'resume.pdf';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const downloadUrl = resumeRepository.getPdfDownloadUrl();
+    window.location.href = downloadUrl;
   };
 
   return (
@@ -75,14 +98,28 @@ const CV = () => {
             View my professional experience and qualifications
           </p>
 
-          {/* Admin Controls */}
+          {/* Admin Tab Navigation */}
           {isAuthenticated && (
-            <div className="mt-4">
+            <div className="mt-4 inline-flex rounded-lg border border-gray-300 p-1 bg-white">
               <button
-                onClick={() => setShowAdminPanel(!showAdminPanel)}
-                className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                onClick={() => setActiveTab('view')}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === 'view'
+                    ? 'bg-orange-500 text-white'
+                    : 'text-gray-700 hover:text-gray-900'
+                }`}
               >
-                {showAdminPanel ? 'Hide' : 'Show'} Admin Panel
+                Web View
+              </button>
+              <button
+                onClick={() => setActiveTab('admin')}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === 'admin'
+                    ? 'bg-orange-500 text-white'
+                    : 'text-gray-700 hover:text-gray-900'
+                }`}
+              >
+                Admin Panel
               </button>
             </div>
           )}
@@ -100,8 +137,8 @@ const CV = () => {
           </div>
         )}
 
-        {/* Admin Panel */}
-        {isAuthenticated && showAdminPanel && (
+        {/* Admin Panel Tab */}
+        {isAuthenticated && activeTab === 'admin' && (
           <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-6">
               Admin: Manage Resume PDFs
@@ -128,8 +165,9 @@ const CV = () => {
           </div>
         )}
 
-        {/* PDF View */}
-        <div className="bg-white rounded-lg shadow-lg p-8">
+        {/* Web View Tab */}
+        {activeTab === 'view' && (
+          <div className="bg-white rounded-lg shadow-lg p-8">
           {loading && (
             <div className="flex items-center justify-center min-h-[600px]">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
@@ -179,11 +217,19 @@ const CV = () => {
               <h3 className="text-xl font-semibold text-gray-700 mb-2">
                 No PDF Resume Available
               </h3>
-              <p className="text-gray-500 text-center max-w-md">
+              <p className="text-gray-500 text-center max-w-md mb-4">
                 {isAuthenticated
-                  ? 'Upload a PDF in the admin panel above.'
+                  ? 'Upload a PDF in the Admin Panel tab.'
                   : 'The site owner has not uploaded a resume yet.'}
               </p>
+              {isAuthenticated && (
+                <button
+                  onClick={() => setActiveTab('admin')}
+                  className="px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+                >
+                  Go to Admin Panel
+                </button>
+              )}
             </div>
           )}
 
@@ -207,7 +253,7 @@ const CV = () => {
                       d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
                     />
                   </svg>
-                  Download PDF
+                  Download
                 </button>
               </div>
               <PdfViewer
@@ -216,7 +262,8 @@ const CV = () => {
               />
             </div>
           )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
