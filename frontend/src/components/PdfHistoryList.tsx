@@ -185,13 +185,13 @@ const PdfHistoryList: React.FC<PdfHistoryListProps> = ({ onVersionChange }) => {
                     }
                   </button>
                 )}
-                {!isDeleted && (
+                {version.isActive && (
                   <button
                     onClick={() => handleDelete(version.id)}
                     disabled={actionLoading === version.id}
                     className="px-3 py-1 text-sm border border-red-300 text-red-600 rounded hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
-                    {actionLoading === version.id ? 'Deleting...' : 'Delete'}
+                    {actionLoading === version.id ? 'Deactivating...' : 'Deactivate'}
                   </button>
                 )}
               </div>
