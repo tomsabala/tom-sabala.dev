@@ -11,6 +11,7 @@ const PdfHistoryList: React.FC<PdfHistoryListProps> = ({ onVersionChange }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
 
   const loadHistory = async () => {
     setLoading(true);
@@ -34,6 +35,7 @@ const PdfHistoryList: React.FC<PdfHistoryListProps> = ({ onVersionChange }) => {
   }, []);
 
   const handleActivate = async (versionId: number) => {
+    setOpenMenuId(null); // Close menu
     setActionLoading(versionId);
     try {
       const response = await resumeRepository.activatePdfVersion(versionId);
@@ -51,6 +53,8 @@ const PdfHistoryList: React.FC<PdfHistoryListProps> = ({ onVersionChange }) => {
   };
 
   const handleDelete = async (versionId: number) => {
+    setOpenMenuId(null); // Close menu
+
     if (!confirm('Are you sure you want to deactivate this version? It will remain in history and can be reactivated later.')) {
       return;
     }
@@ -69,6 +73,10 @@ const PdfHistoryList: React.FC<PdfHistoryListProps> = ({ onVersionChange }) => {
     } finally {
       setActionLoading(null);
     }
+  };
+
+  const toggleMenu = (versionId: number) => {
+    setOpenMenuId(openMenuId === versionId ? null : versionId);
   };
 
   const formatDate = (dateString: string) => {
@@ -112,34 +120,25 @@ const PdfHistoryList: React.FC<PdfHistoryListProps> = ({ onVersionChange }) => {
   return (
     <div className="space-y-3">
       {versions.map((version) => {
-        const isDeleted = version.deletedAt !== null;
-
         return (
           <div
             key={version.id}
             className={`border rounded-lg p-4 ${
               version.isActive
                 ? 'border-orange-500 bg-orange-50'
-                : isDeleted
-                  ? 'border-gray-200 bg-gray-50 opacity-75'
-                  : 'border-gray-300'
+                : 'border-gray-300'
             }`}
           >
             <div className="flex items-start justify-between">
               {/* Version Info */}
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <h4 className={`font-medium ${isDeleted ? 'text-gray-500' : 'text-gray-900'}`}>
+                  <h4 className="font-medium text-gray-900">
                     {version.fileName}
                   </h4>
                   {version.isActive && (
                     <span className="px-2 py-1 text-xs font-medium bg-orange-500 text-white rounded">
                       Active
-                    </span>
-                  )}
-                  {isDeleted && (
-                    <span className="px-2 py-1 text-xs font-medium bg-gray-400 text-white rounded">
-                      Deleted
                     </span>
                   )}
                 </div>
@@ -158,41 +157,53 @@ const PdfHistoryList: React.FC<PdfHistoryListProps> = ({ onVersionChange }) => {
                       {version.uploadedBy.username}
                     </p>
                   )}
-                  {isDeleted && (
-                    <p>
-                      <span className="font-medium">Deleted:</span>{' '}
-                      {formatDate(version.deletedAt!)}
-                    </p>
-                  )}
                 </div>
               </div>
 
               {/* Actions */}
-              <div className="flex gap-2 ml-4">
-                {!version.isActive && (
-                  <button
-                    onClick={() => handleActivate(version.id)}
-                    disabled={actionLoading === version.id}
-                    className={`px-3 py-1 text-sm rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
-                      isDeleted
-                        ? 'bg-green-500 text-white hover:bg-green-600'
-                        : 'bg-orange-500 text-white hover:bg-orange-600'
-                    }`}
+              <div className="relative ml-4">
+                <button
+                  onClick={() => toggleMenu(version.id)}
+                  disabled={actionLoading === version.id}
+                  className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="Actions"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
                   >
-                    {actionLoading === version.id
-                      ? (isDeleted ? 'Restoring...' : 'Activating...')
-                      : (isDeleted ? 'Restore' : 'Activate')
-                    }
-                  </button>
-                )}
-                {version.isActive && (
-                  <button
-                    onClick={() => handleDelete(version.id)}
-                    disabled={actionLoading === version.id}
-                    className="px-3 py-1 text-sm border border-red-300 text-red-600 rounded hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    {actionLoading === version.id ? 'Deactivating...' : 'Deactivate'}
-                  </button>
+                    <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                  </svg>
+                </button>
+
+                {/* Dropdown Menu */}
+                {openMenuId === version.id && (
+                  <>
+                    {/* Backdrop to close menu when clicking outside */}
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setOpenMenuId(null)}
+                    />
+
+                    <div className="absolute right-0 mt-1 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
+                      {version.isActive ? (
+                        <button
+                          onClick={() => handleDelete(version.id)}
+                          className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          Deactivate
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleActivate(version.id)}
+                          className="w-full px-4 py-2 text-left text-sm text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                        >
+                          Activate
+                        </button>
+                      )}
+                    </div>
+                  </>
                 )}
               </div>
             </div>
