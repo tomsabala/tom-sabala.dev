@@ -28,7 +28,11 @@ if os.getenv('FLASK_ENV') == 'production' and os.getenv('SENTRY_DSN'):
 db = SQLAlchemy()
 migrate = Migrate()
 jwt = JWTManager()
-limiter = Limiter(key_func=get_remote_address)
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://"  # Use Redis in production for distributed rate limiting
+)
 
 
 def create_app():
@@ -55,11 +59,7 @@ def create_app():
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
-
-    # Rate limiting
-    limiter.init_app(app,
-                     default_limits=["200 per day", "50 per hour"],
-                     storage_uri="memory://")  # Use Redis in production for distributed rate limiting
+    limiter.init_app(app)
 
     # CORS configuration
     corsOrigins = os.getenv('CORS_ORIGINS', 'http://localhost:5173').split(',')
