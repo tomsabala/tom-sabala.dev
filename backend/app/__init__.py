@@ -3,16 +3,32 @@ from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from datetime import timedelta
 from dotenv import load_dotenv
 import os
+import sentry_sdk
+from sentry_sdk.integrations.flask import FlaskIntegration
 
 load_dotenv()
+
+# Initialize Sentry (production only)
+if os.getenv('FLASK_ENV') == 'production' and os.getenv('SENTRY_DSN'):
+    sentry_sdk.init(
+        dsn=os.getenv('SENTRY_DSN'),
+        integrations=[FlaskIntegration()],
+        traces_sample_rate=0.1,  # 10% performance monitoring
+        profiles_sample_rate=0.1,
+        environment='production',
+        release=os.getenv('GIT_COMMIT_SHA', 'unknown'),
+    )
 
 # Initialize extensions
 db = SQLAlchemy()
 migrate = Migrate()
 jwt = JWTManager()
+limiter = Limiter(key_func=get_remote_address)
 
 
 def create_app():
@@ -40,6 +56,11 @@ def create_app():
     migrate.init_app(app, db)
     jwt.init_app(app)
 
+    # Rate limiting
+    limiter.init_app(app,
+                     default_limits=["200 per day", "50 per hour"],
+                     storage_uri="memory://")  # Use Redis in production for distributed rate limiting
+
     # CORS configuration
     corsOrigins = os.getenv('CORS_ORIGINS', 'http://localhost:5173').split(',')
     CORS(app,
@@ -47,6 +68,31 @@ def create_app():
          supports_credentials=True,  # CRITICAL for cookies
          allow_headers=['Content-Type', 'Authorization'],
          expose_headers=['Content-Type', 'Content-Disposition'])  # Content-Disposition for file downloads
+
+    # Security headers middleware (production-ready)
+    @app.after_request
+    def setSecurityHeaders(response):
+        """Add security headers to all responses"""
+        # Prevent MIME type sniffing
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+
+        # Prevent clickjacking
+        response.headers['X-Frame-Options'] = 'DENY'
+
+        # Enable XSS protection
+        response.headers['X-XSS-Protection'] = '1; mode=block'
+
+        # HSTS - Force HTTPS (only in production)
+        if os.getenv('FLASK_ENV') == 'production':
+            response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+
+        # Content Security Policy (basic)
+        response.headers['Content-Security-Policy'] = "default-src 'self'; img-src 'self' data: https:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';"
+
+        # Referrer policy
+        response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+
+        return response
 
     # Import models (required for Flask-Migrate to detect them)
     with app.app_context():

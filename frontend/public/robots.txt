@@ -1,0 +1,9 @@
+# Allow all search engines to crawl the site
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://tom-sabala.dev/sitemap.xml
+
+# Crawl delay (optional, prevents aggressive crawling)
+Crawl-delay: 1
