@@ -8,6 +8,7 @@ from flask_limiter.util import get_remote_address
 from datetime import timedelta
 from dotenv import load_dotenv
 import os
+import sys
 import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
 
@@ -116,14 +117,17 @@ def create_app():
     # JWT error handlers
     @jwt.unauthorized_loader
     def unauthorizedCallback(callback):
+        print(f"JWT ERROR: unauthorized_loader triggered - {callback}", file=sys.stderr)
         return jsonify({'success': False, 'error': 'Missing or invalid token', 'code': 'UNAUTHORIZED'}), 401
 
     @jwt.invalid_token_loader
     def invalidTokenCallback(callback):
+        print(f"JWT ERROR: invalid_token_loader triggered - {callback}", file=sys.stderr)
         return jsonify({'success': False, 'error': 'Invalid token', 'code': 'INVALID_TOKEN'}), 401
 
     @jwt.expired_token_loader
     def expiredTokenCallback(jwt_header, jwt_payload):
+        print(f"JWT ERROR: expired_token_loader triggered - {jwt_payload}", file=sys.stderr)
         return jsonify({'success': False, 'error': 'Token expired', 'code': 'TOKEN_EXPIRED'}), 401
 
     return app

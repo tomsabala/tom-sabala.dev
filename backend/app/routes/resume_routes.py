@@ -194,6 +194,9 @@ def uploadPdf():
         400: Validation error (no file, wrong type, too large)
         500: Server error
     """
+    # Debug: Log that we got past JWT verification
+    print(f"DEBUG: uploadPdf - JWT verification passed, user ID: {get_jwt_identity()}", file=sys.stderr)
+
     # Check if file in request
     if 'file' not in request.files:
         return jsonify({'success': False, 'error': 'No file provided'}), 400
