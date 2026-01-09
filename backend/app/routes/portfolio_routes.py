@@ -2,6 +2,8 @@
 Portfolio routes - public viewing and admin CRUD operations
 """
 import os
+import traceback
+import sys
 from flask import Blueprint, request, jsonify, send_file
 from flask_jwt_extended import jwt_required, verify_jwt_in_request
 from werkzeug.utils import secure_filename
@@ -45,6 +47,9 @@ def getPortfolio():
             'data': portfolioItems
         }), 200
     except Exception as e:
+        # Print full traceback to stderr for Render logs
+        print("ERROR in /portfolio GET:", file=sys.stderr)
+        print(traceback.format_exc(), file=sys.stderr)
         return jsonify({
             'success': False,
             'error': str(e)

@@ -7,6 +7,8 @@ from app.dao import ResumeDAO
 from app.dao.resume_pdf_dao import ResumePdfDAO
 from app.services.file_storage_service import FileStorageService
 import os
+import traceback
+import sys
 
 resume_bp = Blueprint('resume', __name__)
 
@@ -114,6 +116,9 @@ def getActivePdf():
             'data': activePdf.toDict()
         }), 200
     except Exception as e:
+        # Print full traceback to stderr for Render logs
+        print("ERROR in /cv/pdf:", file=sys.stderr)
+        print(traceback.format_exc(), file=sys.stderr)
         return jsonify({
             'success': False,
             'error': str(e)
@@ -163,6 +168,9 @@ def getPdfFile():
             download_name=activePdf.fileName
         )
     except Exception as e:
+        # Print full traceback to stderr for Render logs
+        print("ERROR in /cv/pdf/file:", file=sys.stderr)
+        print(traceback.format_exc(), file=sys.stderr)
         return jsonify({
             'success': False,
             'error': str(e)
