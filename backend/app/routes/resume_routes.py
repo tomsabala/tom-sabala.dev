@@ -209,8 +209,8 @@ def uploadPdf():
         return jsonify({'success': False, 'error': errorMsg}), 400
 
     try:
-        # Get current user ID
-        userId = get_jwt_identity()
+        # Get current user ID (convert from string to int)
+        userId = int(get_jwt_identity())
 
         # Save file to storage
         originalFilename, relativePath, fileSize = FileStorageService.saveFile(file)

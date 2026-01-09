@@ -105,8 +105,8 @@ def refresh():
     Returns:
         200: New access token set in cookies
     """
-    userId = get_jwt_identity()
-    accessToken = create_access_token(identity=userId)
+    userId = get_jwt_identity()  # Already a string from JWT
+    accessToken = create_access_token(identity=userId)  # Keep as string
     response = make_response(jsonify({'success': True, 'message': 'Token refreshed'}), 200)
     set_access_cookies(response, accessToken)
     return response

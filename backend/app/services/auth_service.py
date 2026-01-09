@@ -40,8 +40,8 @@ class AuthService:
             dict: Dictionary with accessToken and refreshToken
         """
         return {
-            'accessToken': create_access_token(identity=userId),
-            'refreshToken': create_refresh_token(identity=userId)
+            'accessToken': create_access_token(identity=str(userId)),
+            'refreshToken': create_refresh_token(identity=str(userId))
         }
 
     @staticmethod
@@ -56,7 +56,8 @@ class AuthService:
             userId = get_jwt_identity()
             if not userId:
                 return (None, "User not authenticated")
-            user = UserDAO.getUserById(userId)
+            # Convert string identity back to int for database query
+            user = UserDAO.getUserById(int(userId))
             return (user, None) if user else (None, "User not found")
         except Exception as e:
             return (None, str(e))
