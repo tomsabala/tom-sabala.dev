@@ -3,7 +3,7 @@
  * Handles all portfolio-related API calls (public and admin)
  */
 import { apiClient, fileUploadClient } from './apiClient';
-import type { PortfolioItem, ProjectFormData, ProjectOrderUpdate } from '../types';
+import type { ProjectFormData, ProjectOrderUpdate } from '../types';
 
 /**
  * Get portfolio projects

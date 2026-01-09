@@ -1,4 +1,5 @@
-import { useState, FormEvent } from 'react';
+import { useState } from 'react';
+import type { FormEvent } from 'react';
 import { submitContact } from '../repositories/contactRepository';
 import type { ContactFormData } from '../types/index';
 

@@ -17,7 +17,7 @@ const CV = () => {
 
   // Loading timing state
   const loadStartTime = useRef<number>(0);
-  const loadTimeoutId = useRef<NodeJS.Timeout | null>(null);
+  const loadTimeoutId = useRef<number | null>(null);
 
   // Load active PDF with minimum 2-second loading time
   const loadActivePdf = async () => {
