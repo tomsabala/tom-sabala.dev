@@ -191,11 +191,51 @@
 ## Phase 4: Enhanced Design & Features
 
 ### 4.1 Design Improvements
-- [ ] **Homepage**
+
+- [ ] **Mobile Responsive Design** 🚨 **HIGH PRIORITY**
+  - [ ] **Homepage (Mobile)**
+    - Fix header/navigation layout for small screens
+    - Adjust hero section text sizing and spacing
+    - Ensure profile photo scales properly
+    - Stack sections vertically on mobile
+    - Touch-friendly button sizes (min 44x44px)
+
+  - [ ] **Portfolio Page (Mobile)**
+    - Project cards should stack in single column
+    - Admin controls (three-dots menu) should be touch-friendly
+    - Drag-and-drop should work with touch gestures
+    - Modal forms should be scrollable and fit screen
+    - Image previews should scale appropriately
+
+  - [ ] **CV/Resume Page (Mobile)**
+    - PDF viewer should be scrollable and zoomable
+    - Admin panel tabs should be accessible
+    - Upload button should be touch-friendly
+    - Version history list should scroll properly
+    - Download button should be easily tappable
+
+  - [ ] **Contact Page (Mobile)**
+    - Form fields should be properly sized for mobile
+    - Keyboard should not overlap input fields
+    - Submit button should be easily tappable
+    - Success/error messages should be visible
+
+  - [ ] **Navigation (Mobile)**
+    - Add hamburger menu for mobile
+    - Ensure all navigation links are accessible
+    - Login modal should fit mobile screens
+
+  - [ ] **Testing**
+    - Test on iPhone (Safari)
+    - Test on Android (Chrome)
+    - Test on tablets (iPad, Android tablets)
+    - Test different screen sizes (320px - 1024px)
+    - Test landscape and portrait orientations
+
+- [ ] **Homepage (Desktop)**
   - Replace placeholder profile photo with real photo
   - Write compelling "About Me" section
   - Add smooth animations/transitions
-  - Responsive design testing (mobile, tablet, desktop)
 
 - [ ] **Portfolio Page**
   - Project cards with hover effects
