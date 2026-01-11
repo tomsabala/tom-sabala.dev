@@ -5,12 +5,15 @@ from flask import Blueprint, request, jsonify, send_file
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.dao import ResumeDAO
 from app.dao.resume_pdf_dao import ResumePdfDAO
-from app.services.file_storage_service import FileStorageService
+from app.services.storage_factory import getStorageService
 import os
 import traceback
 import sys
 
 resume_bp = Blueprint('resume', __name__)
+
+# Get storage service (local or S3 based on environment)
+StorageService = getStorageService()
 
 
 @resume_bp.route('/cv', methods=['GET'])
@@ -148,25 +151,34 @@ def getPdfFile():
                 'error': 'No resume PDF available'
             }), 404
 
-        # Get absolute file path
-        filePath = FileStorageService.getFilePath(activePdf.filePath)
+        # Get file path (local absolute path or S3 URL)
+        filePath = StorageService.getFilePath(activePdf.filePath)
 
-        if not os.path.exists(filePath):
-            return jsonify({
-                'success': False,
-                'error': 'PDF file not found on server'
-            }), 404
+        # Check storage backend
+        storageBackend = os.getenv('STORAGE_BACKEND', 'local').lower()
 
-        # Check if download is requested via query parameter
-        download = request.args.get('download', 'false').lower() == 'true'
+        if storageBackend == 's3':
+            # For S3, filePath is a URL - redirect to it
+            from flask import redirect
+            return redirect(filePath)
+        else:
+            # For local storage, serve the file
+            if not os.path.exists(filePath):
+                return jsonify({
+                    'success': False,
+                    'error': 'PDF file not found on server'
+                }), 404
 
-        # Send file inline or as attachment based on query parameter
-        return send_file(
-            filePath,
-            mimetype='application/pdf',
-            as_attachment=download,  # True forces download, False shows inline
-            download_name=activePdf.fileName
-        )
+            # Check if download is requested via query parameter
+            download = request.args.get('download', 'false').lower() == 'true'
+
+            # Send file inline or as attachment based on query parameter
+            return send_file(
+                filePath,
+                mimetype='application/pdf',
+                as_attachment=download,  # True forces download, False shows inline
+                download_name=activePdf.fileName
+            )
     except Exception as e:
         # Print full traceback to stderr for Render logs
         print("ERROR in /cv/pdf/file:", file=sys.stderr)
@@ -204,7 +216,7 @@ def uploadPdf():
     file = request.files['file']
 
     # Validate file
-    isValid, errorMsg = FileStorageService.validateFile(file)
+    isValid, errorMsg = StorageService.validateFile(file)
     if not isValid:
         return jsonify({'success': False, 'error': errorMsg}), 400
 
@@ -212,8 +224,8 @@ def uploadPdf():
         # Get current user ID (convert from string to int)
         userId = int(get_jwt_identity())
 
-        # Save file to storage
-        originalFilename, relativePath, fileSize = FileStorageService.saveFile(file)
+        # Save file to storage (local or S3)
+        originalFilename, relativePath, fileSize = StorageService.saveFile(file)
 
         # Create database record (auto-activates, deactivates others)
         newVersion = ResumePdfDAO.createVersion(
