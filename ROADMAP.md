@@ -294,12 +294,33 @@
   - [ ] Google Analytics or privacy-friendly alternative (Plausible)
   - [ ] Track page views, popular projects
 
-- [ ] ❌ **SEO Optimization**
-  - [ ] Meta tags for all pages
-  - [ ] Open Graph tags for social sharing
-  - [ ] Sitemap.xml
-  - [ ] robots.txt
-  - [ ] Structured data (JSON-LD)
+- [ ] ❌ **SEO Optimization** 📋 **[Detailed Plan: `.claude/features/SEO_ENHANCEMENT_PLAN.md`]**
+  - **Priority:** Post-MVP (Phase 4.2)
+  - **Estimated Effort:** 2-3 weeks part-time
+  - **Week 1: Foundation (High Priority)**
+    - [ ] Install react-helmet-async
+    - [ ] Create SEO component with dynamic meta tags
+    - [ ] Add meta tags to all pages (Home, Portfolio, CV, Contact)
+    - [ ] Create Open Graph images (1200x630px)
+    - [ ] Implement /sitemap.xml endpoint (Flask)
+    - [ ] Implement /robots.txt endpoint (Flask)
+    - [ ] Add structured data (Person, Portfolio schemas)
+  - **Week 2: Content & Performance**
+    - [ ] Optimize all page content for keywords
+    - [ ] Add descriptive alt text to all images
+    - [ ] Implement lazy loading for images
+    - [ ] Set up Google Analytics or Plausible
+    - [ ] Submit sitemap to Google Search Console
+  - **Week 3: Advanced (Optional)**
+    - [ ] Evaluate and implement prerendering (vite-plugin-ssr)
+    - [ ] Add cache headers for static assets
+    - [ ] Test with Lighthouse (target: 95+ SEO score)
+    - [ ] Validate with Facebook Debugger & Twitter Card Validator
+  - **Tools & Validation:**
+    - Google Search Console
+    - Lighthouse / PageSpeed Insights
+    - Rich Results Test
+    - XML Sitemap Validator
 
 - [ ] ❌ **Performance** (Partially Implemented)
   - [ ] ❌ Image optimization and lazy loading
@@ -520,7 +541,7 @@
 
 ### Should Have - Current Status
 1. 🟡 Anti-spam protection **(Partially DONE - rate limiting, needs reCAPTCHA)**
-2. ❌ SEO optimization
+2. ❌ SEO optimization 📋 **[See `.claude/features/SEO_ENHANCEMENT_PLAN.md`]**
 3. ❌ Analytics
 4. ✅ Error monitoring **(DONE - Sentry)**
 5. ❌ Database backups
@@ -595,5 +616,12 @@
 3. ❌ Mobile testing on real devices
 4. ❌ Deploy to production (backend + frontend)
 5. ❌ Configure custom domain
+
+**Step 5: Post-Launch SEO (After Deployment)** 📋 **[See `.claude/features/SEO_ENHANCEMENT_PLAN.md`]**
+1. ❌ Week 1: Meta tags, sitemap, robots.txt, structured data
+2. ❌ Week 2: Content optimization, performance, analytics
+3. ❌ Week 3: Testing, validation, monitoring setup
+4. ❌ Submit sitemap to Google Search Console
+5. ❌ Monitor rankings and iterate based on performance
 
 **BLOCKER:** Seed script does NOT exist despite roadmap claiming it does. This must be created first!
