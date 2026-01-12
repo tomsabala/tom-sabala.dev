@@ -61,6 +61,24 @@ export interface ContactFormData {
   message: string;
 }
 
+export interface ContactSubmission {
+  id: number;
+  name: string;
+  email: string;
+  message: string;
+  submittedAt: string;
+  ipAddress?: string;
+  read: boolean;
+  archivedAt?: string | null;
+}
+
+export interface ContactSubmissionsResponse {
+  submissions: ContactSubmission[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
 // Authentication Types
 export interface User {
   id: number;

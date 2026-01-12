@@ -2,8 +2,11 @@
 Contact form routes - public contact form submission
 """
 from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required
 from app.services import EmailService
+from app.dao import ContactSubmissionDAO
 from app import limiter
+import sys
 
 contact_bp = Blueprint('contact', __name__)
 
@@ -54,6 +57,21 @@ def contact():
         if len(message) > 5000:
             return jsonify({'success': False, 'error': 'Message too long (max 5000 characters)'}), 400
 
+        # Get client IP address
+        ipAddress = request.remote_addr
+
+        # Save submission to database
+        try:
+            submission = ContactSubmissionDAO.createSubmission(
+                name=name,
+                email=email,
+                message=message,
+                ipAddress=ipAddress
+            )
+        except Exception as e:
+            # Log error but don't fail - email still sends
+            print(f"ERROR: Failed to save contact submission to DB: {str(e)}", file=sys.stderr)
+
         # Send email using EmailService
         success, error = EmailService.sendEmail(
             fromEmail=email,
@@ -75,3 +93,119 @@ def contact():
 
     except Exception as e:
         return jsonify({'success': False, 'error': 'Failed to submit form'}), 500
+
+
+@contact_bp.route('/contact/submissions', methods=['GET'])
+@jwt_required()
+def getSubmissions():
+    """
+    Get all contact submissions with pagination and filters (admin only)
+
+    Query params:
+        limit (int): Results per page (default 50, max 100)
+        offset (int): Pagination offset (default 0)
+        read (str): Filter by read status - 'all'|'read'|'unread' (default 'all')
+        includeArchived (bool): Include archived submissions (default false)
+
+    Returns:
+        200: { success: true, data: { submissions: [...], total: 123, limit: 50, offset: 0 } }
+        500: Server error
+    """
+    try:
+        # Parse query parameters
+        limit = min(int(request.args.get('limit', 50)), 100)
+        offset = int(request.args.get('offset', 0))
+        readFilter = request.args.get('read', 'all')
+        includeArchived = request.args.get('includeArchived', 'false').lower() == 'true'
+
+        # Fetch submissions from database
+        submissions, total = ContactSubmissionDAO.getAllSubmissions(
+            limit=limit,
+            offset=offset,
+            readFilter=readFilter,
+            includeArchived=includeArchived
+        )
+
+        return jsonify({
+            'success': True,
+            'data': {
+                'submissions': [s.toDict() for s in submissions],
+                'total': total,
+                'limit': limit,
+                'offset': offset
+            }
+        }), 200
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@contact_bp.route('/contact/submissions/<int:submissionId>', methods=['GET'])
+@jwt_required()
+def getSubmission(submissionId):
+    """
+    Get single submission by ID (admin only)
+
+    Args:
+        submissionId (int): Submission ID
+
+    Returns:
+        200: { success: true, data: {...} }
+        404: Submission not found
+        500: Server error
+    """
+    try:
+        submission = ContactSubmissionDAO.getSubmissionById(submissionId)
+        if not submission:
+            return jsonify({'success': False, 'error': 'Submission not found'}), 404
+
+        return jsonify({'success': True, 'data': submission.toDict()}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@contact_bp.route('/contact/submissions/<int:submissionId>/read', methods=['PATCH'])
+@jwt_required()
+def toggleSubmissionRead(submissionId):
+    """
+    Toggle read/unread status (admin only)
+
+    Args:
+        submissionId (int): Submission ID
+
+    Returns:
+        200: { success: true, data: {...} }
+        404: Submission not found
+        500: Server error
+    """
+    try:
+        submission = ContactSubmissionDAO.toggleReadStatus(submissionId)
+        if not submission:
+            return jsonify({'success': False, 'error': 'Submission not found'}), 404
+
+        return jsonify({'success': True, 'data': submission.toDict()}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@contact_bp.route('/contact/submissions/<int:submissionId>', methods=['DELETE'])
+@jwt_required()
+def deleteSubmission(submissionId):
+    """
+    Soft delete (archive) submission (admin only)
+
+    Args:
+        submissionId (int): Submission ID
+
+    Returns:
+        200: { success: true, message: 'Submission archived' }
+        404: Submission not found
+        500: Server error
+    """
+    try:
+        success = ContactSubmissionDAO.softDelete(submissionId)
+        if not success:
+            return jsonify({'success': False, 'error': 'Submission not found'}), 404
+
+        return jsonify({'success': True, 'message': 'Submission archived'}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
