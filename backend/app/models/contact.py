@@ -12,6 +12,7 @@ class ContactSubmission(db.Model):
     submittedAt = db.Column('submitted_at', db.DateTime, nullable=False, default=datetime.utcnow)
     ipAddress = db.Column('ip_address', db.String(50), nullable=True)
     read = db.Column(db.Boolean, default=False, nullable=False)
+    archivedAt = db.Column('archived_at', db.DateTime, nullable=True)
 
     def toDict(self):
         """Convert model to dictionary for JSON response"""
@@ -22,7 +23,8 @@ class ContactSubmission(db.Model):
             'message': self.message,
             'submittedAt': self.submittedAt.isoformat() if self.submittedAt else None,
             'ipAddress': self.ipAddress,
-            'read': self.read
+            'read': self.read,
+            'archivedAt': self.archivedAt.isoformat() if self.archivedAt else None
         }
 
     def __repr__(self):
