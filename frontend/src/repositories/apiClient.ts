@@ -3,6 +3,7 @@
  * Used by all repositories for consistent HTTP configuration
  */
 import axios from 'axios';
+import { readCsrfTokenFromCookie } from './csrfTokenRepository';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -16,6 +17,41 @@ export const apiClient = axios.create({
   },
   withCredentials: true, // CRITICAL: Enables HttpOnly cookies for JWT auth
 });
+
+/**
+ * Request interceptor: Automatically attach CSRF token to mutating requests.
+ * Token is read from cookie and sent in X-CSRF-Token header.
+ *
+ * Applied to: POST, PUT, DELETE, PATCH methods
+ * Excluded: Auth endpoints (different CSRF handling)
+ */
+apiClient.interceptors.request.use(
+  (config) => {
+    // Only add CSRF token to mutating requests (not GET/HEAD/OPTIONS)
+    const requestMethod = config.method?.toLowerCase();
+    const isMutatingRequest = requestMethod && ['post', 'put', 'delete', 'patch'].includes(requestMethod);
+
+    if (isMutatingRequest) {
+      // Exclude auth endpoints (they have their own security)
+      const isAuthEndpoint = config.url?.includes('/auth/');
+
+      if (!isAuthEndpoint) {
+        const csrfToken = readCsrfTokenFromCookie();
+
+        if (csrfToken) {
+          config.headers['X-CSRF-Token'] = csrfToken;
+        } else {
+          console.warn('CSRF token not found in cookies for mutating request');
+        }
+      }
+    }
+
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 
 /**
  * 401 Response Interceptor - Automatic token refresh
@@ -65,6 +101,38 @@ export const fileUploadClient = axios.create({
   },
   withCredentials: true, // CRITICAL: Enables HttpOnly cookies for JWT auth
 });
+
+/**
+ * Apply same CSRF request interceptor to file upload client
+ * Ensures file uploads also include CSRF tokens
+ */
+fileUploadClient.interceptors.request.use(
+  (config) => {
+    // Only add CSRF token to mutating requests (not GET/HEAD/OPTIONS)
+    const requestMethod = config.method?.toLowerCase();
+    const isMutatingRequest = requestMethod && ['post', 'put', 'delete', 'patch'].includes(requestMethod);
+
+    if (isMutatingRequest) {
+      // Exclude auth endpoints (they have their own security)
+      const isAuthEndpoint = config.url?.includes('/auth/');
+
+      if (!isAuthEndpoint) {
+        const csrfToken = readCsrfTokenFromCookie();
+
+        if (csrfToken) {
+          config.headers['X-CSRF-Token'] = csrfToken;
+        } else {
+          console.warn('CSRF token not found in cookies for file upload request');
+        }
+      }
+    }
+
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 
 /**
  * Apply same 401 interceptor to file upload client
