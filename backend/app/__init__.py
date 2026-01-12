@@ -67,7 +67,7 @@ def create_app():
     CORS(app,
          origins=corsOrigins,
          supports_credentials=True,  # CRITICAL for cookies
-         allow_headers=['Content-Type', 'Authorization'],
+         allow_headers=['Content-Type', 'Authorization', 'X-CSRF-Token'],
          expose_headers=['Content-Type', 'Content-Disposition'])  # Content-Disposition for file downloads
 
     # Security headers middleware (production-ready)
