@@ -158,9 +158,29 @@ def getPdfFile():
         storageBackend = os.getenv('STORAGE_BACKEND', 'local').lower()
 
         if storageBackend == 's3':
-            # For S3, filePath is a URL - redirect to it
-            from flask import redirect
-            return redirect(filePath)
+            # For S3, proxy the file through backend to avoid CORS issues with react-pdf
+            # The frontend will request from our backend, we fetch from S3 and stream back
+            import requests
+
+            # Fetch from S3 using pre-signed URL
+            s3Response = requests.get(filePath, stream=True)
+
+            if s3Response.status_code != 200:
+                return jsonify({
+                    'success': False,
+                    'error': 'Failed to fetch PDF from storage'
+                }), 500
+
+            # Stream the response back to client with proper headers
+            from flask import Response
+            return Response(
+                s3Response.iter_content(chunk_size=8192),
+                content_type='application/pdf',
+                headers={
+                    'Content-Disposition': f'inline; filename="{activePdf.fileName}"',
+                    'Cache-Control': 'public, max-age=3600'
+                }
+            )
         else:
             # For local storage, serve the file
             if not os.path.exists(filePath):
