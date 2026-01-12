@@ -59,6 +59,11 @@ export interface ContactFormData {
   name: string;
   email: string;
   message: string;
+
+  // Security fields
+  recaptchaToken?: string;  // reCAPTCHA token from execution
+  email2?: string;          // Honeypot field 1 (must remain empty)
+  phoneNumber?: string;     // Honeypot field 2 (must remain empty)
 }
 
 // Authentication Types
