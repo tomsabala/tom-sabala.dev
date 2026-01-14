@@ -1,4 +1,4 @@
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 import { submitContact } from '../repositories/contactRepository';
 import { fetchCsrfToken } from '../repositories/csrfTokenRepository';
