@@ -195,11 +195,11 @@ def submitContactForm():
                 'error': 'Email too long'
             }), 400
 
-        # Message validation (10-5000 characters)
-        if not message or len(message) < 10:
+        # Message validation (1-5000 characters)
+        if not message or len(message) < 1:
             return jsonify({
                 'success': False,
-                'error': 'Message must be at least 10 characters'
+                'error': 'Message is required'
             }), 400
 
         if len(message) > 5000:
