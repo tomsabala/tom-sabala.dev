@@ -24,7 +24,7 @@ const Contact = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Security state
-  const [csrfTokenLoaded, setCsrfTokenLoaded] = useState(false);
+  const [csrfToken, setCsrfToken] = useState<string | null>(null);
   const [csrfTokenError, setCsrfTokenError] = useState<string | null>(null);
 
   // reCAPTCHA hook
@@ -37,8 +37,8 @@ const Contact = () => {
   useEffect(() => {
     const initializeCsrfToken = async () => {
       try {
-        await fetchCsrfToken();
-        setCsrfTokenLoaded(true);
+        const token = await fetchCsrfToken();
+        setCsrfToken(token);
       } catch (error) {
         console.error('Failed to fetch CSRF token:', error);
         setCsrfTokenError('Failed to initialize form security. Please refresh the page.');
@@ -60,6 +60,12 @@ const Contact = () => {
     setSubmitSucceeded(false);
 
     try {
+      // Check CSRF token is available
+      if (!csrfToken) {
+        setErrorMessage('Security token not ready. Please refresh the page and try again.');
+        return;
+      }
+
       // Check reCAPTCHA is ready
       if (!executeRecaptcha) {
         setErrorMessage('Security verification not ready. Please wait a moment and try again.');
@@ -69,13 +75,13 @@ const Contact = () => {
       // Execute reCAPTCHA with action identifier
       const recaptchaToken = await executeRecaptcha('contact_form');
 
-      // Submit form with all security fields
+      // Submit form with all security fields and CSRF token in header
       const submissionData: ContactFormData = {
         ...formData,
         recaptchaToken,
       };
 
-      await submitContact(submissionData);
+      await submitContact(submissionData, csrfToken);
 
       // Success: Reset form and show success message
       setSubmitSucceeded(true);
@@ -190,7 +196,7 @@ const Contact = () => {
                 value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   required
-                  disabled={isSubmitting || !csrfTokenLoaded}
+                  disabled={isSubmitting || !csrfToken}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed"
                   placeholder="John Doe"
                 />
@@ -222,7 +228,7 @@ const Contact = () => {
                 value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   required
-                  disabled={isSubmitting || !csrfTokenLoaded}
+                  disabled={isSubmitting || !csrfToken}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed"
                   placeholder="john@example.com"
                 />
@@ -253,7 +259,7 @@ const Contact = () => {
                 value={formData.message}
                   onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                   required
-                  disabled={isSubmitting || !csrfTokenLoaded}
+                  disabled={isSubmitting || !csrfToken}
                   rows={6}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors resize-none disabled:bg-gray-100 disabled:cursor-not-allowed"
                   placeholder="Tell me about your project or how I can help..."
@@ -263,7 +269,7 @@ const Contact = () => {
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={isSubmitting || !csrfTokenLoaded || !!csrfTokenError}
+                disabled={isSubmitting || !csrfToken || !!csrfTokenError}
                 className="w-full bg-orange-500 text-white font-medium py-3 px-6 rounded-lg hover:bg-orange-600 focus:ring-4 focus:ring-orange-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {isSubmitting ? (
@@ -274,7 +280,7 @@ const Contact = () => {
                     </svg>
                     Sending...
                   </>
-                ) : !csrfTokenLoaded ? (
+                ) : !csrfToken ? (
                 'Loading...'
               ) : (
                   <>

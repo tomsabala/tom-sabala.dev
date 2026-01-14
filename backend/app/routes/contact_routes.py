@@ -228,7 +228,7 @@ def submitContactForm():
             message=message
         )
 
-        if emailSendSucceeded:
+        if success:
             return jsonify({
                 'success': True,
                 'message': 'Thank you for your message! I will get back to you soon.'
@@ -236,7 +236,7 @@ def submitContactForm():
         else:
             return jsonify({
                 'success': False,
-                'error': emailError or 'Failed to send email'
+                'error': error or 'Failed to send email'
             }), 500
 
     except Exception as e:

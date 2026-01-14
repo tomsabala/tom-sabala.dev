@@ -7,9 +7,15 @@ import type { ContactFormData } from '../types';
 
 /**
  * Submit contact form (public)
+ * @param data - Contact form data
+ * @param csrfToken - CSRF token to send in header (for cross-site partitioned cookies)
  */
-export const submitContact = async (data: ContactFormData) => {
-  const response = await apiClient.post('/contact', data);
+export const submitContact = async (data: ContactFormData, csrfToken: string) => {
+  const response = await apiClient.post('/contact', data, {
+    headers: {
+      'X-CSRF-Token': csrfToken,
+    },
+  });
   return response.data;
 };
 
