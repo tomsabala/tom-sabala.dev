@@ -21,8 +21,8 @@ def attachCsrfCookieToResponse(response: Response, csrfToken: str) -> Response:
 
     Cookie properties:
     - HttpOnly=False: JavaScript must read it for header
-    - SameSite=Lax: Browser CSRF protection
-    - Secure=True: HTTPS only in production
+    - SameSite=None: Allow cross-site requests in production (Vercel frontend)
+    - Secure=True: HTTPS only (required when SameSite=None)
     - Max-Age=3600: 1-hour expiry
 
     Args:
@@ -38,9 +38,9 @@ def attachCsrfCookieToResponse(response: Response, csrfToken: str) -> Response:
         key='csrf_token',
         value=csrfToken,
         max_age=3600,  # 1 hour
-        secure=isProductionEnvironment,
+        secure=True,  # Required for SameSite=None
         httponly=False,  # Must be False so JavaScript can read it
-        samesite='Lax',
+        samesite='None' if isProductionEnvironment else 'Lax',  # None for cross-site, Lax for dev
         path='/'
     )
     return response
