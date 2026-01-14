@@ -23,6 +23,7 @@ def attachCsrfCookieToResponse(response: Response, csrfToken: str) -> Response:
     - HttpOnly=False: JavaScript must read it for header
     - SameSite=None: Allow cross-site requests in production (Vercel frontend)
     - Secure=True: HTTPS only (required when SameSite=None)
+    - Partitioned=True: Chrome CHIPS for cross-site cookies
     - Max-Age=3600: 1-hour expiry
 
     Args:
@@ -41,6 +42,7 @@ def attachCsrfCookieToResponse(response: Response, csrfToken: str) -> Response:
         secure=True,  # Required for SameSite=None
         httponly=False,  # Must be False so JavaScript can read it
         samesite='None' if isProductionEnvironment else 'Lax',  # None for cross-site, Lax for dev
+        partitioned=isProductionEnvironment,  # CHIPS for cross-site cookies in production
         path='/'
     )
     return response
