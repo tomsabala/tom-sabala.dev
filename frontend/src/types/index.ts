@@ -132,3 +132,16 @@ export interface PdfUploadResponse {
   data?: ResumePdfVersion;
   error?: string;
 }
+
+// About Types
+export interface AboutData {
+  id: number | null;
+  content: string;
+  profilePhotoUrl: string | null;
+  updatedAt: string | null;
+}
+
+export interface AboutFormData {
+  content: string;
+  profilePhotoUrl?: string;
+}
