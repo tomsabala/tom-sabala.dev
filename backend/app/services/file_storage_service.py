@@ -17,6 +17,7 @@ class FileStorageService:
     UPLOAD_DIR = os.getenv('UPLOAD_DIR', 'uploads')
     RESUMES_SUBDIR = 'resumes'
     PROJECTS_SUBDIR = 'projects'
+    PROFILE_SUBDIR = 'profile'
     MAX_FILE_SIZE = int(os.getenv('MAX_FILE_SIZE_MB', '10')) * 1024 * 1024  # Convert MB to bytes
     ALLOWED_EXTENSIONS = os.getenv('ALLOWED_EXTENSIONS', 'pdf').split(',')
     IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif']
@@ -244,6 +245,52 @@ class FileStorageService:
             return originalFilename, relativePath, fileSize
         except Exception as e:
             raise Exception(f"Failed to save image: {str(e)}")
+
+    # ========================================
+    # PROFILE PHOTO METHODS
+    # ========================================
+
+    @classmethod
+    def _getProfileDir(cls):
+        """Get absolute path to profile directory, create if doesn't exist"""
+        baseDir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+        profileDir = os.path.join(baseDir, cls.UPLOAD_DIR, cls.PROFILE_SUBDIR)
+
+        os.makedirs(profileDir, exist_ok=True)
+
+        return profileDir
+
+    @classmethod
+    def saveProfilePhoto(cls, file: FileStorage):
+        """
+        Save uploaded profile photo to local storage
+
+        Args:
+            file: Werkzeug FileStorage object
+
+        Returns:
+            tuple: (original_filename: str, relative_path: str, file_size: int)
+
+        Raises:
+            Exception: If save fails
+        """
+        try:
+            originalFilename = secure_filename(file.filename)
+            uniqueId = uuid.uuid4().hex[:12]
+            filename = f"{uniqueId}_{originalFilename}"
+
+            profileDir = cls._getProfileDir()
+            absolutePath = os.path.join(profileDir, filename)
+
+            file.save(absolutePath)
+
+            fileSize = os.path.getsize(absolutePath)
+
+            relativePath = os.path.join(cls.UPLOAD_DIR, cls.PROFILE_SUBDIR, filename)
+
+            return originalFilename, relativePath, fileSize
+        except Exception as e:
+            raise Exception(f"Failed to save profile photo: {str(e)}")
 
 
 # Future: CloudStorageService for production

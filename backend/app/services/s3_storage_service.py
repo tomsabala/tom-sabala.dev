@@ -25,6 +25,7 @@ class S3StorageService:
     # File settings
     RESUMES_PREFIX = 'resumes/'
     PROJECTS_PREFIX = 'projects/'
+    PROFILE_PREFIX = 'profile/'
     MAX_FILE_SIZE = int(os.getenv('MAX_FILE_SIZE_MB', '10')) * 1024 * 1024
     ALLOWED_EXTENSIONS = os.getenv('ALLOWED_EXTENSIONS', 'pdf').split(',')
     IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif']
@@ -287,3 +288,60 @@ class S3StorageService:
             raise Exception(f"Failed to upload image to S3: {str(e)}")
         except Exception as e:
             raise Exception(f"Failed to save image: {str(e)}")
+
+    # ========================================
+    # PROFILE PHOTO METHODS
+    # ========================================
+
+    @classmethod
+    def saveProfilePhoto(cls, file: FileStorage):
+        """
+        Upload profile photo to S3
+
+        Args:
+            file: Werkzeug FileStorage object
+
+        Returns:
+            tuple: (original_filename: str, s3_key: str, file_size: int)
+
+        Raises:
+            Exception: If upload fails
+        """
+        try:
+            s3 = cls._getS3Client()
+
+            originalFilename = secure_filename(file.filename)
+            uniqueId = uuid.uuid4().hex[:12]
+            filename = f"{uniqueId}_{originalFilename}"
+
+            s3Key = cls.PROFILE_PREFIX + filename
+
+            file.seek(0, os.SEEK_END)
+            fileSize = file.tell()
+            file.seek(0)
+
+            ext = file.filename.rsplit('.', 1)[1].lower()
+            contentTypeMap = {
+                'jpg': 'image/jpeg',
+                'jpeg': 'image/jpeg',
+                'png': 'image/png',
+                'webp': 'image/webp',
+                'gif': 'image/gif'
+            }
+            contentType = contentTypeMap.get(ext, 'image/jpeg')
+
+            s3.upload_fileobj(
+                file,
+                cls.AWS_S3_BUCKET,
+                s3Key,
+                ExtraArgs={
+                    'ContentType': contentType,
+                    'CacheControl': 'max-age=31536000'
+                }
+            )
+
+            return originalFilename, s3Key, fileSize
+        except ClientError as e:
+            raise Exception(f"Failed to upload profile photo to S3: {str(e)}")
+        except Exception as e:
+            raise Exception(f"Failed to save profile photo: {str(e)}")
