@@ -1,392 +1,89 @@
 # Portfolio Website Development Roadmap
 
-## Current Status (Updated: 2026-01-12)
-## Current Status (Updated: 2026-01-12)
+**Last Updated:** 2026-01-14
+**Overall Progress:** ~75% Complete 🎉
 
-### ✅ Completed (DONE)
-- ✅ Flask backend API structure
-- ✅ React frontend with routing
-- ✅ Basic UI/UX theme implemented (Wix-inspired design)
-- ✅ Contact form UI (frontend only)
-- ✅ **PostgreSQL database setup with Docker (DONE)**
-- ✅ **6 database models created: Project, User, Resume, ResumePdfVersion, About, ContactSubmission (DONE)**
-- ✅ **Migration system configured with incremental IDs (DONE)**
-- ✅ **4 migrations created (001-004) (DONE)**
-- ❌ **Database seed script** - **NOT CREATED** (roadmap incorrectly claimed it exists)
-- ✅ **Coding conventions established (camelCase Python, snake_case DB) (DONE)**
-- ✅ **Phase 1.2: Backend API Implementation (DONE)**
-  - ✅ All routes use database queries (no hardcoded data!)
-  - ✅ DAO pattern implemented (ProjectDAO, ResumeDAO, ResumePdfDAO, UserDAO)
-  - ✅ Service layer created (AuthService, EmailService, GoogleOAuthService, FileStorageService, S3StorageService, StorageFactory)
-  - ✅ Routes organized by domain (portfolio_routes, resume_routes, contact_routes, auth_routes, dashboard_routes, health_routes)
-  - ✅ File storage abstraction (local + S3 with factory pattern)
-  - ✅ Security middleware (rate limiting, headers, Sentry)
-- ✅ **Phase 2.1: Authentication System (DONE)**
-  - ✅ Google OAuth integration
-  - ✅ JWT token management with HttpOnly cookies
-  - ✅ Protected admin routes with @jwt_required()
-  - ✅ Email whitelist for access control
-  - ✅ Automatic token refresh interceptor (frontend)
-- ✅ **Phase 2.2: Admin Panel - Resume & Portfolio Management (DONE)**
-  - ✅ Frontend AuthContext and LoginModal implemented
-  - ✅ Hidden login trigger (click header 7 times within 2 seconds)
-  - ✅ **Resume PDF Management System (DONE)**
-    - ✅ PDF upload with drag-and-drop interface
-    - ✅ Version history with soft delete
-    - ✅ Activate/deactivate functionality (creates new history entries)
-    - ✅ Two-tab admin interface (Web View + Admin Panel)
-    - ✅ Download functionality with forced download in all browsers
-    - ✅ PDF viewer with pagination controls
-    - ✅ Three-dots dropdown menu for version actions
-    - ✅ Backend: ResumePdfVersion model, ResumePdfDAO, routes, file storage
-  - ✅ **Portfolio Project Management System (DONE)**
-    - ✅ Add/Edit/Delete projects with modal forms
-    - ✅ Hide/Display toggle for visibility control
-    - ✅ Drag-and-drop reordering with @dnd-kit
-    - ✅ Image upload with drag-and-drop (jpg, png, webp, gif, max 5MB)
-    - ✅ Image preview and serving
-    - ✅ Three-dots dropdown menu for actions
-    - ✅ Hidden badge for invisible projects
-    - ✅ Success/error toast messages
-    - ✅ Separate admin and public views
-    - ✅ Backend: isVisible/displayOrder fields, ProjectDAO, routes, image storage
-### ✅ Completed (DONE)
-- ✅ Flask backend API structure
-- ✅ React frontend with routing
-- ✅ Basic UI/UX theme implemented (Wix-inspired design)
-- ✅ Contact form UI (frontend only)
-- ✅ **PostgreSQL database setup with Docker (DONE)**
-- ✅ **6 database models created: Project, User, Resume, ResumePdfVersion, About, ContactSubmission (DONE)**
-- ✅ **Migration system configured with incremental IDs (DONE)**
-- ✅ **4 migrations created (001-004) (DONE)**
-- ❌ **Database seed script** - **NOT CREATED** (roadmap incorrectly claimed it exists)
-- ✅ **Coding conventions established (camelCase Python, snake_case DB) (DONE)**
-- ✅ **Phase 1.2: Backend API Implementation (DONE)**
-  - ✅ All routes use database queries (no hardcoded data!)
-  - ✅ DAO pattern implemented (ProjectDAO, ResumeDAO, ResumePdfDAO, UserDAO)
-  - ✅ Service layer created (AuthService, EmailService, GoogleOAuthService, FileStorageService, S3StorageService, StorageFactory)
-  - ✅ Routes organized by domain (portfolio_routes, resume_routes, contact_routes, auth_routes, dashboard_routes, health_routes)
-  - ✅ File storage abstraction (local + S3 with factory pattern)
-  - ✅ Security middleware (rate limiting, headers, Sentry)
-- ✅ **Phase 2.1: Authentication System (DONE)**
-  - ✅ Google OAuth integration
-  - ✅ JWT token management with HttpOnly cookies
-  - ✅ Protected admin routes with @jwt_required()
-  - ✅ Email whitelist for access control
-  - ✅ Automatic token refresh interceptor (frontend)
-- ✅ **Phase 2.2: Admin Panel - Resume & Portfolio Management (DONE)**
-  - ✅ Frontend AuthContext and LoginModal implemented
-  - ✅ Hidden login trigger (click header 7 times within 2 seconds)
-  - ✅ **Resume PDF Management System (DONE)**
-    - ✅ PDF upload with drag-and-drop interface
-    - ✅ Version history with soft delete
-    - ✅ Activate/deactivate functionality (creates new history entries)
-    - ✅ Two-tab admin interface (Web View + Admin Panel)
-    - ✅ Download functionality with forced download in all browsers
-    - ✅ PDF viewer with pagination controls
-    - ✅ Three-dots dropdown menu for version actions
-    - ✅ Backend: ResumePdfVersion model, ResumePdfDAO, routes, file storage
-  - ✅ **Portfolio Project Management System (DONE)**
-    - ✅ Add/Edit/Delete projects with modal forms
-    - ✅ Hide/Display toggle for visibility control
-    - ✅ Drag-and-drop reordering with @dnd-kit
-    - ✅ Image upload with drag-and-drop (jpg, png, webp, gif, max 5MB)
-    - ✅ Image preview and serving
-    - ✅ Three-dots dropdown menu for actions
-    - ✅ Hidden badge for invisible projects
-    - ✅ Success/error toast messages
-    - ✅ Separate admin and public views
-    - ✅ Backend: isVisible/displayOrder fields, ProjectDAO, routes, image storage
+---
 
-### 📍 Current Phase
-**Phase 1.3: Content Management** (Ready to start)
-- ❌ **CRITICAL**: Seed script does NOT exist (need to create it)
-- 🎯 Next Focus: Create seed script and populate database with initial content
-- Priority: Create seed.py, add real project data, upload images
-**Phase 1.3: Content Management** (Ready to start)
-- ❌ **CRITICAL**: Seed script does NOT exist (need to create it)
-- 🎯 Next Focus: Create seed script and populate database with initial content
-- Priority: Create seed.py, add real project data, upload images
+## Current Status
+
+### ✅ Production Deployment LIVE
+- **Frontend:** Deployed on Vercel at https://tom-sabala.dev
+- **Backend:** Deployed on Render at https://tom-sabala-dev.onrender.com
+- **Custom Domain:** Configured and working
+- **SSL:** Automatic HTTPS via Vercel and Render
+- **Status:** Fully operational in production
+
+### 🎯 Current Focus
+**Phase 1.3: Content Management** - Add real portfolio content and seed data
 
 ---
 
 ## Phase 1: Core Content & Database Setup
 
-### 1.1 Database Setup ✅ **COMPLETE (DONE)**
-- [x] ✅ Choose database (PostgreSQL recommended for production, SQLite for dev) **(DONE)**
-  - ✅ PostgreSQL 16 via Docker **(DONE)**
-  - ✅ Database: `dev_db`, User: `admin_dev` **(DONE)**
-- [x] ✅ Set up database schema **(DONE)**:
-  - [x] ✅ Portfolio items (projects) **(DONE)**
-  - [x] ✅ CV/resume data **(DONE)**
-  - [x] ✅ Contact form submissions **(DONE)**
-  - [x] ✅ Admin users (for authentication) **(DONE)**
-  - [x] ✅ About me content **(DONE)**
-  - [x] ✅ Resume PDF versions (added later) **(DONE)**
-- [x] ✅ Install SQLAlchemy or similar ORM **(DONE)**
-  - ✅ Flask-SQLAlchemy installed **(DONE)**
-- [x] ✅ Create database models **(DONE)**
-  - ✅ `Project` - Portfolio projects with technologies, URLs, images, visibility, display order **(DONE)**
-  - ✅ `User` - Admin users with Google OAuth and password hashing **(DONE)**
-  - ✅ `Resume` - CV/resume with JSON storage for flexibility **(DONE)**
-  - ✅ `ResumePdfVersion` - PDF version history with soft delete **(DONE)**
-  - ✅ `About` - About me content (single row table) **(DONE)** (no routes/DAO yet)
-  - ✅ `ContactSubmission` - Contact form submissions with IP tracking and read status **(DONE)**
-- [x] ✅ Set up database migrations (Alembic) **(DONE)**
-  - ✅ Flask-Migrate configured **(DONE)**
-  - ✅ Custom incremental revision IDs (001, 002, 003, 004) **(DONE)**
-  - ✅ 4 migrations created **(DONE)**
-- [x] ✅ Configure environment-specific database URLs **(DONE)**
-  - ✅ Using `.env` file with `DATABASE_URL` **(DONE)**
-  - ✅ Docker Compose for local PostgreSQL **(DONE)**
-### 1.1 Database Setup ✅ **COMPLETE (DONE)**
-- [x] ✅ Choose database (PostgreSQL recommended for production, SQLite for dev) **(DONE)**
-  - ✅ PostgreSQL 16 via Docker **(DONE)**
-  - ✅ Database: `dev_db`, User: `admin_dev` **(DONE)**
-- [x] ✅ Set up database schema **(DONE)**:
-  - [x] ✅ Portfolio items (projects) **(DONE)**
-  - [x] ✅ CV/resume data **(DONE)**
-  - [x] ✅ Contact form submissions **(DONE)**
-  - [x] ✅ Admin users (for authentication) **(DONE)**
-  - [x] ✅ About me content **(DONE)**
-  - [x] ✅ Resume PDF versions (added later) **(DONE)**
-- [x] ✅ Install SQLAlchemy or similar ORM **(DONE)**
-  - ✅ Flask-SQLAlchemy installed **(DONE)**
-- [x] ✅ Create database models **(DONE)**
-  - ✅ `Project` - Portfolio projects with technologies, URLs, images, visibility, display order **(DONE)**
-  - ✅ `User` - Admin users with Google OAuth and password hashing **(DONE)**
-  - ✅ `Resume` - CV/resume with JSON storage for flexibility **(DONE)**
-  - ✅ `ResumePdfVersion` - PDF version history with soft delete **(DONE)**
-  - ✅ `About` - About me content (single row table) **(DONE)** (no routes/DAO yet)
-  - ✅ `ContactSubmission` - Contact form submissions with IP tracking and read status **(DONE)**
-- [x] ✅ Set up database migrations (Alembic) **(DONE)**
-  - ✅ Flask-Migrate configured **(DONE)**
-  - ✅ Custom incremental revision IDs (001, 002, 003, 004) **(DONE)**
-  - ✅ 4 migrations created **(DONE)**
-- [x] ✅ Configure environment-specific database URLs **(DONE)**
-  - ✅ Using `.env` file with `DATABASE_URL` **(DONE)**
-  - ✅ Docker Compose for local PostgreSQL **(DONE)**
+### 1.1 Database Setup ✅ **COMPLETE** (100%)
 
-### 1.2 Backend API Implementation ✅ **COMPLETE (DONE)**
-### 1.2 Backend API Implementation ✅ **COMPLETE (DONE)**
+- [x] ✅ **PostgreSQL Database** - PostgreSQL 16 via Docker, Flask-SQLAlchemy ORM, Flask-Migrate with custom IDs
+- [x] ✅ **6 Database Models** - Project, User, Resume, ResumePdfVersion, ContactSubmission, About (About has no DAO/routes yet)
 
-✅ **All routes now use database queries via DAO pattern! (DONE)**
-✅ **All routes now use database queries via DAO pattern! (DONE)**
+### 1.2 Backend API Implementation ✅ **COMPLETE** (100%)
 
-- [x] ✅ **Portfolio/Projects API (DONE)**
-  - [x] ✅ GET `/api/portfolio` - List all projects (with optional `?includeHidden=true` for admin) **(DONE)**
-  - [x] ✅ POST `/api/portfolio` - Add new project (admin only - JWT protected) **(DONE)**
-  - [x] ✅ PUT `/api/portfolio/:id` - Update project (admin only - JWT protected) **(DONE)**
-  - [x] ✅ DELETE `/api/portfolio/:id` - Delete project (admin only - JWT protected) **(DONE)**
-  - [x] ✅ PATCH `/api/portfolio/:id/visibility` - Toggle project visibility (admin only) **(DONE)**
-  - [x] ✅ PATCH `/api/portfolio/reorder` - Update display order for multiple projects (admin only) **(DONE)**
-  - [x] ✅ POST `/api/portfolio/upload-image` - Upload project image (admin only) **(DONE)**
-  - [x] ✅ GET `/api/portfolio/images/:filename` - Serve project images (public) **(DONE)**
-- [x] ✅ **Portfolio/Projects API (DONE)**
-  - [x] ✅ GET `/api/portfolio` - List all projects (with optional `?includeHidden=true` for admin) **(DONE)**
-  - [x] ✅ POST `/api/portfolio` - Add new project (admin only - JWT protected) **(DONE)**
-  - [x] ✅ PUT `/api/portfolio/:id` - Update project (admin only - JWT protected) **(DONE)**
-  - [x] ✅ DELETE `/api/portfolio/:id` - Delete project (admin only - JWT protected) **(DONE)**
-  - [x] ✅ PATCH `/api/portfolio/:id/visibility` - Toggle project visibility (admin only) **(DONE)**
-  - [x] ✅ PATCH `/api/portfolio/reorder` - Update display order for multiple projects (admin only) **(DONE)**
-  - [x] ✅ POST `/api/portfolio/upload-image` - Upload project image (admin only) **(DONE)**
-  - [x] ✅ GET `/api/portfolio/images/:filename` - Serve project images (public) **(DONE)**
+- [x] ✅ **Portfolio/Projects API** - Complete CRUD with image upload, visibility control, reordering, and ProjectDAO
 
-- [x] ✅ **CV/Resume API (DONE)**
-  - [x] ✅ GET `/api/cv` - Get CV data (using `ResumeDAO.getResume()`) **(DONE)**
-  - [x] ✅ PUT `/api/cv` - Update CV data (admin only - JWT protected) **(DONE)**
-  - [x] ✅ GET `/api/cv/pdf` - Get active PDF metadata **(DONE)**
-  - [x] ✅ GET `/api/cv/pdf/file` - Download/view active PDF file **(DONE)**
-  - [x] ✅ POST `/api/cv/pdf/upload` - Upload new PDF version (admin only) **(DONE)**
-  - [x] ✅ GET `/api/cv/pdf/history` - Get all PDF versions (admin only) **(DONE)**
-  - [x] ✅ PUT `/api/cv/pdf/:id/activate` - Activate specific version (admin only) **(DONE)**
-  - [x] ✅ DELETE `/api/cv/pdf/:id` - Soft delete version (admin only) **(DONE)**
+- [x] ✅ **CV/Resume API** - Complete CV data management and PDF version control with ResumeDAO and ResumePdfDAO
 
-- [x] **Contact Form API (Partially Complete)**
-  - [x] ✅ POST `/api/contact` - Submit contact form (sends email via SendGrid) **(DONE)**
-  - [ ] ❌ GET `/api/contact` - List all submissions (admin only - **NOT IMPLEMENTED**)
-  - [x] ✅ Email notifications (SendGrid integration complete) **(DONE)**
+- [x] ✅ **Contact Form API** - Form submission with multi-layer security (honeypots, CSRF, reCAPTCHA v3, rate limiting), admin submissions inbox with CRUD operations, SendGrid email notifications, and ContactSubmissionDAO
 
-- [x] ✅ **Health & Dashboard API (DONE)**
-  - [x] ✅ GET `/api/health` - Health check endpoint **(DONE)**
-  - [x] ✅ GET `/api/dashboard/stats` - Admin dashboard statistics **(DONE)** (no frontend page)
-- [x] ✅ **CV/Resume API (DONE)**
-  - [x] ✅ GET `/api/cv` - Get CV data (using `ResumeDAO.getResume()`) **(DONE)**
-  - [x] ✅ PUT `/api/cv` - Update CV data (admin only - JWT protected) **(DONE)**
-  - [x] ✅ GET `/api/cv/pdf` - Get active PDF metadata **(DONE)**
-  - [x] ✅ GET `/api/cv/pdf/file` - Download/view active PDF file **(DONE)**
-  - [x] ✅ POST `/api/cv/pdf/upload` - Upload new PDF version (admin only) **(DONE)**
-  - [x] ✅ GET `/api/cv/pdf/history` - Get all PDF versions (admin only) **(DONE)**
-  - [x] ✅ PUT `/api/cv/pdf/:id/activate` - Activate specific version (admin only) **(DONE)**
-  - [x] ✅ DELETE `/api/cv/pdf/:id` - Soft delete version (admin only) **(DONE)**
+- [x] ✅ **Auth API** - Google OAuth login/logout, token refresh, user info endpoints
+- [x] ✅ **Health & Dashboard APIs** - Health check and admin statistics endpoints
+- [x] ✅ **Backend Architecture** - DAO pattern, service layer, blueprints, storage factory (local/S3), Gunicorn ready
 
-- [x] **Contact Form API (Partially Complete)**
-  - [x] ✅ POST `/api/contact` - Submit contact form (sends email via SendGrid) **(DONE)**
-  - [ ] ❌ GET `/api/contact` - List all submissions (admin only - **NOT IMPLEMENTED**)
-  - [x] ✅ Email notifications (SendGrid integration complete) **(DONE)**
+### 1.3 Content Management ⏳ **IN PROGRESS** (20%)
 
-- [x] ✅ **Health & Dashboard API (DONE)**
-  - [x] ✅ GET `/api/health` - Health check endpoint **(DONE)**
-  - [x] ✅ GET `/api/dashboard/stats` - Admin dashboard statistics **(DONE)** (no frontend page)
+- [ ] ❌ **Create seed script** (`backend/seed.py`) - DOES NOT EXIST
+  - [ ] Sample projects with images
+  - [ ] Sample resume data
+  - [ ] Sample about content
+  - [ ] Admin user creation
+- [ ] ❌ **Add real content via admin UI:**
+  - [ ] Real portfolio projects with descriptions
+  - [ ] Upload actual resume PDF
+  - [ ] Upload project images
+  - [ ] Write About Me section
+  - [ ] Replace placeholder profile photo
+- [x] ✅ File/image storage infrastructure ready
 
-### 1.3 Content Management 🎯 **READY TO START (0% Complete)**
-- [ ] ❌ **Create seed script** (`backend/seed.py`) - **DOES NOT EXIST YET**
-- [ ] ❌ Run seed script to populate database (`python backend/seed.py`)
-- [ ] ❌ Add real portfolio projects data (replace seed data)
-- [ ] ❌ Add real CV/resume content (replace seed data)
-- [ ] ❌ Upload and optimize project images
-- [x] ✅ Set up file/image storage **(DONE)**
-  - ✅ Local storage implemented **(DONE)**
-  - ✅ AWS S3 cloud storage implemented **(DONE)**
-  - ✅ Storage factory pattern for easy switching **(DONE)**
-### 1.3 Content Management 🎯 **READY TO START (0% Complete)**
-- [ ] ❌ **Create seed script** (`backend/seed.py`) - **DOES NOT EXIST YET**
-- [ ] ❌ Run seed script to populate database (`python backend/seed.py`)
-- [ ] ❌ Add real portfolio projects data (replace seed data)
-- [ ] ❌ Add real CV/resume content (replace seed data)
-- [ ] ❌ Upload and optimize project images
-- [x] ✅ Set up file/image storage **(DONE)**
-  - ✅ Local storage implemented **(DONE)**
-  - ✅ AWS S3 cloud storage implemented **(DONE)**
-  - ✅ Storage factory pattern for easy switching **(DONE)**
+**Status:** Infrastructure complete, needs content creation.
 
 ---
 
-
 ## Phase 2: Authentication & Admin Panel
 
-### 2.1 Authentication System ✅ **COMPLETE (DONE)**
-- [x] ✅ Choose auth method (Google OAuth + JWT) **(DONE)**
-- [x] ✅ Implement user model (Google OAuth integration) **(DONE)**
-- [x] ✅ Create authentication endpoints **(DONE)**:
-  - [x] ✅ POST `/api/auth/google` - Google OAuth login **(DONE)**
-  - [x] ✅ POST `/api/auth/logout` - Logout **(DONE)**
-  - [x] ✅ GET `/api/auth/me` - Get current user **(DONE)**
-  - [x] ✅ POST `/api/auth/refresh` - Refresh access token **(DONE)**
-  - [x] ✅ GET `/api/auth/check` - Check authentication status **(DONE)**
-- [x] ✅ JWT token generation and validation (with HttpOnly cookies) **(DONE)**
-- [x] ✅ Protected route middleware (`@jwt_required()`) **(DONE)**
-- [x] ✅ Email whitelist for access control **(DONE)**
-- [x] ✅ Automatic token refresh interceptor (frontend) **(DONE)**
-### 2.1 Authentication System ✅ **COMPLETE (DONE)**
-- [x] ✅ Choose auth method (Google OAuth + JWT) **(DONE)**
-- [x] ✅ Implement user model (Google OAuth integration) **(DONE)**
-- [x] ✅ Create authentication endpoints **(DONE)**:
-  - [x] ✅ POST `/api/auth/google` - Google OAuth login **(DONE)**
-  - [x] ✅ POST `/api/auth/logout` - Logout **(DONE)**
-  - [x] ✅ GET `/api/auth/me` - Get current user **(DONE)**
-  - [x] ✅ POST `/api/auth/refresh` - Refresh access token **(DONE)**
-  - [x] ✅ GET `/api/auth/check` - Check authentication status **(DONE)**
-- [x] ✅ JWT token generation and validation (with HttpOnly cookies) **(DONE)**
-- [x] ✅ Protected route middleware (`@jwt_required()`) **(DONE)**
-- [x] ✅ Email whitelist for access control **(DONE)**
-- [x] ✅ Automatic token refresh interceptor (frontend) **(DONE)**
+### 2.1 Authentication System ✅ **COMPLETE** (100%)
 
-### 2.2 Admin Panel (Frontend) ✅ **COMPLETE (DONE)** (except contact inbox)
-- [x] ✅ Create admin login modal (hidden trigger: click header 7x within 2 sec) **(DONE)**
-- [x] ✅ Frontend AuthContext for state management **(DONE)**
-- [x] ✅ Admin controls visible on Portfolio page **(DONE)**
-- [ ] ❌ Admin dashboard layout (stats endpoint exists, no frontend page)
-- [x] ✅ **Portfolio Management Interface (DONE)**
-  - [x] ✅ Add project modal with form validation **(DONE)**
-  - [x] ✅ Edit project modal with pre-filled data **(DONE)**
-  - [x] ✅ Delete project with confirmation (hard delete) **(DONE)**
-  - [x] ✅ Hide/Display toggle (visibility management) **(DONE)**
-  - [x] ✅ Drag-and-drop reordering with @dnd-kit **(DONE)**
-  - [x] ✅ Image upload with drag-and-drop (jpg, png, webp, gif, max 5MB) **(DONE)**
-  - [x] ✅ Image preview and serving **(DONE)**
-  - [x] ✅ Three-dots dropdown menu for actions **(DONE)**
-  - [x] ✅ Hidden badge for invisible projects **(DONE)**
-  - [x] ✅ Success/error toast messages **(DONE)**
-  - [x] ✅ Separate admin and public views **(DONE)**
-  - [x] ✅ Database models (isVisible, displayOrder fields) **(DONE)**
-  - [x] ✅ Backend DAO and routes **(DONE)**
-  - [x] ✅ File storage service for project images **(DONE)**
-- [x] ✅ **CV/Resume PDF Management (DONE)**
-  - [x] ✅ PDF upload with drag-and-drop **(DONE)**
-  - [x] ✅ Version history list with metadata **(DONE)**
-  - [x] ✅ Activate/deactivate versions (soft delete with new history entries) **(DONE)**
-  - [x] ✅ Two-tab interface (Web View + Admin Panel) **(DONE)**
-  - [x] ✅ PDF viewer with pagination **(DONE)**
-  - [x] ✅ Download functionality (forced download in all browsers) **(DONE)**
-  - [x] ✅ Three-dots dropdown menu for actions **(DONE)**
-  - [x] ✅ Database models (ResumePdfVersion) **(DONE)**
-  - [x] ✅ Backend DAO and routes **(DONE)**
-  - [x] ✅ File storage service **(DONE)**
-- [ ] ❌ Contact form inbox (submissions saved to DB but no admin UI to view)
-- [x] ✅ Protected admin routes (frontend context-based) **(DONE)**
-### 2.2 Admin Panel (Frontend) ✅ **COMPLETE (DONE)** (except contact inbox)
-- [x] ✅ Create admin login modal (hidden trigger: click header 7x within 2 sec) **(DONE)**
-- [x] ✅ Frontend AuthContext for state management **(DONE)**
-- [x] ✅ Admin controls visible on Portfolio page **(DONE)**
-- [ ] ❌ Admin dashboard layout (stats endpoint exists, no frontend page)
-- [x] ✅ **Portfolio Management Interface (DONE)**
-  - [x] ✅ Add project modal with form validation **(DONE)**
-  - [x] ✅ Edit project modal with pre-filled data **(DONE)**
-  - [x] ✅ Delete project with confirmation (hard delete) **(DONE)**
-  - [x] ✅ Hide/Display toggle (visibility management) **(DONE)**
-  - [x] ✅ Drag-and-drop reordering with @dnd-kit **(DONE)**
-  - [x] ✅ Image upload with drag-and-drop (jpg, png, webp, gif, max 5MB) **(DONE)**
-  - [x] ✅ Image preview and serving **(DONE)**
-  - [x] ✅ Three-dots dropdown menu for actions **(DONE)**
-  - [x] ✅ Hidden badge for invisible projects **(DONE)**
-  - [x] ✅ Success/error toast messages **(DONE)**
-  - [x] ✅ Separate admin and public views **(DONE)**
-  - [x] ✅ Database models (isVisible, displayOrder fields) **(DONE)**
-  - [x] ✅ Backend DAO and routes **(DONE)**
-  - [x] ✅ File storage service for project images **(DONE)**
-- [x] ✅ **CV/Resume PDF Management (DONE)**
-  - [x] ✅ PDF upload with drag-and-drop **(DONE)**
-  - [x] ✅ Version history list with metadata **(DONE)**
-  - [x] ✅ Activate/deactivate versions (soft delete with new history entries) **(DONE)**
-  - [x] ✅ Two-tab interface (Web View + Admin Panel) **(DONE)**
-  - [x] ✅ PDF viewer with pagination **(DONE)**
-  - [x] ✅ Download functionality (forced download in all browsers) **(DONE)**
-  - [x] ✅ Three-dots dropdown menu for actions **(DONE)**
-  - [x] ✅ Database models (ResumePdfVersion) **(DONE)**
-  - [x] ✅ Backend DAO and routes **(DONE)**
-  - [x] ✅ File storage service **(DONE)**
-- [ ] ❌ Contact form inbox (submissions saved to DB but no admin UI to view)
-- [x] ✅ Protected admin routes (frontend context-based) **(DONE)**
+- [x] ✅ **Complete OAuth & JWT Auth** - Google OAuth, JWT tokens with HttpOnly cookies, protected routes, email whitelist, auto-refresh, cross-site cookie support
+
+### 2.2 Admin Panel (Frontend) ✅ **COMPLETE** (100%)
+
+- [x] ✅ **Auth UI** - Hidden login trigger, Google OAuth modal, AuthContext, auto-refresh
+- [x] ✅ **Portfolio Management** - CRUD modals, drag-and-drop reordering, image upload, visibility toggle, three-dots menu
+- [x] ✅ **CV/Resume Management** - Two-tab interface, PDF upload/download, version history, activate/deactivate
+- [x] ✅ **Contact Submissions Inbox** - Two-tab interface, read/unread status, archive, filtering, pagination
+- [ ] ⏳ **Dashboard Page** - Backend endpoint exists, no frontend page yet (optional)
+
+**Status:** All core admin features complete. Dashboard page is optional nice-to-have.
 
 ---
 
 ## Phase 3: Security & Spam Prevention
 
-### 3.1 Anti-Spam Measures (Partially Complete)
-### 3.1 Anti-Spam Measures (Partially Complete)
-- [ ] **Contact Form Protection**
-  - [ ] ❌ Add reCAPTCHA v3 or hCaptcha
-  - [x] ✅ Implement rate limiting (Flask-Limiter) **(DONE)** - 5 per minute, 20 per hour
-  - [ ] ❌ Add honeypot fields
-  - [x] ✅ Email validation **(DONE)**
-  - [ ] ❌ Add reCAPTCHA v3 or hCaptcha
-  - [x] ✅ Implement rate limiting (Flask-Limiter) **(DONE)** - 5 per minute, 20 per hour
-  - [ ] ❌ Add honeypot fields
-  - [x] ✅ Email validation **(DONE)**
+### 3.1 Anti-Spam Measures ✅ **COMPLETE** (100%)
 
-### 3.2 Security Hardening (Mostly Complete)
-- [x] ✅ Implement CORS properly for production **(DONE)** - Environment-based origins
-- [x] ✅ Add request rate limiting **(DONE)** - 200/day, 50/hour default
-- [x] ✅ Input validation and sanitization **(DONE)** - Contact form, file uploads
-- [x] ✅ SQL injection prevention (via ORM) **(DONE)** - SQLAlchemy used throughout
-- [x] ✅ XSS protection **(DONE)** - Security headers configured
-- [ ] ❌ CSRF tokens for forms (disabled for cookie-based JWT auth)
-- [x] ✅ Environment variables security (never commit secrets) **(DONE)** - .env pattern
-- [x] ✅ HTTPS enforcement **(DONE)** - JWT_COOKIE_SECURE for production
-- [x] ✅ Security headers **(DONE)** - X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, HSTS, CSP, Referrer-Policy
-- [x] ✅ Sentry error tracking **(DONE)** - Configured for production
-### 3.2 Security Hardening (Mostly Complete)
-- [x] ✅ Implement CORS properly for production **(DONE)** - Environment-based origins
-- [x] ✅ Add request rate limiting **(DONE)** - 200/day, 50/hour default
-- [x] ✅ Input validation and sanitization **(DONE)** - Contact form, file uploads
-- [x] ✅ SQL injection prevention (via ORM) **(DONE)** - SQLAlchemy used throughout
-- [x] ✅ XSS protection **(DONE)** - Security headers configured
-- [ ] ❌ CSRF tokens for forms (disabled for cookie-based JWT auth)
-- [x] ✅ Environment variables security (never commit secrets) **(DONE)** - .env pattern
-- [x] ✅ HTTPS enforcement **(DONE)** - JWT_COOKIE_SECURE for production
-- [x] ✅ Security headers **(DONE)** - X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, HSTS, CSP, Referrer-Policy
-- [x] ✅ Sentry error tracking **(DONE)** - Configured for production
+- [x] ✅ **Multi-Layer Contact Form Protection** - reCAPTCHA v3, rate limiting (5/min, 20/hour), honeypot fields, CSRF tokens with Partitioned attribute, email validation, input sanitization
+
+### 3.2 Security Hardening ✅ **COMPLETE** (100%)
+
+- [x] ✅ **Production-Grade Security** - CORS, rate limiting (200/day, 50/hour), input validation, SQL injection prevention (ORM), XSS protection, CSRF tokens, HTTPS enforcement, comprehensive security headers (XSS, HSTS, CSP, X-Frame-Options, etc.), Sentry error tracking
 
 ---
 
@@ -394,675 +91,346 @@
 
 ### 4.1 Design Improvements
 
-- [x] **Mobile Responsive Design** ✅ **IMPLEMENTED (DONE)** (Needs Testing)
-  - [x] ✅ **Homepage (Mobile)** **(DONE)**
-    - ✅ Responsive header/navigation layout **(DONE)**
-    - ✅ Hero section responsive text sizing **(DONE)**
-    - ✅ Profile photo scales properly **(DONE)**
-    - ✅ Sections stack vertically on mobile **(DONE)**
-    - ✅ Touch-friendly button sizes **(DONE)**
-- [x] **Mobile Responsive Design** ✅ **IMPLEMENTED (DONE)** (Needs Testing)
-  - [x] ✅ **Homepage (Mobile)** **(DONE)**
-    - ✅ Responsive header/navigation layout **(DONE)**
-    - ✅ Hero section responsive text sizing **(DONE)**
-    - ✅ Profile photo scales properly **(DONE)**
-    - ✅ Sections stack vertically on mobile **(DONE)**
-    - ✅ Touch-friendly button sizes **(DONE)**
+#### Mobile Responsive Design ✅ **COMPLETE** (100%)
+- [x] ✅ **All Pages Mobile-Responsive** - Homepage, Portfolio, CV, Contact, Navigation all fully responsive with Tailwind CSS breakpoints, touch-friendly controls, drag-and-drop touch support
+- [ ] ⏳ **Mobile Testing** - Needs manual verification on real devices (iPhone, Android, tablets, various screen sizes)
 
-  - [x] ✅ **Portfolio Page (Mobile)** **(DONE)**
-    - ✅ Project cards stack in single column with breakpoints **(DONE)**
-    - ✅ Admin controls (three-dots menu) touch-friendly **(DONE)**
-    - ✅ Drag-and-drop with @dnd-kit (supports touch) **(DONE)**
-    - ✅ Modal forms scrollable and responsive **(DONE)**
-    - ✅ Image previews scale appropriately **(DONE)**
-  - [x] ✅ **Portfolio Page (Mobile)** **(DONE)**
-    - ✅ Project cards stack in single column with breakpoints **(DONE)**
-    - ✅ Admin controls (three-dots menu) touch-friendly **(DONE)**
-    - ✅ Drag-and-drop with @dnd-kit (supports touch) **(DONE)**
-    - ✅ Modal forms scrollable and responsive **(DONE)**
-    - ✅ Image previews scale appropriately **(DONE)**
+#### Desktop Design ⏳ **PARTIALLY COMPLETE** (60%)
+- [x] ✅ Layout and structure complete
+- [x] ✅ Smooth animations/transitions
+- [ ] ❌ Replace placeholder profile photo with real photo
+- [ ] ❌ Write compelling "About Me" section (model exists, no DAO/routes)
 
-  - [x] ✅ **CV/Resume Page (Mobile)** **(DONE)**
-    - ✅ PDF viewer responsive **(DONE)**
-    - ✅ Admin panel tabs accessible **(DONE)**
-    - ✅ Upload button touch-friendly **(DONE)**
-    - ✅ Version history list scrollable **(DONE)**
-    - ✅ Download button easily tappable **(DONE)**
-  - [x] ✅ **CV/Resume Page (Mobile)** **(DONE)**
-    - ✅ PDF viewer responsive **(DONE)**
-    - ✅ Admin panel tabs accessible **(DONE)**
-    - ✅ Upload button touch-friendly **(DONE)**
-    - ✅ Version history list scrollable **(DONE)**
-    - ✅ Download button easily tappable **(DONE)**
+**Status:** Design complete, needs real content.
 
-  - [x] ✅ **Contact Page (Mobile)** **(DONE)**
-    - ✅ Form fields properly sized for mobile **(DONE)**
-    - ✅ Responsive form layout **(DONE)**
-    - ✅ Submit button easily tappable **(DONE)**
-    - ✅ Success/error messages visible **(DONE)**
-  - [x] ✅ **Contact Page (Mobile)** **(DONE)**
-    - ✅ Form fields properly sized for mobile **(DONE)**
-    - ✅ Responsive form layout **(DONE)**
-    - ✅ Submit button easily tappable **(DONE)**
-    - ✅ Success/error messages visible **(DONE)**
+#### Page-Specific Features
 
-  - [x] ✅ **Navigation (Mobile)** **(DONE)**
-    - ✅ Responsive navigation links **(DONE)**
-    - ✅ Login modal fits mobile screens **(DONE)**
-    - [ ] ❌ Hamburger menu not implemented (nav links work on mobile)
-  - [x] ✅ **Navigation (Mobile)** **(DONE)**
-    - ✅ Responsive navigation links **(DONE)**
-    - ✅ Login modal fits mobile screens **(DONE)**
-    - [ ] ❌ Hamburger menu not implemented (nav links work on mobile)
+**Portfolio Page** ⏳ (70%)
+- [x] ✅ Project cards with hover effects
+- [x] ✅ Drag-and-drop reordering
+- [x] ✅ Admin CRUD operations
+- [ ] ❌ Project detail modal or dedicated page
+- [ ] ❌ Filter by technology/category
+- [ ] ❌ Search functionality
 
-  - [ ] **Testing** (Not Done)
-    - [ ] ❌ Test on iPhone (Safari)
-    - [ ] ❌ Test on Android (Chrome)
-    - [ ] ❌ Test on tablets (iPad, Android tablets)
-    - [ ] ❌ Test different screen sizes (320px - 1024px)
-    - [ ] ❌ Test landscape and portrait orientations
-  - [ ] **Testing** (Not Done)
-    - [ ] ❌ Test on iPhone (Safari)
-    - [ ] ❌ Test on Android (Chrome)
-    - [ ] ❌ Test on tablets (iPad, Android tablets)
-    - [ ] ❌ Test different screen sizes (320px - 1024px)
-    - [ ] ❌ Test landscape and portrait orientations
+**CV/Resume Page** ✅ (100%)
+- [x] ✅ **Complete PDF Management** - Upload, version history, activate/deactivate, viewer with pagination, download
+- [ ] ⏳ Future enhancements: Timeline design for JSON data, skills visualization, print styling
 
-- [ ] **Homepage (Desktop)** (Needs Content)
-  - [ ] ❌ Replace placeholder profile photo with real photo
-  - [ ] ❌ Write compelling "About Me" section
-  - [x] ✅ Layout and structure complete **(DONE)**
-  - [x] ✅ Smooth animations/transitions **(DONE)**
-- [ ] **Homepage (Desktop)** (Needs Content)
-  - [ ] ❌ Replace placeholder profile photo with real photo
-  - [ ] ❌ Write compelling "About Me" section
-  - [x] ✅ Layout and structure complete **(DONE)**
-  - [x] ✅ Smooth animations/transitions **(DONE)**
+**Contact Page** ✅ (100%)
+- [x] ✅ **Full-Featured Contact Form** - Form validation, success/error feedback, loading states, email submission, admin inbox
 
-- [x] **Portfolio Page** ✅ **Features Complete (DONE)**
-  - [x] ✅ Project cards with hover effects **(DONE)**
-  - [ ] ❌ Project detail modal or dedicated page
-  - [ ] ❌ Filter by technology/category
-  - [ ] ❌ Search functionality
-  - [x] ✅ Drag-and-drop reordering **(DONE)**
-  - [x] ✅ Admin CRUD operations **(DONE)**
+### 4.2 Additional Features
 
-- [x] **CV/Resume Page** ✅ **PDF Features Complete (DONE)**
-  - [x] ✅ PDF upload and management system **(DONE)**
-  - [x] ✅ Version history with activate/deactivate **(DONE)**
-  - [x] ✅ PDF viewer with pagination controls **(DONE)**
-  - [x] ✅ Download functionality **(DONE)**
-  - [ ] ❌ Timeline design for JSON resume data (future)
-  - [ ] ❌ Skills visualization (future)
-  - [ ] ❌ Print-friendly styling (future)
-- [x] **Portfolio Page** ✅ **Features Complete (DONE)**
-  - [x] ✅ Project cards with hover effects **(DONE)**
-  - [ ] ❌ Project detail modal or dedicated page
-  - [ ] ❌ Filter by technology/category
-  - [ ] ❌ Search functionality
-  - [x] ✅ Drag-and-drop reordering **(DONE)**
-  - [x] ✅ Admin CRUD operations **(DONE)**
+#### SEO Optimization ⏳ **PARTIALLY COMPLETE** (30%)
+📋 **[Detailed Plan: `.claude/features/SEO_ENHANCEMENT_PLAN.md`]**
 
-- [x] **CV/Resume Page** ✅ **PDF Features Complete (DONE)**
-  - [x] ✅ PDF upload and management system **(DONE)**
-  - [x] ✅ Version history with activate/deactivate **(DONE)**
-  - [x] ✅ PDF viewer with pagination controls **(DONE)**
-  - [x] ✅ Download functionality **(DONE)**
-  - [ ] ❌ Timeline design for JSON resume data (future)
-  - [ ] ❌ Skills visualization (future)
-  - [ ] ❌ Print-friendly styling (future)
+**Implemented:**
+- [x] ✅ **Basic Static SEO** - Meta tags, OpenGraph tags, Twitter Cards, sitemap.xml, robots.txt
 
-- [x] **Contact Page** ✅ **Features Complete (DONE)**
-  - [x] ✅ Form validation with clear error messages **(DONE)**
-  - [x] ✅ Success/error feedback **(DONE)**
-  - [x] ✅ Loading states **(DONE)**
-  - [x] ✅ Email submission working **(DONE)**
-- [x] **Contact Page** ✅ **Features Complete (DONE)**
-  - [x] ✅ Form validation with clear error messages **(DONE)**
-  - [x] ✅ Success/error feedback **(DONE)**
-  - [x] ✅ Loading states **(DONE)**
-  - [x] ✅ Email submission working **(DONE)**
+**Not Implemented:**
+- [ ] ❌ **react-helmet-async** - Dynamic meta tags per page
+- [ ] ❌ **Structured data (JSON-LD)** - Person, Organization, Portfolio schemas
+- [ ] ❌ **Dynamic sitemap** - Generated from backend data
+- [ ] ❌ **Content optimization** - Keywords, alt text for images
+- [ ] ❌ **Image optimization** - Lazy loading, next-gen formats
+- [ ] ❌ **Google Search Console** - Sitemap submission, monitoring
 
-### 4.2 Additional Features (Not Started)
-- [ ] ❌ **Blog Section** (Optional)
-  - [ ] Blog post model
-  - [ ] Blog listing page
-  - [ ] Individual blog post page
-  - [ ] Markdown support
-  - [ ] Admin blog editor
-### 4.2 Additional Features (Not Started)
-- [ ] ❌ **Blog Section** (Optional)
-  - [ ] Blog post model
-  - [ ] Blog listing page
-  - [ ] Individual blog post page
-  - [ ] Markdown support
-  - [ ] Admin blog editor
+**Priority:** High (post-MVP enhancement)
+**Estimated Effort:** 2-3 weeks part-time
 
-- [ ] ❌ **Analytics**
-  - [ ] Google Analytics or privacy-friendly alternative (Plausible)
-  - [ ] Track page views, popular projects
-- [ ] ❌ **Analytics**
-  - [ ] Google Analytics or privacy-friendly alternative (Plausible)
-  - [ ] Track page views, popular projects
+#### Analytics ❌ **NOT IMPLEMENTED** (0%)
+- [ ] ❌ Google Analytics or Plausible
+- [ ] ❌ Page view tracking
+- [ ] ❌ Event tracking (form submissions, downloads)
+- [ ] ❌ User behavior monitoring
 
-- [ ] ❌ **SEO Optimization** 📋 **[Detailed Plan: `.claude/features/SEO_ENHANCEMENT_PLAN.md`]**
-  - **Priority:** Post-MVP (Phase 4.2)
-  - **Estimated Effort:** 2-3 weeks part-time
-  - **Week 1: Foundation (High Priority)**
-    - [ ] Install react-helmet-async
-    - [ ] Create SEO component with dynamic meta tags
-    - [ ] Add meta tags to all pages (Home, Portfolio, CV, Contact)
-    - [ ] Create Open Graph images (1200x630px)
-    - [ ] Implement /sitemap.xml endpoint (Flask)
-    - [ ] Implement /robots.txt endpoint (Flask)
-    - [ ] Add structured data (Person, Portfolio schemas)
-  - **Week 2: Content & Performance**
-    - [ ] Optimize all page content for keywords
-    - [ ] Add descriptive alt text to all images
-    - [ ] Implement lazy loading for images
-    - [ ] Set up Google Analytics or Plausible
-    - [ ] Submit sitemap to Google Search Console
-  - **Week 3: Advanced (Optional)**
-    - [ ] Evaluate and implement prerendering (vite-plugin-ssr)
-    - [ ] Add cache headers for static assets
-    - [ ] Test with Lighthouse (target: 95+ SEO score)
-    - [ ] Validate with Facebook Debugger & Twitter Card Validator
-  - **Tools & Validation:**
-    - Google Search Console
-    - Lighthouse / PageSpeed Insights
-    - Rich Results Test
-    - XML Sitemap Validator
+**Priority:** Medium (nice to have)
+**Estimated Effort:** 1 day
 
-- [ ] ❌ **Performance** (Partially Implemented)
-  - [ ] ❌ Image optimization and lazy loading
-  - [x] ✅ Code splitting (Vite default) **(DONE)**
-  - [ ] ❌ Caching strategies
-  - [x] ✅ CDN support (S3 with CloudFront ready) **(DONE)**
+#### Blog Section ❌ **NOT PLANNED** (0%)
+- [ ] ❌ Blog post model
+- [ ] ❌ Blog listing page
+- [ ] ❌ Individual blog post page
+- [ ] ❌ Markdown support
+- [ ] ❌ Admin blog editor
+
+**Priority:** Low (future enhancement)
+
+#### Performance ⏳ **PARTIALLY COMPLETE** (35%)
+
+**Implemented:**
+- [x] ✅ **Basic Performance Optimizations** - Code splitting (React, PDF, DnD vendors), minification, compression (Vite), CDN support (S3/CloudFront)
+
+**Not Implemented:**
+- [ ] ❌ **Image lazy loading** - Add `loading="lazy"` to img tags
+- [ ] ❌ **React component lazy loading** - React.lazy() for route components
+- [ ] ❌ **Caching strategies** - Only PDF files have cache headers (1 hour)
+- [ ] ❌ **Image optimization** - Next-gen formats (WebP, AVIF)
+
+**Priority:** Medium (quick wins available)
+**Estimated Effort:** 1-2 days
 
 ---
 
-## Phase 5: Testing (Not Started)
-## Phase 5: Testing (Not Started)
+## Phase 5: Testing
 
-### 5.1 Backend Testing (0% Complete)
-- [ ] ❌ Unit tests for API endpoints
-- [ ] ❌ Integration tests
-- [ ] ❌ Test database operations
-- [ ] ❌ Test authentication flows
-### 5.1 Backend Testing (0% Complete)
-- [ ] ❌ Unit tests for API endpoints
-- [ ] ❌ Integration tests
-- [ ] ❌ Test database operations
-- [ ] ❌ Test authentication flows
+### 5.1 Backend Testing ❌ **NOT IMPLEMENTED** (0%)
+- [ ] ❌ pytest configuration
+- [ ] ❌ Unit tests for DAOs
+- [ ] ❌ Unit tests for services
+- [ ] ❌ Integration tests for API endpoints
+- [ ] ❌ Authentication flow tests
+- [ ] ❌ Database operation tests
 
-### 5.2 Frontend Testing (0% Complete)
-- [ ] ❌ Component tests (React Testing Library)
-- [ ] ❌ E2E tests (Playwright or Cypress)
-- [ ] ❌ Cross-browser testing
-- [ ] ❌ Mobile responsiveness testing
-### 5.2 Frontend Testing (0% Complete)
+### 5.2 Frontend Testing ❌ **NOT IMPLEMENTED** (0%)
+- [ ] ❌ vitest configuration
 - [ ] ❌ Component tests (React Testing Library)
 - [ ] ❌ E2E tests (Playwright or Cypress)
 - [ ] ❌ Cross-browser testing
 - [ ] ❌ Mobile responsiveness testing
 
-### 5.3 Security Testing (0% Complete)
+### 5.3 Security Testing ❌ **NOT IMPLEMENTED** (0%)
 - [ ] ❌ Penetration testing basics
 - [ ] ❌ OWASP top 10 vulnerabilities check
-- [ ] ❌ Test rate limiting
-- [ ] ❌ Test authentication security
-### 5.3 Security Testing (0% Complete)
-- [ ] ❌ Penetration testing basics
-- [ ] ❌ OWASP top 10 vulnerabilities check
-- [ ] ❌ Test rate limiting
+- [ ] ❌ Test rate limiting effectiveness
 - [ ] ❌ Test authentication security
 
+**Status:** Zero test coverage. Critical for long-term maintainability.
+**Priority:** Medium (recommended before major features)
+**Estimated Effort:** 2-3 weeks part-time
+
 ---
 
-## Phase 6: Pre-Deployment (Partially Complete)
-## Phase 6: Pre-Deployment (Partially Complete)
+## Phase 6: Pre-Deployment
 
-### 6.1 Production Configuration (Mostly Complete)
-- [x] ✅ Set up production environment variables **(DONE)** - .env.example documented
-- [ ] ❌ Configure production database (ready to deploy)
-- [x] ✅ Set up production-ready WSGI server (Gunicorn) **(DONE)** - requirements.txt
-- [ ] ❌ Configure reverse proxy (Nginx) if using VPS
-- [ ] ❌ Set up SSL certificates (Let's Encrypt)
-- [x] ✅ Sentry error tracking **(DONE)**
-- [x] ✅ AWS S3 storage **(DONE)**
-### 6.1 Production Configuration (Mostly Complete)
-- [x] ✅ Set up production environment variables **(DONE)** - .env.example documented
-- [ ] ❌ Configure production database (ready to deploy)
-- [x] ✅ Set up production-ready WSGI server (Gunicorn) **(DONE)** - requirements.txt
-- [ ] ❌ Configure reverse proxy (Nginx) if using VPS
-- [ ] ❌ Set up SSL certificates (Let's Encrypt)
-- [x] ✅ Sentry error tracking **(DONE)**
-- [x] ✅ AWS S3 storage **(DONE)**
+### 6.1 Production Configuration ✅ **COMPLETE** (100%)
+- [x] ✅ **Full Production Setup** - Environment variables documented, PostgreSQL on Render, Gunicorn, SSL certificates, Sentry, AWS S3, CORS, security headers
 
-### 6.2 Build Optimization (Mostly Complete)
-- [x] ✅ Frontend production build **(DONE)** - Vite configured
-- [x] ✅ Minify and compress assets **(DONE)** - Vite default
-- [ ] ❌ Optimize images
-- [x] ✅ Remove development dependencies **(DONE)** - package.json structured correctly
-### 6.2 Build Optimization (Mostly Complete)
-- [x] ✅ Frontend production build **(DONE)** - Vite configured
-- [x] ✅ Minify and compress assets **(DONE)** - Vite default
-- [ ] ❌ Optimize images
-- [x] ✅ Remove development dependencies **(DONE)** - package.json structured correctly
+### 6.2 Build Optimization ⏳ **MOSTLY COMPLETE** (85%)
+- [x] ✅ Frontend production build configured
+- [x] ✅ Minify and compress assets (Vite default)
+- [x] ✅ Remove development dependencies (package.json structured correctly)
+- [ ] ❌ Optimize images (compress, next-gen formats)
 
-### 6.3 Documentation (Partially Complete)
+### 6.3 Documentation ⏳ **PARTIALLY COMPLETE** (60%)
+- [x] ✅ Setup instructions (CLAUDE.md)
+- [x] ✅ Environment variables documentation (.env.example)
+- [x] ✅ Architecture documentation (CLAUDE.md)
+- [x] ✅ Deployment notes (.claude/PRODUCTION_DEPLOYMENT.md)
 - [ ] ❌ API documentation (Swagger/OpenAPI)
-- [x] ✅ README with setup instructions **(DONE)** - CLAUDE.md
-- [x] ✅ Environment variables documentation **(DONE)** - .env.example
-- [ ] ❌ Deployment guide (see .claude/PRODUCTION_DEPLOYMENT.md)
-### 6.3 Documentation (Partially Complete)
-- [ ] ❌ API documentation (Swagger/OpenAPI)
-- [x] ✅ README with setup instructions **(DONE)** - CLAUDE.md
-- [x] ✅ Environment variables documentation **(DONE)** - .env.example
-- [ ] ❌ Deployment guide (see .claude/PRODUCTION_DEPLOYMENT.md)
 
 ---
 
-## Phase 7: Deployment (Not Started)
-## Phase 7: Deployment (Not Started)
+## Phase 7: Deployment
 
-### 7.1 Choose Hosting Platform (Decision Pending)
-### 7.1 Choose Hosting Platform (Decision Pending)
-**Option 1: Separate Hosting (Recommended)**
-- Frontend: Vercel, Netlify, or Cloudflare Pages
-- Backend: Render, Railway, Fly.io, or DigitalOcean
+### 7.1 Hosting Platform ✅ **COMPLETE** (100%)
+- [x] ✅ **Frontend on Vercel** - Auto-deploy, custom domain (tom-sabala.dev), SSL, environment variables
+- [x] ✅ **Backend on Render** - Auto-deploy, PostgreSQL database, Gunicorn, SSL, environment variables
 
-**Option 2: Single Platform**
-- DigitalOcean App Platform
-- AWS (EC2 + S3 + RDS)
-- Google Cloud Platform
-- Heroku (paid)
+### 7.2 Deploy Backend ✅ **COMPLETE** (100%)
+- [x] ✅ **Backend Fully Deployed** - Production database, Flask API, migrations applied, endpoints tested, Sentry active
 
-**Option 3: Self-Hosted VPS**
-- DigitalOcean Droplet
-- Linode
-- Vultr
+### 7.3 Deploy Frontend ✅ **COMPLETE** (100%)
+- [x] ✅ **Frontend Fully Deployed** - Production build, custom domain, SSL certificate
 
-### 7.2 Deploy Backend (Not Started)
-- [ ] ❌ Set up production database
-- [ ] ❌ Deploy Flask API
-- [ ] ❌ Configure environment variables
-- [ ] ❌ Run database migrations
-- [ ] ❌ Test API endpoints
-- [x] ✅ Production server ready (Gunicorn) **(DONE)**
-- [x] ✅ Error tracking ready (Sentry) **(DONE)**
-### 7.2 Deploy Backend (Not Started)
-- [ ] ❌ Set up production database
-- [ ] ❌ Deploy Flask API
-- [ ] ❌ Configure environment variables
-- [ ] ❌ Run database migrations
-- [ ] ❌ Test API endpoints
-- [x] ✅ Production server ready (Gunicorn) **(DONE)**
-- [x] ✅ Error tracking ready (Sentry) **(DONE)**
-
-### 7.3 Deploy Frontend (Not Started)
-- [ ] ❌ Update API URL to production
-- [ ] ❌ Build and deploy frontend
-- [ ] ❌ Configure custom domain (if applicable)
-- [ ] ❌ Set up SSL certificate
-- [x] ✅ Production build configured **(DONE)**
-### 7.3 Deploy Frontend (Not Started)
-- [ ] ❌ Update API URL to production
-- [ ] ❌ Build and deploy frontend
-- [ ] ❌ Configure custom domain (if applicable)
-- [ ] ❌ Set up SSL certificate
-- [x] ✅ Production build configured **(DONE)**
-
-### 7.4 Post-Deployment (Not Started)
-- [ ] ❌ Test all features in production
-- [ ] ❌ Monitor error logs
-- [x] ✅ Set up error tracking (Sentry) **(DONE)**
-- [ ] ❌ Set up uptime monitoring
-- [ ] ❌ Create backup strategy for database
-### 7.4 Post-Deployment (Not Started)
-- [ ] ❌ Test all features in production
-- [ ] ❌ Monitor error logs
-- [x] ✅ Set up error tracking (Sentry) **(DONE)**
-- [ ] ❌ Set up uptime monitoring
-- [ ] ❌ Create backup strategy for database
-
----
-
-## Phase 8: Custom Domain (Optional - Not Started)
-## Phase 8: Custom Domain (Optional - Not Started)
-
-- [ ] ❌ Purchase domain name
-- [ ] ❌ Configure DNS records
-- [ ] ❌ Set up SSL certificate
-- [ ] ❌ Redirect www to non-www (or vice versa)
-- [ ] ❌ Configure email forwarding
-- [ ] ❌ Purchase domain name
-- [ ] ❌ Configure DNS records
-- [ ] ❌ Set up SSL certificate
-- [ ] ❌ Redirect www to non-www (or vice versa)
-- [ ] ❌ Configure email forwarding
-
----
-
-## Phase 9: Maintenance & Growth (Not Started)
-## Phase 9: Maintenance & Growth (Not Started)
-
-### 9.1 Monitoring (Partially Complete)
-- [ ] ❌ Set up logging (backend and frontend)
-- [x] ✅ Error tracking and alerting **(DONE)** - Sentry configured
+### 7.4 Post-Deployment ⏳ **IN PROGRESS** (60%)
+- [x] ✅ All features tested in production
+- [x] ✅ Error tracking monitoring (Sentry)
+- [x] ✅ Contact form tested and working
+- [ ] ❌ Uptime monitoring (UptimeRobot, Pingdom, etc.)
+- [ ] ❌ Database backup strategy
 - [ ] ❌ Performance monitoring
-- [ ] ❌ Database backups automation
-### 9.1 Monitoring (Partially Complete)
-- [ ] ❌ Set up logging (backend and frontend)
-- [x] ✅ Error tracking and alerting **(DONE)** - Sentry configured
-- [ ] ❌ Performance monitoring
-- [ ] ❌ Database backups automation
 
-### 9.2 Continuous Improvement (Not Started)
-- [ ] ❌ Gather user feedback
-- [ ] ❌ A/B testing for key pages
-- [ ] ❌ Regular content updates
-- [ ] ❌ Keep dependencies updated
-- [ ] ❌ Security patches
-### 9.2 Continuous Improvement (Not Started)
+**Status:** Deployed and operational. Needs monitoring and backup strategy.
+
+---
+
+## Phase 8: Custom Domain ✅ **COMPLETE** (100%)
+
+- [x] ✅ **Custom Domain Fully Configured** - tom-sabala.dev with DNS, SSL, redirects
+- [ ] ⏳ Email forwarding (optional)
+
+---
+
+## Phase 9: Maintenance & Growth
+
+### 9.1 Monitoring ⏳ **PARTIALLY COMPLETE** (30%)
+- [x] ✅ Error tracking and alerting (Sentry)
+- [ ] ❌ Logging (backend and frontend)
+- [ ] ❌ Performance monitoring (response times, slow queries)
+- [ ] ❌ Database backups automation
+- [ ] ❌ Uptime monitoring
+
+### 9.2 Continuous Improvement ❌ **NOT STARTED** (0%)
 - [ ] ❌ Gather user feedback
 - [ ] ❌ A/B testing for key pages
 - [ ] ❌ Regular content updates
 - [ ] ❌ Keep dependencies updated
 - [ ] ❌ Security patches
 
-### 9.3 Future Enhancements (Not Started)
+### 9.3 Future Enhancements ❌ **NOT PLANNED** (0%)
 - [ ] ❌ Multi-language support (i18n)
 - [ ] ❌ Dark mode toggle
 - [ ] ❌ Interactive portfolio demos
 - [ ] ❌ Testimonials section
 - [ ] ❌ Newsletter signup
-- [ ] ❌ Integration with GitHub to show recent activity
-- [ ] ❌ Code playground/snippets showcase
-### 9.3 Future Enhancements (Not Started)
-- [ ] ❌ Multi-language support (i18n)
-- [ ] ❌ Dark mode toggle
-- [ ] ❌ Interactive portfolio demos
-- [ ] ❌ Testimonials section
-- [ ] ❌ Newsletter signup
-- [ ] ❌ Integration with GitHub to show recent activity
+- [ ] ❌ GitHub integration (show recent activity)
 - [ ] ❌ Code playground/snippets showcase
 
 ---
 
-## Quick Wins
+## About Page Status ⚠️ **INCOMPLETE**
 
-### ✅ Completed Quick Wins (DONE)
-1. ✅ **Database setup** - PostgreSQL with Docker **(DONE)**
-2. ✅ **Contact form backend** - Saves to DB + sends email via SendGrid **(DONE)**
-3. ✅ **Authentication** - Google OAuth + JWT (better than originally planned!) **(DONE)**
-4. ✅ **Resume PDF Management** - Complete upload/version/download system **(DONE)**
-5. ✅ **Portfolio Management** - Full CRUD with drag-and-drop, image upload, visibility toggle **(DONE)**
-6. ✅ **File Storage** - Local + AWS S3 with factory pattern **(DONE)**
-7. ✅ **Security Features** - Rate limiting, headers, Sentry, CORS **(DONE)**
-8. ✅ **Responsive Design** - Mobile-first with Tailwind CSS **(DONE)**
-### ✅ Completed Quick Wins (DONE)
-1. ✅ **Database setup** - PostgreSQL with Docker **(DONE)**
-2. ✅ **Contact form backend** - Saves to DB + sends email via SendGrid **(DONE)**
-3. ✅ **Authentication** - Google OAuth + JWT (better than originally planned!) **(DONE)**
-4. ✅ **Resume PDF Management** - Complete upload/version/download system **(DONE)**
-5. ✅ **Portfolio Management** - Full CRUD with drag-and-drop, image upload, visibility toggle **(DONE)**
-6. ✅ **File Storage** - Local + AWS S3 with factory pattern **(DONE)**
-7. ✅ **Security Features** - Rate limiting, headers, Sentry, CORS **(DONE)**
-8. ✅ **Responsive Design** - Mobile-first with Tailwind CSS **(DONE)**
+**Model Exists But Disconnected:**
+- [x] ✅ Database model (`About`) exists in `backend/app/models/about.py`
+- [ ] ❌ AboutDAO missing - no data access layer
+- [ ] ❌ About routes missing - no API endpoints
+- [ ] ❌ Frontend integration missing - Home.tsx has placeholder text only
 
-### 🎯 Next Quick Wins (Do These!)
+**To Complete:**
+1. Create `backend/app/dao/about_dao.py`
+2. Create `backend/app/routes/about_routes.py`
+3. Register about blueprint in `backend/app/__init__.py`
+4. Update `frontend/src/pages/Home.tsx` to fetch from API
+5. Add admin UI to edit About content
 
-1. ❌ **CREATE seed script** (~30 minutes) **CRITICAL - Does not exist!**
-   - Create `backend/seed.py` file
-   - Add sample projects, resume data, about content
-   - Test: `cd backend && python seed.py`
-1. ❌ **CREATE seed script** (~30 minutes) **CRITICAL - Does not exist!**
-   - Create `backend/seed.py` file
-   - Add sample projects, resume data, about content
-   - Test: `cd backend && python seed.py`
+**Priority:** Medium (nice to have, not MVP-blocking)
 
-2. ❌ **Add real content through admin UI** (1-2 hours)
-2. ❌ **Add real content through admin UI** (1-2 hours)
+---
+
+## Progress Summary by Phase
+
+| Phase | Status | Completion | Priority |
+|-------|--------|-----------|----------|
+| **1.1** Database Setup | ✅ Complete | 100% | - |
+| **1.2** Backend API | ✅ Complete | 100% | - |
+| **1.3** Content Management | ⏳ In Progress | 20% | 🔥 HIGH |
+| **2.1** Authentication | ✅ Complete | 100% | - |
+| **2.2** Admin Panel | ✅ Complete | 100% | - |
+| **3.1** Anti-Spam | ✅ Complete | 100% | - |
+| **3.2** Security Hardening | ✅ Complete | 100% | - |
+| **4.1** Design Improvements | ⏳ Mostly Done | 90% | Medium |
+| **4.2** Additional Features | ⏳ Partial | 30% | Medium |
+| **5** Testing | ❌ Not Started | 0% | Medium |
+| **6** Pre-Deployment | ✅ Complete | 95% | - |
+| **7** Deployment | ✅ Complete | 100% | - |
+| **8** Custom Domain | ✅ Complete | 100% | - |
+| **9** Maintenance | ⏳ Partial | 30% | Low |
+
+**Overall Project Status:** ~75% Complete
+
+---
+
+## Critical Gaps & Immediate Priorities
+
+### 🔥 HIGH PRIORITY (Do Now)
+
+1. **Content Creation** (Phase 1.3)
+   - Create seed script (`backend/seed.py`) with sample data
+   - Add real portfolio projects via admin UI
+   - Upload actual resume PDF
+   - Replace placeholder profile photo
+   - Write About Me section
+
+2. **About Page Integration**
+   - Create AboutDAO
+   - Create about routes
+   - Connect frontend Home.tsx to backend
+
+3. **SEO Enhancements** 📋 [See `.claude/features/SEO_ENHANCEMENT_PLAN.md`]
+   - Install react-helmet-async
+   - Add dynamic meta tags per page
+   - Implement JSON-LD structured data
+   - Optimize images with lazy loading
+   - Submit sitemap to Google Search Console
+
+### 🟡 MEDIUM PRIORITY (Soon)
+
+4. **Analytics**
+   - Install Google Analytics or Plausible
+   - Track page views and key events
+
+5. **Performance Improvements**
+   - Add `loading="lazy"` to all images
+   - Implement React.lazy() for route components
+   - Add cache headers for static assets
+
+6. **Monitoring & Backups**
+   - Set up uptime monitoring
+   - Configure database backups
+   - Performance monitoring dashboard
+
+### 🟢 LOW PRIORITY (Future)
+
+7. **Testing**
+   - Set up pytest and vitest
+   - Add unit tests for critical components
+   - Add E2E tests for key flows
+
+8. **Admin Dashboard Page**
+   - Create dashboard UI (backend endpoint already exists)
+
+---
+
+## Key Accomplishments ✅
+
+- ✅ **Live Production Deployment** - Fully operational at tom-sabala.dev with custom domain and SSL
+- ✅ **Complete Admin System** - Google OAuth + JWT, portfolio/PDF/contact management with drag-and-drop
+- ✅ **Production-Grade Security** - Multi-layer protection (reCAPTCHA v3, CSRF, honeypots, rate limiting, Sentry)
+- ✅ **Full-Stack Infrastructure** - PostgreSQL, S3 storage factory, responsive Tailwind design, comprehensive API
+
+---
+
+## Next Steps (Updated: 2026-01-14)
+
+### Immediate Actions
+
+1. **Create seed script** (`backend/seed.py`)
+   - Sample projects (3-5 with images)
+   - Sample resume data
+   - Sample about content
+   - Admin user creation
+
+2. **Add real content**
    - Login with Google OAuth
-   - Add real projects with images
-   - Upload your actual resume PDF
-   - Test drag-and-drop reordering
+   - Add portfolio projects through admin UI
+   - Upload resume PDF
+   - Upload project images
+   - Write About Me section
 
-3. ❌ **Replace placeholders** (1-2 hours)
-3. ❌ **Replace placeholders** (1-2 hours)
-   - Add your real photo
-   - Write your "About Me" section
-   - Update project descriptions
+3. **Complete About page**
+   - Create AboutDAO
+   - Create about routes
+   - Connect Home.tsx to backend
 
-4. ❌ **Test end-to-end workflow** (30 minutes)
-4. ❌ **Test end-to-end workflow** (30 minutes)
-   - Test portfolio: Add/Edit/Delete/Hide/Reorder
-   - Test resume: Upload/Activate/Download
-   - Test contact form submission
-   - Verify all changes persist in database
+4. **SEO quick wins**
+   - Install react-helmet-async
+   - Add dynamic meta tags to all pages
+   - Add JSON-LD structured data
+   - Add lazy loading to images
 
----
+5. **Install analytics**
+   - Google Analytics or Plausible
+   - Basic event tracking
 
-## Progress & Timeline
+### Future Work
 
-**Overall Progress: ~70% Complete** 🎉
-**Overall Progress: ~70% Complete** 🎉
-
-- ✅ **Phase 1.1**: Database Setup **(100% COMPLETE - DONE)**
-- ✅ **Phase 1.2**: Backend API Implementation **(95% COMPLETE - DONE)** (missing contact inbox GET)
-- ⏳ **Phase 1.3**: Content Management **(0% Complete)** - Need to create seed script + add content
-- ✅ **Phase 2.1**: Authentication **(100% COMPLETE - DONE)**
-- ✅ **Phase 2.2**: Admin Panel Frontend **(90% COMPLETE - DONE)** (missing contact inbox UI)
-- 🟡 **Phase 3**: Security & Spam Prevention **(70% Complete)** - Rate limiting done, need reCAPTCHA
-- 🟡 **Phase 4.1**: Design Improvements **(80% Complete)** - Responsive done, needs real content + testing
-- ⏳ **Phase 4.2**: Additional Features **(5% Complete)** - Only code splitting done
-- ⏳ **Phase 5**: Testing **(0% Complete)** - Not started
-- 🟡 **Phase 6**: Pre-Deployment **(60% Complete)** - Production config ready, need deployment guide
-- ⏳ **Phase 7**: Deployment **(0% Complete)** - Ready to deploy once content is added
-- ⏳ **Phase 8**: Custom Domain **(0% Complete)** - Optional
-- ⏳ **Phase 9**: Maintenance & Growth **(5% Complete)** - Only Sentry configured
-
-**Key Accomplishments:**
-- ✅ Complete authentication system with Google OAuth + JWT
-- ✅ Full portfolio management with drag-and-drop
-- ✅ Complete PDF resume system with versioning
-- ✅ File storage abstraction (local + S3)
-- ✅ Security features (rate limiting, headers, Sentry)
-- ✅ Responsive design with Tailwind CSS
-- ✅ Production-ready backend (Gunicorn, migrations, DAO pattern)
-- ✅ **Phase 1.1**: Database Setup **(100% COMPLETE - DONE)**
-- ✅ **Phase 1.2**: Backend API Implementation **(95% COMPLETE - DONE)** (missing contact inbox GET)
-- ⏳ **Phase 1.3**: Content Management **(0% Complete)** - Need to create seed script + add content
-- ✅ **Phase 2.1**: Authentication **(100% COMPLETE - DONE)**
-- ✅ **Phase 2.2**: Admin Panel Frontend **(90% COMPLETE - DONE)** (missing contact inbox UI)
-- 🟡 **Phase 3**: Security & Spam Prevention **(70% Complete)** - Rate limiting done, need reCAPTCHA
-- 🟡 **Phase 4.1**: Design Improvements **(80% Complete)** - Responsive done, needs real content + testing
-- ⏳ **Phase 4.2**: Additional Features **(5% Complete)** - Only code splitting done
-- ⏳ **Phase 5**: Testing **(0% Complete)** - Not started
-- 🟡 **Phase 6**: Pre-Deployment **(60% Complete)** - Production config ready, need deployment guide
-- ⏳ **Phase 7**: Deployment **(0% Complete)** - Ready to deploy once content is added
-- ⏳ **Phase 8**: Custom Domain **(0% Complete)** - Optional
-- ⏳ **Phase 9**: Maintenance & Growth **(5% Complete)** - Only Sentry configured
-
-**Key Accomplishments:**
-- ✅ Complete authentication system with Google OAuth + JWT
-- ✅ Full portfolio management with drag-and-drop
-- ✅ Complete PDF resume system with versioning
-- ✅ File storage abstraction (local + S3)
-- ✅ Security features (rate limiting, headers, Sentry)
-- ✅ Responsive design with Tailwind CSS
-- ✅ Production-ready backend (Gunicorn, migrations, DAO pattern)
-
-**Critical Gaps:**
-- ❌ Seed script does NOT exist (need to create)
-- ❌ No real content (projects, images, resume, about)
-- ❌ Contact inbox not implemented (backend + frontend)
-- ❌ No testing (unit, integration, e2e)
-- ❌ Not deployed to production
-**Critical Gaps:**
-- ❌ Seed script does NOT exist (need to create)
-- ❌ No real content (projects, images, resume, about)
-- ❌ Contact inbox not implemented (backend + frontend)
-- ❌ No testing (unit, integration, e2e)
-- ❌ Not deployed to production
+- Mobile device testing
+- Unit and E2E tests
+- Database backup automation
+- Uptime monitoring
+- Admin dashboard page
+- Blog section (optional)
+- Dark mode (optional)
 
 ---
 
-## Priority Recommendations
+## Notes
 
-### Must Have (MVP) - Current Status
-1. ✅ Database with real content **(DONE - structure ready, needs data)**
-2. ✅ Working contact form with email **(DONE)**
-3. ❌ Real portfolio projects (admin UI ready, needs content)
-4. ✅ Basic admin authentication **(DONE - Google OAuth)**
-5. ❌ Production deployment
-### Must Have (MVP) - Current Status
-1. ✅ Database with real content **(DONE - structure ready, needs data)**
-2. ✅ Working contact form with email **(DONE)**
-3. ❌ Real portfolio projects (admin UI ready, needs content)
-4. ✅ Basic admin authentication **(DONE - Google OAuth)**
-5. ❌ Production deployment
-
-### Should Have - Current Status
-1. 🟡 Anti-spam protection **(Partially DONE - rate limiting, needs reCAPTCHA)**
-2. ❌ SEO optimization 📋 **[See `.claude/features/SEO_ENHANCEMENT_PLAN.md`]**
-3. ❌ Analytics
-4. ✅ Error monitoring **(DONE - Sentry)**
-5. ❌ Database backups
-
-### Nice to Have - Current Status
-1. ❌ Blog section
-2. ✅ Advanced admin panel **(DONE - portfolio + resume management)**
-3. ❌ Project filtering/search
-4. ❌ Dark mode
-5. ✅ Animations **(DONE - Tailwind transitions)**
-### Nice to Have - Current Status
-1. ❌ Blog section
-2. ✅ Advanced admin panel **(DONE - portfolio + resume management)**
-3. ❌ Project filtering/search
-4. ❌ Dark mode
-5. ✅ Animations **(DONE - Tailwind transitions)**
-
----
-
-## Next Steps (Updated: 2026-01-12)
-## Next Steps (Updated: 2026-01-12)
-
-### Immediate Priority - Phase 1.3: Content Population
-### Immediate Priority - Phase 1.3: Content Population
-
-**✅ Completed (Summary):**
-1. ✅ Backend API with database integration (Phase 1.2) **(DONE)**
-2. ✅ Google OAuth + JWT authentication (Phase 2.1) **(DONE)**
-3. ✅ Admin login modal and AuthContext **(DONE)**
-4. ✅ **Resume PDF Management System** (Complete - Jan 2026) **(DONE)**
-   - PDF upload, version history, activate/deactivate **(DONE)**
-   - Two-tab admin interface, download functionality **(DONE)**
-   - Backend: ResumePdfVersion model, DAO, routes, file storage **(DONE)**
-   - Frontend: Upload form, history list, PDF viewer, three-dots menu **(DONE)**
-5. ✅ **Portfolio Management System** (Complete - Jan 2026) **(DONE)**
-   - Add/Edit/Delete projects with modal forms **(DONE)**
-   - Hide/Display toggle for visibility control **(DONE)**
-   - Drag-and-drop reordering with @dnd-kit **(DONE)**
-   - Image upload with drag-and-drop support **(DONE)**
-   - Three-dots dropdown menu with actions **(DONE)**
-   - Backend: isVisible/displayOrder fields, image storage, visibility/reorder endpoints **(DONE)**
-   - Frontend: ProjectFormModal, ImageUploadField, ProjectCard with admin controls **(DONE)**
-6. ✅ **Security Features** **(DONE)**
-   - Rate limiting on all endpoints and contact form **(DONE)**
-   - Security headers (XSS, CSP, HSTS, etc.) **(DONE)**
-   - Sentry error tracking **(DONE)**
-   - File upload validation **(DONE)**
-7. ✅ **File Storage System** **(DONE)**
-   - Local storage implementation **(DONE)**
-   - AWS S3 cloud storage implementation **(DONE)**
-   - Storage factory pattern **(DONE)**
-
-**🎯 CRITICAL NEXT STEPS:**
-**✅ Completed (Summary):**
-1. ✅ Backend API with database integration (Phase 1.2) **(DONE)**
-2. ✅ Google OAuth + JWT authentication (Phase 2.1) **(DONE)**
-3. ✅ Admin login modal and AuthContext **(DONE)**
-4. ✅ **Resume PDF Management System** (Complete - Jan 2026) **(DONE)**
-   - PDF upload, version history, activate/deactivate **(DONE)**
-   - Two-tab admin interface, download functionality **(DONE)**
-   - Backend: ResumePdfVersion model, DAO, routes, file storage **(DONE)**
-   - Frontend: Upload form, history list, PDF viewer, three-dots menu **(DONE)**
-5. ✅ **Portfolio Management System** (Complete - Jan 2026) **(DONE)**
-   - Add/Edit/Delete projects with modal forms **(DONE)**
-   - Hide/Display toggle for visibility control **(DONE)**
-   - Drag-and-drop reordering with @dnd-kit **(DONE)**
-   - Image upload with drag-and-drop support **(DONE)**
-   - Three-dots dropdown menu with actions **(DONE)**
-   - Backend: isVisible/displayOrder fields, image storage, visibility/reorder endpoints **(DONE)**
-   - Frontend: ProjectFormModal, ImageUploadField, ProjectCard with admin controls **(DONE)**
-6. ✅ **Security Features** **(DONE)**
-   - Rate limiting on all endpoints and contact form **(DONE)**
-   - Security headers (XSS, CSP, HSTS, etc.) **(DONE)**
-   - Sentry error tracking **(DONE)**
-   - File upload validation **(DONE)**
-7. ✅ **File Storage System** **(DONE)**
-   - Local storage implementation **(DONE)**
-   - AWS S3 cloud storage implementation **(DONE)**
-   - Storage factory pattern **(DONE)**
-
-**🎯 CRITICAL NEXT STEPS:**
-
-**Step 1: CREATE SEED SCRIPT** (URGENT - Does NOT Exist!)
-1. ❌ Create `backend/seed.py` file with sample data
-2. ❌ Add sample projects (3-5 projects)
-3. ❌ Add sample resume data
-4. ❌ Add about me content
-5. ❌ Run: `cd backend && python seed.py`
-6. ❌ Verify data appears in admin UI
-
-**Step 2: Content Population** (After seed script)
-1. ❌ Login with Google OAuth
-2. ❌ Add real project data through admin interface
-3. ❌ Upload real project images (replace samples)
-4. ❌ Upload your actual resume PDF
-5. ❌ Replace placeholder profile photo
-6. ❌ Write compelling "About Me" section
-**Step 1: CREATE SEED SCRIPT** (URGENT - Does NOT Exist!)
-1. ❌ Create `backend/seed.py` file with sample data
-2. ❌ Add sample projects (3-5 projects)
-3. ❌ Add sample resume data
-4. ❌ Add about me content
-5. ❌ Run: `cd backend && python seed.py`
-6. ❌ Verify data appears in admin UI
-
-**Step 2: Content Population** (After seed script)
-1. ❌ Login with Google OAuth
-2. ❌ Add real project data through admin interface
-3. ❌ Upload real project images (replace samples)
-4. ❌ Upload your actual resume PDF
-5. ❌ Replace placeholder profile photo
-6. ❌ Write compelling "About Me" section
-
-**Step 3: Contact Management** (Optional - Nice to Have)
-1. ❌ Create contact submissions inbox page (admin only)
-2. ❌ Implement GET `/api/contact` endpoint for submissions list
-3. ❌ Add DAO for ContactSubmission retrieval
-4. ❌ Add filtering and mark as read/unread functionality
-**Step 3: Contact Management** (Optional - Nice to Have)
-1. ❌ Create contact submissions inbox page (admin only)
-2. ❌ Implement GET `/api/contact` endpoint for submissions list
-3. ❌ Add DAO for ContactSubmission retrieval
-4. ❌ Add filtering and mark as read/unread functionality
-
-**Step 4: Final Polish & Deployment**
-1. ❌ Test all features end-to-end
-2. ❌ Add reCAPTCHA to contact form
-3. ❌ Mobile testing on real devices
-4. ❌ Deploy to production (backend + frontend)
-5. ❌ Configure custom domain
-
-**Step 5: Post-Launch SEO (After Deployment)** 📋 **[See `.claude/features/SEO_ENHANCEMENT_PLAN.md`]**
-1. ❌ Week 1: Meta tags, sitemap, robots.txt, structured data
-2. ❌ Week 2: Content optimization, performance, analytics
-3. ❌ Week 3: Testing, validation, monitoring setup
-4. ❌ Submit sitemap to Google Search Console
-5. ❌ Monitor rankings and iterate based on performance
-
-**BLOCKER:** Seed script does NOT exist despite roadmap claiming it does. This must be created first!
+- **Security:** Production-grade multi-layer security fully implemented
+- **Deployment:** Live in production with automatic deployments
+- **Testing:** Zero test coverage - recommended for long-term maintenance
+- **SEO:** Basic static implementation - needs dynamic enhancements
+- **Analytics:** Not implemented - should add for user insights
+- **Content:** Infrastructure complete, needs real portfolio data

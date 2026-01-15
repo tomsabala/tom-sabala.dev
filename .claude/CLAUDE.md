@@ -4,134 +4,181 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Personal portfolio website with a Flask backend API and React frontend showcasing projects, CV, and contact information.
+Personal portfolio website with Flask backend API and React frontend. Features include portfolio project management, resume/CV with PDF version control, contact form with email notifications, and Google OAuth admin authentication.
 
 **Tech Stack:**
-- Backend: Python 3 + Flask + Flask-CORS
-- Frontend: React 18 + TypeScript + Vite + React Router + Tailwind CSS + Axios
+- Backend: Python 3 + Flask + SQLAlchemy + PostgreSQL + SendGrid
+- Frontend: React 18 + TypeScript + Vite + React Router + Tailwind CSS
+- Auth: Google OAuth + JWT with HttpOnly cookies
+- Storage: Local filesystem or AWS S3 (configurable via factory pattern)
+- Deployment: Vercel (frontend) + Render (backend)
 
 ## Development Commands
 
-### Backend (Flask API)
-
-From the `backend/` directory:
+### Backend (from `backend/` directory)
 
 ```bash
-# Setup (first time)
-python3 -m venv venv
-source venv/bin/activate  # or venv\Scripts\activate on Windows
+# Setup
+python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
 
-# Start PostgreSQL database
+# Start PostgreSQL and run server
 docker-compose up -d
-
-# Run development server (port 5000)
 python run.py
 
-# Or from project root
-cd backend && docker-compose up -d && source venv/bin/activate && python run.py
+# Database migrations
+flask db upgrade              # Apply migrations
+flask db migrate -m "msg"     # Create new migration
+flask db downgrade            # Rollback one migration
 ```
 
-### Frontend (React + Vite)
-
-From the `frontend/` directory:
+### Frontend (from `frontend/` directory)
 
 ```bash
-# Setup (first time)
-npm install
-cp .env.example .env
-
-# Development server (port 5173)
-npm run dev
-
-# Production build
-npm run build
-
-# Preview production build
-npm run preview
-
-# Linting
-npm run lint
+npm install && cp .env.example .env
+npm run dev      # Development server (port 5173)
+npm run build    # Production build
+npm run lint     # ESLint
 ```
-
-### Running Both Servers
-
-Typically requires two terminal sessions - backend on port 5000, frontend on port 5173.
 
 ## Architecture
 
-### Backend Structure (`backend/`)
+### Backend Structure
 
-- **`run.py`** - Entry point that creates and runs the Flask app
-- **`app/__init__.py`** - Flask app factory with CORS configuration and blueprint registration
-- **`app/routes.py`** - API blueprint with all endpoints (`/api/*`)
-- **Configuration** - Uses `python-dotenv` to load environment variables from `.env`
+```
+backend/app/
+├── __init__.py          # App factory, CORS, security middleware, blueprints
+├── models/              # SQLAlchemy models
+│   ├── project.py       # Portfolio projects (isVisible, displayOrder)
+│   ├── user.py          # Admin users (Google OAuth)
+│   ├── resume.py        # CV data (JSON storage)
+│   ├── resume_pdf.py    # PDF versions (soft delete, activation history)
+│   ├── contact.py       # Contact submissions
+│   └── about.py         # About content
+├── dao/                 # Data Access Objects (all DB queries)
+│   ├── project_dao.py
+│   ├── user_dao.py
+│   ├── resume_dao.py
+│   ├── resume_pdf_dao.py
+│   └── contact_submission_dao.py
+├── services/            # Business logic
+│   ├── auth_service.py           # JWT token management
+│   ├── google_oauth_service.py   # Google OAuth verification
+│   ├── email_service.py          # SendGrid integration
+│   ├── file_storage_service.py   # Local file storage
+│   ├── s3_storage_service.py     # AWS S3 storage
+│   └── storage_factory.py        # Storage provider selection
+├── routes/              # API endpoints (blueprints)
+│   ├── portfolio_routes.py   # /api/portfolio/*
+│   ├── resume_routes.py      # /api/cv/*
+│   ├── contact_routes.py     # /api/contact
+│   ├── auth_routes.py        # /api/auth/*
+│   ├── dashboard_routes.py   # /api/dashboard/*
+│   └── health_routes.py      # /api/health
+└── utils/
+    └── csrf_protection.py    # CSRF token handling
+```
 
-**API Endpoints:**
+### Frontend Structure
+
+```
+frontend/src/
+├── pages/               # Route components
+│   ├── Home.tsx
+│   ├── Portfolio.tsx    # Admin: add/edit/delete/reorder/visibility
+│   ├── CV.tsx           # Admin: PDF upload, version management
+│   └── Contact.tsx
+├── components/
+│   ├── Layout.tsx
+│   ├── LoginModal.tsx        # Hidden trigger: click header 7x in 2 sec
+│   ├── ProjectFormModal.tsx  # Add/edit project with image upload
+│   ├── ImageUploadField.tsx  # Drag-and-drop image upload
+│   ├── PdfViewer.tsx         # PDF display with pagination
+│   ├── PdfUploadForm.tsx     # Drag-and-drop PDF upload
+│   ├── PdfHistoryList.tsx    # Version history management
+│   └── ProtectedRoute.tsx
+├── contexts/
+│   └── AuthContext.tsx       # Auth state, auto token refresh
+├── repositories/             # API client layer (replaces utils/api.ts)
+│   ├── apiClient.ts          # Axios instance with interceptors
+│   ├── portfolioRepository.ts
+│   ├── resumeRepository.ts
+│   ├── contactRepository.ts
+│   ├── authRepository.ts
+│   └── csrfTokenRepository.ts
+└── types/index.ts
+```
+
+### Key Patterns
+
+**DAO Pattern**: All database queries go through DAOs (e.g., `ProjectDAO.getAll()`, `ResumeDAO.getResume()`). Routes call DAOs directly, services handle complex business logic.
+
+**Storage Factory**: `StorageFactory.getStorage()` returns either `FileStorageService` (local) or `S3StorageService` based on `STORAGE_TYPE` env var.
+
+**JWT Auth Flow**: Google OAuth token → backend verifies → issues access + refresh tokens as HttpOnly cookies → frontend interceptor auto-refreshes on 401.
+
+**Admin Access**: Email whitelist in `ADMIN_EMAILS` env var. Hidden login: click site header 7 times within 2 seconds.
+
+## API Endpoints
+
+**Public:**
 - `GET /api/health` - Health check
-- `GET /api/portfolio` - Returns portfolio items (currently hardcoded in routes.py)
-- `GET /api/cv` - Returns CV/resume data (currently hardcoded in routes.py)
-- `POST /api/contact` - Contact form submission (currently just logs to console)
+- `GET /api/portfolio` - List visible projects
+- `GET /api/cv` - Get resume data
+- `GET /api/cv/pdf/file` - Download/view active PDF
+- `POST /api/contact` - Submit contact form (rate limited: 5/min)
 
-**Environment Variables:**
-- `SECRET_KEY` - Flask secret key (defaults to 'dev-secret-key-change-in-production')
-- `CORS_ORIGINS` - Comma-separated list of allowed origins (defaults to 'http://localhost:5173')
-- `PORT` - Server port (defaults to 5000)
+**Admin (JWT required):**
+- `POST/PUT/DELETE /api/portfolio/:id` - CRUD projects
+- `PATCH /api/portfolio/:id/visibility` - Toggle visibility
+- `PATCH /api/portfolio/reorder` - Update display order
+- `POST /api/portfolio/upload-image` - Upload project image
+- `POST /api/cv/pdf/upload` - Upload new PDF version
+- `GET /api/cv/pdf/history` - List all PDF versions
+- `PUT /api/cv/pdf/:id/activate` - Activate specific version
+- `DELETE /api/cv/pdf/:id` - Soft delete version
 
-### Frontend Structure (`frontend/src/`)
-
-- **`main.tsx`** - Application entry point
-- **`App.tsx`** - Router configuration with routes for Home, Portfolio, CV, Contact
-- **`components/Layout.tsx`** - Shared layout component (wraps all pages)
-- **`pages/`** - Page components (Home, Portfolio, CV, Contact)
-- **`types/index.ts`** - TypeScript type definitions
-- **`utils/api.ts`** - Axios API client with methods for all backend endpoints
-
-**API Client:**
-- Base URL configured via `VITE_API_URL` environment variable (defaults to 'http://localhost:5000/api')
-- Centralized API methods: `healthCheck()`, `getPortfolio()`, `getCV()`, `submitContact()`
-
-**Routing:**
-- `/` - Home page
-- `/portfolio` - Portfolio/projects page
-- `/cv` - CV/resume page
-- `/contact` - Contact form page
-
-### Data Flow
-
-1. Frontend pages call methods from `utils/api.ts`
-2. Axios sends HTTP requests to Flask backend at `/api/*` endpoints
-3. Flask routes return JSON responses
-4. Frontend displays data using React components
-
-**Current Limitation:** Portfolio items and CV data are hardcoded in `backend/app/routes.py`. Contact form submissions are only logged to console. Future implementation will require database integration and email service.
-
-## Planning & Documentation
-
-- **Feature Plans**: Detailed implementation plans for features are saved in `.claude/features/` directory
-- **Roadmap**: High-level project roadmap is in `ROADMAP.md` at project root
-- **Production Deployment**: All production deployment tasks, checklists, and configuration notes should be added to `.claude/PRODUCTION_DEPLOYMENT.md`
-- When planning new features or phases, create detailed markdown files in `.claude/features/` for reference
+**Auth:**
+- `POST /api/auth/google` - Google OAuth login
+- `POST /api/auth/logout` - Clear tokens
+- `POST /api/auth/refresh` - Refresh access token
+- `GET /api/auth/me` - Current user info
 
 ## Coding Conventions
 
-### Naming Style
-- **Python variables and methods**: Use **camelCase** style (e.g., `myProject`, `getUserData()`)
-  - ⚠️ This overrides Python's PEP 8 convention (which recommends snake_case)
-- **Database tables and columns**: Use **snake_case** style (e.g., `created_at`, `user_id`)
-  - This follows SQL/PostgreSQL conventions
-- **JavaScript/TypeScript**: Use **camelCase** style (standard for JS/TS)
+**Python**: Use **camelCase** for variables and methods (overrides PEP 8)
+**Database**: Use **snake_case** for tables and columns
+**TypeScript**: Use **camelCase** (standard)
 
-### Code Style
-- Use meaningful variable and function names
-- Add comments for complex logic
-- Follow existing code patterns in the project
+## Planning & Documentation
 
-## Important Notes
+- **Feature plans**: `.claude/features/` directory
+- **Roadmap**: `ROADMAP.md` at project root
+- **Deployment**: `.claude/PRODUCTION_DEPLOYMENT.md`
 
-- The backend uses Flask's application factory pattern (`create_app()`)
-- CORS is configured to allow frontend development server by default
-- All API responses follow the pattern: `{ success: boolean, data/error: any, message?: string }`
-- Frontend uses Tailwind CSS for styling (v4.1.18)
-- TypeScript strict mode is enabled
+## Environment Variables
+
+**Backend key variables:**
+- `DATABASE_URL` - PostgreSQL connection string
+- `SECRET_KEY` - Flask secret (generate with `python -c "import secrets; print(secrets.token_hex(32))"`)
+- `CORS_ORIGINS` - Comma-separated allowed origins
+- `ADMIN_EMAILS` - Comma-separated admin email whitelist
+- `GOOGLE_CLIENT_ID` - Google OAuth client ID
+- `SENDGRID_API_KEY`, `SENDGRID_FROM_EMAIL`, `CONTACT_EMAIL` - Email config
+- `STORAGE_TYPE` - `local` or `s3`
+- `AWS_*` - S3 credentials (if using S3)
+- `SENTRY_DSN` - Error tracking (production)
+
+**Frontend:**
+- `VITE_API_URL` - Backend API URL (default: `http://localhost:5000/api`)
+- `VITE_GOOGLE_CLIENT_ID` - Google OAuth client ID
+
+## Security Features
+
+- Rate limiting via Flask-Limiter (200/day, 50/hour default; 5/min on contact)
+- Security headers (XSS, HSTS, CSP, X-Frame-Options)
+- CSRF protection for state-changing operations
+- JWT tokens in HttpOnly cookies with secure flag in production
+- Input validation and file upload restrictions
+- Sentry error tracking in production
