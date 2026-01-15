@@ -3,6 +3,7 @@ reCAPTCHA v3 verification service.
 Handles token verification with Google's reCAPTCHA API.
 Follows EmailService pattern with static methods and tuple return values.
 """
+from __future__ import annotations
 import os
 import requests
 from typing import Optional

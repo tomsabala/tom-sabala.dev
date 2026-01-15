@@ -2,6 +2,7 @@
 CSRF protection utilities for double-submit cookie pattern.
 Provides token generation, cookie management, and validation.
 """
+from __future__ import annotations
 import os
 import secrets
 from flask import Response
