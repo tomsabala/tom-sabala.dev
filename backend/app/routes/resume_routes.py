@@ -12,9 +12,6 @@ import sys
 
 resume_bp = Blueprint('resume', __name__)
 
-# Get storage service (local or S3 based on environment)
-StorageService = getStorageService()
-
 
 @resume_bp.route('/cv', methods=['GET'])
 def getCv():
@@ -152,6 +149,7 @@ def getPdfFile():
             }), 404
 
         # Get file path (local absolute path or S3 URL)
+        StorageService = getStorageService()
         filePath = StorageService.getFilePath(activePdf.filePath)
 
         # Check storage backend
@@ -236,6 +234,7 @@ def uploadPdf():
     file = request.files['file']
 
     # Validate file
+    StorageService = getStorageService()
     isValid, errorMsg = StorageService.validateFile(file)
     if not isValid:
         return jsonify({'success': False, 'error': errorMsg}), 400

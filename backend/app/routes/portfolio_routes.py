@@ -12,9 +12,6 @@ from app.services.storage_factory import getStorageService
 
 portfolio_bp = Blueprint('portfolio', __name__)
 
-# Get storage service (local or S3 based on environment)
-StorageService = getStorageService()
-
 
 @portfolio_bp.route('/portfolio', methods=['GET'])
 def getPortfolio():
@@ -270,6 +267,7 @@ def uploadProjectImage():
         file = request.files['file']
 
         # Validate image
+        StorageService = getStorageService()
         isValid, error = StorageService.validateImage(file)
         if not isValid:
             return jsonify({'success': False, 'error': error}), 400
@@ -311,6 +309,7 @@ def serveProjectImage(filename):
         filename = secure_filename(filename)
         storageBackend = os.getenv('STORAGE_BACKEND', 'local').lower()
 
+        StorageService = getStorageService()
         if storageBackend == 's3':
             import requests
 
@@ -358,6 +357,7 @@ def _deleteImageFromStorage(imageUrl):
         filename = imageUrl.split('/')[-1]
         storageBackend = os.getenv('STORAGE_BACKEND', 'local').lower()
 
+        StorageService = getStorageService()
         if storageBackend == 's3':
             s3Key = f"projects/{filename}"
             StorageService.deleteFile(s3Key)
