@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import * as portfolioRepository from '../repositories/portfolioRepository';
-import ImageUploadField from './ImageUploadField';
-import type { PortfolioItem, ProjectFormData } from '../types';
+import * as portfolioRepository from '../repositories/portfolioRepository.ts';
+import ImageUploadField from './ImageUploadField.tsx';
+import type { PortfolioItem, ProjectFormData } from '../types/index.ts';
 
 interface ProjectFormModalProps {
   isOpen: boolean;

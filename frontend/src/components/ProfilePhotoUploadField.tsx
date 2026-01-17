@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import * as aboutRepository from '../repositories/aboutRepository';
+import * as aboutRepository from '../repositories/aboutRepository.ts';
 
 interface ProfilePhotoUploadFieldProps {
   currentPhotoUrl?: string | null;

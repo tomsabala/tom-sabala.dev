@@ -2,7 +2,7 @@
  * CSRF Token Repository
  * Handles fetching CSRF tokens and reading them from cookies.
  */
-import { apiClient } from './apiClient';
+import { apiClient } from './apiClient.ts';
 
 interface CsrfTokenResponse {
   success: boolean;
@@ -16,7 +16,7 @@ interface CsrfTokenResponse {
  * @returns Promise resolving to CSRF token string
  * @throws Error if fetch fails or response is invalid
  */
-export const fetchCsrfToken = async (): Promise<string> => {
+export async function fetchCsrfToken(): Promise<string> {
   const response = await apiClient.get<CsrfTokenResponse>('/contact/csrf-token');
 
   if (!response.data.success || !response.data.csrfToken) {
@@ -24,7 +24,7 @@ export const fetchCsrfToken = async (): Promise<string> => {
   }
 
   return response.data.csrfToken;
-};
+}
 
 /**
  * Read CSRF token from browser cookie.
@@ -32,17 +32,10 @@ export const fetchCsrfToken = async (): Promise<string> => {
  *
  * @returns CSRF token string or null if cookie not found
  */
-export const readCsrfTokenFromCookie = (): string | null => {
-  const cookieName = 'csrf_token=';
-  const allCookies = decodeURIComponent(document.cookie);
-  const cookieArray = allCookies.split(';');
+export function readCsrfTokenFromCookie(): string | null {
+  const match = document.cookie
+    .split('; ')
+    .find(row => row.startsWith('csrf_token='));
 
-  for (let cookie of cookieArray) {
-    const trimmedCookie = cookie.trim();
-    if (trimmedCookie.startsWith(cookieName)) {
-      return trimmedCookie.substring(cookieName.length);
-    }
-  }
-
-  return null;
-};
+  return match ? decodeURIComponent(match.split('=')[1]) : null;
+}

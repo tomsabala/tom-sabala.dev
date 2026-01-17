@@ -4,7 +4,7 @@
  */
 import React, { useEffect } from 'react';
 import { GoogleLogin } from '@react-oauth/google';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContext.tsx';
 
 interface LoginModalProps {
   isOpen: boolean;

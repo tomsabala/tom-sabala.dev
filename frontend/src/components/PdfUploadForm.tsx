@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import * as resumeRepository from '../repositories/resumeRepository';
+import * as resumeRepository from '../repositories/resumeRepository.ts';
 
 interface PdfUploadFormProps {
   onUploadSuccess?: () => void;

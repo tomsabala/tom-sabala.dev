@@ -2,12 +2,12 @@
  * Health Repository
  * Handles API health check calls
  */
-import { apiClient } from './apiClient';
+import { apiClient } from './apiClient.ts';
 
 /**
  * Health check endpoint (public)
  */
-export const healthCheck = async () => {
+export async function healthCheck() {
   const response = await apiClient.get('/health');
   return response.data;
-};
+}

@@ -1,9 +1,19 @@
 import { useState, useEffect } from 'react';
-import * as contactRepository from '../repositories/contactRepository';
-import type { ContactSubmission } from '../types';
+import * as contactRepository from '../repositories/contactRepository.ts';
+import type { ContactSubmission } from '../types/index.ts';
 
 interface ContactSubmissionsListProps {
   onSubmissionChange?: () => void;
+}
+
+function getSubmissionCardClass(isArchived: boolean, isRead: boolean): string {
+  if (isArchived) {
+    return 'border rounded-lg p-4 border-gray-300 bg-gray-50';
+  }
+  if (isRead) {
+    return 'border rounded-lg p-4 border-gray-300';
+  }
+  return 'border rounded-lg p-4 border-orange-300 bg-orange-50';
 }
 
 const ContactSubmissionsList: React.FC<ContactSubmissionsListProps> = ({ onSubmissionChange }) => {
@@ -184,16 +194,12 @@ const ContactSubmissionsList: React.FC<ContactSubmissionsListProps> = ({ onSubmi
             const isExpanded = expandedId === submission.id;
             const isArchived = !!submission.archivedAt;
 
+            const cardClassName = getSubmissionCardClass(isArchived, submission.read);
+
             return (
               <div
                 key={submission.id}
-                className={`border rounded-lg p-4 ${
-                  isArchived
-                    ? 'border-gray-300 bg-gray-50'
-                    : submission.read
-                    ? 'border-gray-300'
-                    : 'border-orange-300 bg-orange-50'
-                }`}
+                className={cardClassName}
               >
                 <div className="flex items-start justify-between">
                   {/* Submission Info */}

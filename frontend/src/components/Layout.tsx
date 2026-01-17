@@ -1,7 +1,7 @@
 import { Link, Outlet } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import LoginModal from './LoginModal';
+import { useAuth } from '../contexts/AuthContext.tsx';
+import LoginModal from './LoginModal.tsx';
 
 const Layout = () => {
   const { isAuthenticated, logout } = useAuth();

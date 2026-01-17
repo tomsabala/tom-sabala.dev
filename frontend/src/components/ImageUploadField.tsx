@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import * as portfolioRepository from '../repositories/portfolioRepository';
+import * as portfolioRepository from '../repositories/portfolioRepository.ts';
 
 interface ImageUploadFieldProps {
   currentImageUrl?: string;

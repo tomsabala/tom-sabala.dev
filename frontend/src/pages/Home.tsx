@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import * as aboutRepository from '../repositories/aboutRepository';
-import AboutFormModal from '../components/AboutFormModal';
-import type { AboutData } from '../types';
+import { useAuth } from '../contexts/AuthContext.tsx';
+import * as aboutRepository from '../repositories/aboutRepository.ts';
+import AboutFormModal from '../components/AboutFormModal.tsx';
+import type { AboutData } from '../types/index.ts';
 
 const Home = () => {
   const { isAuthenticated } = useAuth();

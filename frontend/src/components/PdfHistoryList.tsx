@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import * as resumeRepository from '../repositories/resumeRepository';
-import type { ResumePdfVersion } from '../types';
+import * as resumeRepository from '../repositories/resumeRepository.ts';
+import type { ResumePdfVersion } from '../types/index.ts';
 
 interface PdfHistoryListProps {
   onVersionChange?: () => void;

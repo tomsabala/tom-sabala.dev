@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import * as aboutRepository from '../repositories/aboutRepository';
-import ProfilePhotoUploadField from './ProfilePhotoUploadField';
-import type { AboutData } from '../types';
+import * as aboutRepository from '../repositories/aboutRepository.ts';
+import ProfilePhotoUploadField from './ProfilePhotoUploadField.tsx';
+import type { AboutData } from '../types/index.ts';
 
 interface AboutFormModalProps {
   isOpen: boolean;

@@ -3,7 +3,7 @@
  * Redirects to login page if user is not authenticated
  */
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContext.tsx';
 import type { ReactNode } from 'react';
 
 interface ProtectedRouteProps {
