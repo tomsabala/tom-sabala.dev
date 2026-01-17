@@ -1,14 +1,17 @@
 """
 Resume/CV routes - public viewing and admin update operations
 """
-from flask import Blueprint, request, jsonify, send_file
+import os
+import sys
+import traceback
+
+import requests
+from flask import Blueprint, request, jsonify, send_file, Response
 from flask_jwt_extended import jwt_required, get_jwt_identity
+
 from app.dao import ResumeDAO
 from app.dao.resume_pdf_dao import ResumePdfDAO
 from app.services.storage_factory import getStorageService
-import os
-import traceback
-import sys
 
 resume_bp = Blueprint('resume', __name__)
 
@@ -141,70 +144,51 @@ def getPdfFile():
     """
     try:
         activePdf = ResumePdfDAO.getActivePdf()
-
         if not activePdf:
-            return jsonify({
-                'success': False,
-                'error': 'No resume PDF available'
-            }), 404
+            return jsonify({'success': False, 'error': 'No resume PDF available'}), 404
 
-        # Get file path (local absolute path or S3 URL)
         StorageService = getStorageService()
         filePath = StorageService.getFilePath(activePdf.filePath)
-
-        # Check storage backend
         storageBackend = os.getenv('STORAGE_BACKEND', 'local').lower()
 
         if storageBackend == 's3':
-            # For S3, proxy the file through backend to avoid CORS issues with react-pdf
-            # The frontend will request from our backend, we fetch from S3 and stream back
-            import requests
+            return _serveS3Pdf(filePath, activePdf.fileName)
 
-            # Fetch from S3 using pre-signed URL
-            s3Response = requests.get(filePath, stream=True)
-
-            if s3Response.status_code != 200:
-                return jsonify({
-                    'success': False,
-                    'error': 'Failed to fetch PDF from storage'
-                }), 500
-
-            # Stream the response back to client with proper headers
-            from flask import Response
-            return Response(
-                s3Response.iter_content(chunk_size=8192),
-                content_type='application/pdf',
-                headers={
-                    'Content-Disposition': f'inline; filename="{activePdf.fileName}"',
-                    'Cache-Control': 'public, max-age=3600'
-                }
-            )
-        else:
-            # For local storage, serve the file
-            if not os.path.exists(filePath):
-                return jsonify({
-                    'success': False,
-                    'error': 'PDF file not found on server'
-                }), 404
-
-            # Check if download is requested via query parameter
-            download = request.args.get('download', 'false').lower() == 'true'
-
-            # Send file inline or as attachment based on query parameter
-            return send_file(
-                filePath,
-                mimetype='application/pdf',
-                as_attachment=download,  # True forces download, False shows inline
-                download_name=activePdf.fileName
-            )
+        return _serveLocalPdf(filePath, activePdf.fileName)
     except Exception as e:
-        # Print full traceback to stderr for Render logs
         print("ERROR in /cv/pdf/file:", file=sys.stderr)
         print(traceback.format_exc(), file=sys.stderr)
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+def _serveS3Pdf(s3Url, fileName):
+    """Proxy PDF from S3 to avoid CORS issues with react-pdf"""
+    s3Response = requests.get(s3Url, stream=True)
+    if s3Response.status_code != 200:
+        return jsonify({'success': False, 'error': 'Failed to fetch PDF from storage'}), 500
+
+    return Response(
+        s3Response.iter_content(chunk_size=8192),
+        content_type='application/pdf',
+        headers={
+            'Content-Disposition': f'inline; filename="{fileName}"',
+            'Cache-Control': 'public, max-age=3600'
+        }
+    )
+
+
+def _serveLocalPdf(filePath, fileName):
+    """Serve PDF from local filesystem"""
+    if not os.path.exists(filePath):
+        return jsonify({'success': False, 'error': 'PDF file not found on server'}), 404
+
+    download = request.args.get('download', 'false').lower() == 'true'
+    return send_file(
+        filePath,
+        mimetype='application/pdf',
+        as_attachment=download,
+        download_name=fileName
+    )
 
 
 @resume_bp.route('/cv/pdf/upload', methods=['POST'])
