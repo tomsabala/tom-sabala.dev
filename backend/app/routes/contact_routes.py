@@ -8,8 +8,27 @@ from app.dao import ContactSubmissionDAO
 from app import limiter
 from app.utils.csrf_protection import generateCsrfToken, attachCsrfCookieToResponse, validateCsrfToken
 import sys
+import threading
 
 contact_bp = Blueprint('contact', __name__)
+
+
+def _sendEmailInBackground(fromEmail, name, email, message):
+    """
+    Send email in background thread to reduce response latency.
+    Email failures are logged but don't affect user response.
+    """
+    try:
+        success, error = EmailService.sendEmail(
+            fromEmail=fromEmail,
+            name=name,
+            email=email,
+            message=message
+        )
+        if not success:
+            print(f"ERROR: Background email failed: {error}", file=sys.stderr)
+    except Exception as e:
+        print(f"ERROR: Background email exception: {str(e)}", file=sys.stderr)
 
 
 @contact_bp.route('/contact/csrf-token', methods=['GET'])
@@ -220,24 +239,19 @@ def submitContactForm():
             # Log error but don't fail - email still sends
             print(f"ERROR: Failed to save contact submission to DB: {str(e)}", file=sys.stderr)
 
-        # Send email using EmailService
-        success, error = EmailService.sendEmail(
-            fromEmail=email,
-            name=name,
-            email=email,
-            message=message
+        # Send email in background thread to reduce response latency (~200-500ms saved)
+        # User gets immediate response; email failures are logged but don't block
+        emailThread = threading.Thread(
+            target=_sendEmailInBackground,
+            args=(email, name, email, message)
         )
+        emailThread.daemon = True
+        emailThread.start()
 
-        if success:
-            return jsonify({
-                'success': True,
-                'message': 'Thank you for your message! I will get back to you soon.'
-            }), 200
-        else:
-            return jsonify({
-                'success': False,
-                'error': error or 'Failed to send email'
-            }), 500
+        return jsonify({
+            'success': True,
+            'message': 'Thank you for your message! I will get back to you soon.'
+        }), 200
 
     except Exception as e:
         return jsonify({'success': False, 'error': 'Failed to submit form'}), 500

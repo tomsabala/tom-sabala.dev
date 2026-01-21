@@ -44,6 +44,15 @@ def create_app():
     app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+    # Database connection pooling for better performance
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'pool_size': 5,           # Base pool size
+        'pool_timeout': 10,       # Seconds to wait for connection
+        'pool_recycle': 300,      # Recycle connections after 5 minutes
+        'pool_pre_ping': True,    # Verify connections before use (handles stale connections after cold starts)
+        'max_overflow': 10,       # Additional connections beyond pool_size
+    }
+
     # JWT Configuration
     app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', app.config['SECRET_KEY'])
     app.config['JWT_TOKEN_LOCATION'] = ['cookies']

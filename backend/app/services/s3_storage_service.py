@@ -22,17 +22,22 @@ class S3StorageService:
     PROJECTS_PREFIX = 'projects/'
     PROFILE_PREFIX = 'profile/'
 
+    # Singleton S3 client - avoids ~50-200ms overhead of creating new client per operation
+    _s3Client = None
+
     @classmethod
     def _getS3Client(cls):
-        """Get configured S3 client"""
-        if not all([cls.AWS_ACCESS_KEY_ID, cls.AWS_SECRET_ACCESS_KEY, cls.AWS_S3_BUCKET]):
-            raise Exception("S3 configuration missing. Set AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and AWS_S3_BUCKET.")
-        return boto3.client(
-            's3',
-            aws_access_key_id=cls.AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=cls.AWS_SECRET_ACCESS_KEY,
-            region_name=cls.AWS_REGION
-        )
+        """Get configured S3 client (singleton pattern for performance)"""
+        if cls._s3Client is None:
+            if not all([cls.AWS_ACCESS_KEY_ID, cls.AWS_SECRET_ACCESS_KEY, cls.AWS_S3_BUCKET]):
+                raise Exception("S3 configuration missing. Set AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and AWS_S3_BUCKET.")
+            cls._s3Client = boto3.client(
+                's3',
+                aws_access_key_id=cls.AWS_ACCESS_KEY_ID,
+                aws_secret_access_key=cls.AWS_SECRET_ACCESS_KEY,
+                region_name=cls.AWS_REGION
+            )
+        return cls._s3Client
 
     @classmethod
     def _uploadToS3(cls, file, prefix, contentType=None, cacheControl=None, errorMsg="Failed to upload"):

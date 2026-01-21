@@ -257,7 +257,7 @@ const CV = () => {
                 </button>
               </div>
               <PdfViewer
-                pdfUrl={resumeRepository.getPdfFileUrl()}
+                pdfUrl={`${resumeRepository.getPdfFileUrl()}?v=${activePdf.id}`}
                 fileName={activePdf.fileName}
               />
             </div>

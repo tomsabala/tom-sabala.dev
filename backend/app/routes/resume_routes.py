@@ -172,7 +172,9 @@ def _serveS3Pdf(s3Url, fileName):
         content_type='application/pdf',
         headers={
             'Content-Disposition': f'inline; filename="{fileName}"',
-            'Cache-Control': 'public, max-age=3600'
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
         }
     )
 
@@ -183,12 +185,17 @@ def _serveLocalPdf(filePath, fileName):
         return jsonify({'success': False, 'error': 'PDF file not found on server'}), 404
 
     download = request.args.get('download', 'false').lower() == 'true'
-    return send_file(
+    response = send_file(
         filePath,
         mimetype='application/pdf',
         as_attachment=download,
         download_name=fileName
     )
+    # Prevent browser caching - rely on version query param for cache busting
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 
 @resume_bp.route('/cv/pdf/upload', methods=['POST'])
