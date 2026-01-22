@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import * as resumeRepository from '../repositories/resumeRepository';
 import PdfViewer from '../components/PdfViewer';
@@ -15,20 +15,9 @@ const CV = () => {
   const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
-  // Loading timing state
-  const loadStartTime = useRef<number>(0);
-  const loadTimeoutId = useRef<number | null>(null);
-
-  // Load active PDF with minimum 2-second loading time
   const loadActivePdf = async () => {
-    loadStartTime.current = Date.now();
     setLoading(true);
     setError(null);
-
-    // Clear any pending timeout
-    if (loadTimeoutId.current) {
-      clearTimeout(loadTimeoutId.current);
-    }
 
     try {
       const response = await resumeRepository.getActivePdf();
@@ -45,28 +34,12 @@ const CV = () => {
         setError(err.response?.data?.error || 'Failed to load PDF');
       }
     } finally {
-      // Enforce minimum 2 second loading time
-      const elapsed = Date.now() - loadStartTime.current;
-      const minLoadTime = 2000;
-
-      if (elapsed < minLoadTime) {
-        loadTimeoutId.current = setTimeout(() => {
-          setLoading(false);
-        }, minLoadTime - elapsed);
-      } else {
-        setLoading(false);
-      }
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     loadActivePdf();
-    return () => {
-      // Cleanup: clear timeout on unmount
-      if (loadTimeoutId.current) {
-        clearTimeout(loadTimeoutId.current);
-      }
-    };
   }, []);
 
   const handleUploadSuccess = () => {
