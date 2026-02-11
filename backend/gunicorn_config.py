@@ -1,12 +1,13 @@
 """Gunicorn production server configuration"""
-import multiprocessing
 import os
 
 # Server socket
 bind = f"0.0.0.0:{os.getenv('PORT', '5000')}"
 
 # Worker processes
-workers = multiprocessing.cpu_count() * 2 + 1
+# Use WEB_CONCURRENCY env var if set, otherwise default to 2
+# (avoid cpu_count() — shared hosts report all CPUs, causing OOM)
+workers = int(os.getenv("WEB_CONCURRENCY", 2))
 worker_class = "sync"
 worker_connections = 1000
 timeout = 120
