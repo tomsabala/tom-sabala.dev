@@ -11,7 +11,7 @@ Personal portfolio website with Flask backend API and React frontend. Features i
 - Frontend: React 18 + TypeScript + Vite + React Router + Tailwind CSS
 - Auth: Google OAuth + JWT with HttpOnly cookies
 - Storage: Local filesystem or AWS S3 (configurable via factory pattern)
-- Deployment: Vercel (frontend) + Render (backend)
+- Deployment: Vercel (frontend) + Railway (backend)
 
 ## Development Commands
 
