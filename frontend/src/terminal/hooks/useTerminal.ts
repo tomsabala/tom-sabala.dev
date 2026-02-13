@@ -122,6 +122,7 @@ export function useTerminal({ setTheme }: UseTerminalOptions) {
     isProcessing,
     handleKeyDown,
     executeCommand,
+    addOutput,
     inputRef,
   };
 }
