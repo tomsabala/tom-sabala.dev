@@ -107,6 +107,13 @@ frontend/src/
 │   ├── contactRepository.ts
 │   ├── authRepository.ts
 │   └── csrfTokenRepository.ts
+├── terminal/                 # Interactive terminal view (/terminal)
+│   ├── TerminalApp.tsx       # Main component
+│   ├── commands/             # 19 commands (registry pattern)
+│   ├── components/           # Terminal UI components
+│   ├── hooks/                # State management hooks
+│   ├── themes/               # 7 color themes
+│   └── __tests__/            # Vitest tests (69+ cases)
 └── types/index.ts
 ```
 
