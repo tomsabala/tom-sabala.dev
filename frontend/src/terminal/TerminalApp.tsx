@@ -4,6 +4,14 @@ import TerminalInput from './components/TerminalInput';
 import { useTerminal } from './hooks/useTerminal';
 import './commands/clear';
 import './commands/help';
+import './commands/about';
+import './commands/skills';
+import './commands/social';
+import './commands/contact';
+import './commands/projects';
+import './commands/download';
+import './commands/open';
+import './commands/history';
 
 export default function TerminalApp() {
   const {
