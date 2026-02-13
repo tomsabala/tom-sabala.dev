@@ -1,11 +1,13 @@
 {
-  "framework": null,
-  "rewrites": [
+  "redirects": [
     {
-      "source": "/(.*)",
+      "source": "/",
       "has": [{ "type": "host", "value": "terminal.tom-sabala.dev" }],
-      "destination": "/terminal.html"
-    },
+      "destination": "/terminal.html",
+      "permanent": false
+    }
+  ],
+  "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
