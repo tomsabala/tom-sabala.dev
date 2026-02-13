@@ -20,21 +20,10 @@ registerCommand({
     }
 
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10000);
-
-      const response = await getPortfolio();
-      clearTimeout(timeout);
-
-      const projects: PortfolioItem[] = response.data || response;
+      const projects: PortfolioItem[] = await getPortfolio();
       cachedProjects = projects;
       return formatProjects(projects);
-    } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') {
-        return {
-          output: [{ text: 'Error: Request timed out. Check your connection and try again.', color: 'var(--term-error)' }],
-        };
-      }
+    } catch {
       return {
         output: [{ text: 'Error: Unable to fetch projects. The API may be offline. Try again later.', color: 'var(--term-error)' }],
       };

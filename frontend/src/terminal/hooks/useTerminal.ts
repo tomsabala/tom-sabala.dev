@@ -19,6 +19,8 @@ export function useTerminal() {
   }, []);
 
   const { history, addToHistory, navigateUp, navigateDown, resetNavigation } = useCommandHistory();
+  const historyRef = useRef<string[]>(history);
+  historyRef.current = history;
   const { complete, resetCompletion } = useTabCompletion(addOutput);
 
   const handleSideEffect = useCallback((effect: SideEffect) => {
@@ -61,7 +63,7 @@ export function useTerminal() {
     setIsProcessing(true);
 
     try {
-      const result: CommandResult = await execute(trimmed, { addOutput, clearTerminal, commands: getAllCommands, history: () => history });
+      const result: CommandResult = await execute(trimmed, { addOutput, clearTerminal, commands: getAllCommands, history: () => historyRef.current });
 
       if (result.output.length > 0) {
         addOutput({ lines: result.output });
