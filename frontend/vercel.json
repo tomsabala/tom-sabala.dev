@@ -1,5 +1,10 @@
 {
   "rewrites": [
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "terminal.tom-sabala.dev" }],
+      "destination": "/terminal.html"
+    },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import path from 'path'
+import path, { resolve } from 'path'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -19,9 +19,13 @@ export default defineConfig({
 
     // Code splitting
     rollupOptions: {
+      input: {
+        main: resolve(__dirname, 'index.html'),
+        terminal: resolve(__dirname, 'terminal.html'),
+      },
       output: {
         manualChunks: {
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'react-vendor': ['react', 'react-dom'],
           'pdf-vendor': ['react-pdf', 'pdfjs-dist'],
           'dnd-vendor': ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities'],
         },
