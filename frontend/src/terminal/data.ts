@@ -5,6 +5,7 @@ export const PERSONAL_INFO = {
   email: 'contact@tom-sabala.dev',
   bio: 'Passionate full-stack developer specializing in modern web technologies. I build performant, user-friendly applications with React, TypeScript, Python, and Flask.',
   website: 'https://tom-sabala.dev',
+  siteLaunchDate: '2025-01-01',
 };
 
 export interface SocialLink {

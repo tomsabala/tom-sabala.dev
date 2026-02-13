@@ -14,7 +14,7 @@ const ASCII_ART = [
 ];
 
 function getSiteUptime(): string {
-  const launched = new Date('2025-01-01');
+  const launched = new Date(PERSONAL_INFO.siteLaunchDate);
   const now = new Date();
   const diffMs = now.getTime() - launched.getTime();
   const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
