@@ -41,7 +41,7 @@ function formatProjects(projects: PortfolioItem[]): CommandResult {
     { text: '' },
   ];
 
-  projects.forEach((project, i) => {
+  for (const [i, project] of projects.entries()) {
     lines.push({ text: `  ${i + 1}. ${project.title}`, bold: true, color: 'var(--term-prompt)' });
 
     const desc = project.description.length > 120
@@ -61,7 +61,7 @@ function formatProjects(projects: PortfolioItem[]): CommandResult {
     }
 
     lines.push({ text: '' });
-  });
+  }
 
   lines.push({ text: "Tip: use 'open project <number>' to visit a project." });
 

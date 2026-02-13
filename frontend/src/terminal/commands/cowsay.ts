@@ -27,12 +27,12 @@ function buildBubble(text: string): string[] {
   if (lines.length === 1) {
     result.push(`< ${lines[0].padEnd(maxLen)} >`);
   } else {
-    lines.forEach((line, i) => {
+    for (const [i, line] of lines.entries()) {
       const padded = line.padEnd(maxLen);
       if (i === 0) result.push(`/ ${padded} \\`);
       else if (i === lines.length - 1) result.push(`\\ ${padded} /`);
       else result.push(`| ${padded} |`);
-    });
+    }
   }
 
   result.push(` ${border}`);

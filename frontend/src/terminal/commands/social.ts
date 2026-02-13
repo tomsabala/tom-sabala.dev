@@ -13,12 +13,12 @@ registerCommand({
       { text: '' },
     ];
 
-    SOCIAL_LINKS.forEach((link, i) => {
+    for (const [i, link] of SOCIAL_LINKS.entries()) {
       lines.push({
         text: `  ${i + 1}. ${link.label.padEnd(20)}`,
         link: { href: link.url, label: link.url },
       });
-    });
+    }
 
     lines.push({ text: '' });
     lines.push({ text: "Tip: use 'open github' or 'open linkedin' to visit directly." });

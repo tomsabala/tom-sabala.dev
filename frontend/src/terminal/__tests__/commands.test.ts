@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeAll } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import type { TerminalContext } from '../commands/types';
 import { execute, getSuggestions, getAllCommands } from '../commands/registry';
 

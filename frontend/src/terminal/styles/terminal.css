@@ -60,11 +60,7 @@ body {
   line-height: 1.2;
 }
 
-.terminal-banner-subtitle {
-  color: var(--term-fg-dim);
-  margin-top: 4px;
-}
-
+.terminal-banner-subtitle,
 .terminal-banner-hint {
   color: var(--term-fg-dim);
   margin-top: 4px;
@@ -107,14 +103,12 @@ body {
   font-weight: 700;
 }
 
-.terminal-line a,
 .terminal-link {
   color: var(--term-link);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 
-.terminal-line a:hover,
 .terminal-link:hover {
   opacity: 0.8;
 }
@@ -133,7 +127,6 @@ body {
 .terminal-input-row {
   display: flex;
   align-items: center;
-  gap: 0;
   min-height: 1.5em;
 }
 

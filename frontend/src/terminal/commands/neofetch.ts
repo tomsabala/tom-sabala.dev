@@ -51,15 +51,13 @@ registerCommand({
     ];
 
     const lines: OutputLine[] = [];
-    const maxArt = ASCII_ART.length;
-    const maxInfo = info.length;
-    const rows = Math.max(maxArt, maxInfo);
+    const rows = Math.max(ASCII_ART.length, info.length);
 
     for (let i = 0; i < rows; i++) {
-      const artPart = i < maxArt ? ASCII_ART[i] : ' '.repeat(ASCII_ART[0].length);
+      const artPart = i < ASCII_ART.length ? ASCII_ART[i] : ' '.repeat(ASCII_ART[0].length);
 
       let infoPart = '';
-      if (i < maxInfo) {
+      if (i < info.length) {
         const [label, value] = info[i];
         infoPart = label ? `${label}: ${value}` : value;
       }

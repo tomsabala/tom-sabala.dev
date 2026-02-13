@@ -9,14 +9,13 @@ interface TerminalProps {
 }
 
 export default function Terminal({ inputRef, outputHistory, onContainerRef, children }: TerminalProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   const setRef = useCallback((el: HTMLDivElement | null) => {
-    (containerRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+    containerRef.current = el;
     onContainerRef?.(el);
   }, [onContainerRef]);
 
-  // Auto-scroll to bottom only when output changes
   useEffect(() => {
     const container = containerRef.current;
     if (container) {
@@ -24,15 +23,11 @@ export default function Terminal({ inputRef, outputHistory, onContainerRef, chil
     }
   }, [outputHistory.length]);
 
-  const handleClick = () => {
-    inputRef.current?.focus();
-  };
-
   return (
     <div
       ref={setRef}
       className="terminal-container"
-      onClick={handleClick}
+      onClick={() => inputRef.current?.focus()}
       role="application"
       aria-label="Terminal emulator"
     >

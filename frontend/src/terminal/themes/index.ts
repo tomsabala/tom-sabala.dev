@@ -144,17 +144,21 @@ export function getThemeByName(name: string): Theme | undefined {
   return themes.find(t => t.name === name);
 }
 
+const COLOR_TO_VAR: Record<keyof Theme['colors'], string> = {
+  bg: '--term-bg',
+  fg: '--term-fg',
+  fgDim: '--term-fg-dim',
+  prompt: '--term-prompt',
+  error: '--term-error',
+  link: '--term-link',
+  selectionBg: '--term-selection-bg',
+  selectionFg: '--term-selection-fg',
+  cursor: '--term-cursor',
+};
+
 export function applyTheme(theme: Theme, container: HTMLElement) {
-  const { colors } = theme;
-  container.style.setProperty('--term-bg', colors.bg);
-  container.style.setProperty('--term-fg', colors.fg);
-  container.style.setProperty('--term-fg-dim', colors.fgDim);
-  container.style.setProperty('--term-prompt', colors.prompt);
-  container.style.setProperty('--term-error', colors.error);
-  container.style.setProperty('--term-link', colors.link);
-  container.style.setProperty('--term-selection-bg', colors.selectionBg);
-  container.style.setProperty('--term-selection-fg', colors.selectionFg);
-  container.style.setProperty('--term-cursor', colors.cursor);
-  // Also set body bg so the whole page matches
-  document.body.style.backgroundColor = colors.bg;
+  for (const [key, cssVar] of Object.entries(COLOR_TO_VAR)) {
+    container.style.setProperty(cssVar, theme.colors[key as keyof Theme['colors']]);
+  }
+  document.body.style.backgroundColor = theme.colors.bg;
 }
