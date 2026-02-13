@@ -1,0 +1,137 @@
+:root {
+  --term-bg: #0a0e14;
+  --term-fg: #33ff33;
+  --term-fg-dim: #1a8c1a;
+  --term-prompt: #5cff5c;
+  --term-error: #ff5555;
+  --term-link: #5caaff;
+  --term-selection-bg: #33ff3340;
+  --term-selection-fg: #ffffff;
+  --term-cursor: #33ff33;
+  --term-font: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Monaco, Menlo, 'Courier New', monospace;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #terminal-root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  background-color: var(--term-bg);
+}
+
+body {
+  font-family: var(--term-font);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--term-fg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.terminal-container {
+  height: 100%;
+  width: 100%;
+  overflow-y: auto;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.terminal-output {
+  flex: 1;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.terminal-output-block {
+  margin-bottom: 4px;
+}
+
+.terminal-prompt-text {
+  color: var(--term-prompt);
+  font-weight: 700;
+}
+
+.terminal-command-echo {
+  color: var(--term-fg);
+}
+
+.terminal-line {
+  color: var(--term-fg);
+}
+
+.terminal-line--bold {
+  font-weight: 700;
+}
+
+.terminal-line a,
+.terminal-link {
+  color: var(--term-link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.terminal-line a:hover,
+.terminal-link:hover {
+  opacity: 0.8;
+}
+
+.terminal-input-row {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  min-height: 1.5em;
+}
+
+.terminal-input-field {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--term-fg);
+  font-family: var(--term-font);
+  font-size: inherit;
+  line-height: inherit;
+  padding: 0;
+  caret-color: transparent;
+}
+
+.terminal-cursor {
+  display: inline-block;
+  width: 0.6em;
+  height: 1.2em;
+  background-color: var(--term-cursor);
+  vertical-align: text-bottom;
+  animation: blink-cursor 1s step-end infinite;
+}
+
+@keyframes blink-cursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .terminal-cursor {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+::selection {
+  background-color: var(--term-selection-bg);
+  color: var(--term-selection-fg);
+}
+
+/* Prevent iOS zoom on input focus */
+@media screen and (max-width: 768px) {
+  .terminal-input-field {
+    font-size: 16px;
+  }
+}
