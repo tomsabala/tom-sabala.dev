@@ -26,6 +26,7 @@ export interface TerminalContext {
   clearTerminal: () => void;
   commands: () => Command[];
   history: () => string[];
+  setTheme: (name: string) => boolean;
 }
 
 export interface Command {

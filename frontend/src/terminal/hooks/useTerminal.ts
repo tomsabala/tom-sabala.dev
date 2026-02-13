@@ -4,7 +4,11 @@ import { execute, getAllCommands } from '../commands/registry';
 import { useCommandHistory } from './useCommandHistory';
 import { useTabCompletion } from './useTabCompletion';
 
-export function useTerminal() {
+interface UseTerminalOptions {
+  setTheme: (name: string) => boolean;
+}
+
+export function useTerminal({ setTheme }: UseTerminalOptions) {
   const [outputHistory, setOutputHistory] = useState<OutputBlock[]>([]);
   const [currentInput, setCurrentInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -63,7 +67,13 @@ export function useTerminal() {
     setIsProcessing(true);
 
     try {
-      const result: CommandResult = await execute(trimmed, { addOutput, clearTerminal, commands: getAllCommands, history: () => historyRef.current });
+      const result: CommandResult = await execute(trimmed, {
+        addOutput,
+        clearTerminal,
+        commands: getAllCommands,
+        history: () => historyRef.current,
+        setTheme,
+      });
 
       if (result.output.length > 0) {
         addOutput({ lines: result.output });
@@ -79,7 +89,7 @@ export function useTerminal() {
     } finally {
       setIsProcessing(false);
     }
-  }, [addOutput, addToHistory, clearTerminal, handleSideEffect, resetNavigation, resetCompletion]);
+  }, [addOutput, addToHistory, clearTerminal, handleSideEffect, resetNavigation, resetCompletion, setTheme]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -111,6 +121,7 @@ export function useTerminal() {
     setCurrentInput,
     isProcessing,
     handleKeyDown,
+    executeCommand,
     inputRef,
   };
 }
