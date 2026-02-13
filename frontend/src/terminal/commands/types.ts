@@ -25,6 +25,7 @@ export interface TerminalContext {
   addOutput: (block: OutputBlock) => void;
   clearTerminal: () => void;
   commands: () => Command[];
+  history: () => string[];
 }
 
 export interface Command {
