@@ -26,6 +26,7 @@ export default defineConfig({
       output: {
         manualChunks: {
           'react-vendor': ['react', 'react-dom'],
+          'router-vendor': ['react-router-dom'],
           'pdf-vendor': ['react-pdf', 'pdfjs-dist'],
           'dnd-vendor': ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities'],
         },
