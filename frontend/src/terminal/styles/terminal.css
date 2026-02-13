@@ -35,14 +35,50 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* ── Terminal container ── */
+
 .terminal-container {
   height: 100%;
   width: 100%;
   overflow-y: auto;
+  scroll-behavior: smooth;
   padding: 12px 16px;
   display: flex;
   flex-direction: column;
 }
+
+/* ── Welcome banner ── */
+
+.terminal-banner {
+  margin-bottom: 8px;
+}
+
+.terminal-banner-art {
+  color: var(--term-prompt);
+  font-family: var(--term-font);
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.terminal-banner-subtitle {
+  color: var(--term-fg-dim);
+  margin-top: 4px;
+}
+
+.terminal-banner-hint {
+  color: var(--term-fg-dim);
+  margin-top: 4px;
+}
+
+.terminal-banner-cmd {
+  color: var(--term-fg);
+}
+
+.terminal-banner-spacer {
+  height: 8px;
+}
+
+/* ── Output ── */
 
 .terminal-output {
   flex: 1;
@@ -83,6 +119,17 @@ body {
   opacity: 0.8;
 }
 
+/* ── Sticky footer (input + suggestions) ── */
+
+.terminal-sticky-footer {
+  position: sticky;
+  bottom: 0;
+  background-color: var(--term-bg);
+  padding: 2px 0;
+}
+
+/* ── Input ── */
+
 .terminal-input-row {
   display: flex;
   align-items: center;
@@ -122,16 +169,69 @@ body {
     animation: none;
     opacity: 1;
   }
+
+  .terminal-container {
+    scroll-behavior: auto;
+  }
 }
+
+/* ── Selection ── */
 
 ::selection {
   background-color: var(--term-selection-bg);
   color: var(--term-selection-fg);
 }
 
-/* Prevent iOS zoom on input focus */
+/* ── Mobile command suggestions ── */
+
+.terminal-suggestions {
+  display: none;
+}
+
+@media screen and (max-width: 640px) {
+  .terminal-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 10px 0 4px;
+  }
+
+  .terminal-suggestion-pill {
+    background: transparent;
+    border: 1px solid var(--term-fg-dim);
+    color: var(--term-fg);
+    font-family: var(--term-font);
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+
+  .terminal-suggestion-pill:active {
+    border-color: var(--term-prompt);
+    color: var(--term-prompt);
+  }
+
+  .terminal-suggestion-pill:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+}
+
+/* ── Mobile adjustments ── */
+
 @media screen and (max-width: 768px) {
+  body {
+    font-size: 12px;
+  }
+
+  /* Prevent iOS zoom on input focus */
   .terminal-input-field {
     font-size: 16px;
+  }
+
+  .terminal-banner-art {
+    font-size: 12px;
   }
 }
