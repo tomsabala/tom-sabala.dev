@@ -40,7 +40,7 @@ const Home = () => {
     if (!aboutData?.profilePhotoUrl) return null;
 
     if (aboutData.profilePhotoUrl.startsWith('/api/')) {
-      const baseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+      const baseUrl = import.meta.env.VITE_API_URL?.replace(/\/api\/?$/, '') || 'http://localhost:5000';
       return `${baseUrl}${aboutData.profilePhotoUrl}`;
     }
 
