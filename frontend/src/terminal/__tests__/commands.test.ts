@@ -14,16 +14,25 @@ import '../commands/theme';
 import '../commands/cowsay';
 import '../commands/whoami';
 import '../commands/sudo';
-// Skipping: projects, download, open, matrix, neofetch
+import '../commands/pwd';
+import '../commands/cd';
+// Skipping: projects, download, open, matrix, neofetch, ls
 // (they depend on browser APIs, fetch, or dynamic imports)
 
+import { buildFilesystem } from '../filesystem';
+
 function createMockContext(overrides?: Partial<TerminalContext>): TerminalContext {
+  const fs = buildFilesystem();
   return {
     addOutput: vi.fn(),
     clearTerminal: vi.fn(),
     commands: getAllCommands,
     history: () => ['help', 'about'],
     setTheme: vi.fn(() => true),
+    currentDir: '~',
+    setCurrentDir: vi.fn(),
+    getFilesystem: () => fs,
+    currentThemeName: () => 'default',
     ...overrides,
   };
 }
@@ -264,5 +273,63 @@ describe('theme command', () => {
     const ctx = createMockContext({ setTheme: vi.fn(() => false) });
     const result = await execute('theme faketheme', ctx);
     expect(result.output[0].text).toContain('Unknown theme: faketheme');
+  });
+
+  it('shows active theme indicator', async () => {
+    const ctx = createMockContext({ currentThemeName: () => 'dracula' });
+    const result = await execute('theme', ctx);
+    const draculaLine = result.output.find(l => l.text.includes('dracula') && l.text.startsWith('>'));
+    expect(draculaLine).toBeDefined();
+  });
+});
+
+describe('pwd command', () => {
+  it('returns /home/visitor for home dir', async () => {
+    const result = await execute('pwd', createMockContext());
+    expect(result.output[0].text).toBe('/home/visitor');
+  });
+
+  it('returns expanded path when in subdir', async () => {
+    const ctx = createMockContext({ currentDir: '~/projects' });
+    const result = await execute('pwd', ctx);
+    expect(result.output[0].text).toBe('/home/visitor/projects');
+  });
+});
+
+describe('cd command', () => {
+  it('changes to home with no args', async () => {
+    const ctx = createMockContext({ currentDir: '~/projects' });
+    await execute('cd', ctx);
+    expect(ctx.setCurrentDir).toHaveBeenCalledWith('~');
+  });
+
+  it('changes to a valid directory', async () => {
+    const ctx = createMockContext();
+    await execute('cd about', ctx);
+    expect(ctx.setCurrentDir).toHaveBeenCalledWith('~/about');
+  });
+
+  it('handles .. navigation', async () => {
+    const ctx = createMockContext({ currentDir: '~/about' });
+    await execute('cd ..', ctx);
+    expect(ctx.setCurrentDir).toHaveBeenCalledWith('~');
+  });
+
+  it('errors on non-existent directory', async () => {
+    const ctx = createMockContext();
+    const result = await execute('cd nonexistent', ctx);
+    expect(result.output[0].text).toContain('no such directory');
+  });
+
+  it('errors when target is a file', async () => {
+    const ctx = createMockContext();
+    const result = await execute('cd about/bio.txt', ctx);
+    expect(result.output[0].text).toContain('not a directory');
+  });
+
+  it('handles ~ path', async () => {
+    const ctx = createMockContext({ currentDir: '~/about' });
+    await execute('cd ~/skills', ctx);
+    expect(ctx.setCurrentDir).toHaveBeenCalledWith('~/skills');
   });
 });
