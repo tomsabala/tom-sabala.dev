@@ -1,3 +1,5 @@
+import type { FSNode } from '../filesystem';
+
 export interface OutputLine {
   text: string;
   color?: string;
@@ -9,6 +11,7 @@ export interface OutputBlock {
   command?: string;
   lines: OutputLine[];
   isPrompt?: boolean;
+  promptText?: string;
 }
 
 export type SideEffect =
@@ -27,6 +30,10 @@ export interface TerminalContext {
   commands: () => Command[];
   history: () => string[];
   setTheme: (name: string) => boolean;
+  currentDir: string;
+  setCurrentDir: (path: string) => void;
+  getFilesystem: () => FSNode;
+  currentThemeName: () => string;
 }
 
 export interface Command {
