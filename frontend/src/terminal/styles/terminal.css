@@ -8,6 +8,10 @@
   --term-selection-bg: #33ff3340;
   --term-selection-fg: #ffffff;
   --term-cursor: #33ff33;
+  --term-accent: var(--term-prompt);
+  --term-warning: #ffaa00;
+  --term-success: var(--term-prompt);
+  --term-border: var(--term-fg-dim);
   --term-font: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Monaco, Menlo, 'Courier New', monospace;
 }
 
@@ -45,6 +49,27 @@ body {
   padding: 12px 16px;
   display: flex;
   flex-direction: column;
+  scrollbar-color: var(--term-fg-dim) var(--term-bg);
+  scrollbar-width: thin;
+}
+
+/* ── Themed scrollbar ── */
+
+.terminal-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.terminal-container::-webkit-scrollbar-track {
+  background: var(--term-bg);
+}
+
+.terminal-container::-webkit-scrollbar-thumb {
+  background: var(--term-fg-dim);
+  border-radius: 4px;
+}
+
+.terminal-container::-webkit-scrollbar-thumb:hover {
+  background: var(--term-fg);
 }
 
 /* ── Welcome banner ── */
@@ -66,6 +91,18 @@ body {
   margin-top: 4px;
 }
 
+.terminal-banner-meta {
+  color: var(--term-fg-dim);
+  margin-top: 2px;
+  font-size: 0.85em;
+}
+
+.terminal-banner-separator {
+  color: var(--term-fg-dim);
+  margin-top: 6px;
+  opacity: 0.5;
+}
+
 .terminal-banner-cmd {
   color: var(--term-fg);
 }
@@ -83,7 +120,11 @@ body {
 }
 
 .terminal-output-block {
-  margin-bottom: 4px;
+  margin-bottom: 6px;
+}
+
+.terminal-output-block + .terminal-output-block {
+  margin-top: 2px;
 }
 
 .terminal-prompt-text {
@@ -130,31 +171,44 @@ body {
   min-height: 1.5em;
 }
 
-.terminal-input-field {
+.terminal-input-wrapper {
   flex: 1;
+  position: relative;
+}
+
+.terminal-input-field {
+  width: 100%;
   background: transparent;
   border: none;
   outline: none;
-  color: var(--term-fg);
+  color: transparent;
   font-family: var(--term-font);
   font-size: inherit;
   line-height: inherit;
   padding: 0;
   caret-color: transparent;
+  position: relative;
+  z-index: 1;
+}
+
+.terminal-input-visual {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  color: var(--term-fg);
+  white-space: pre;
 }
 
 .terminal-cursor {
-  display: inline-block;
-  width: 0.6em;
-  height: 1.2em;
   background-color: var(--term-cursor);
-  vertical-align: text-bottom;
+  color: var(--term-bg);
   animation: blink-cursor 1s step-end infinite;
 }
 
 @keyframes blink-cursor {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
+  0%, 50% { opacity: 1; }
+  50.01%, 100% { opacity: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
