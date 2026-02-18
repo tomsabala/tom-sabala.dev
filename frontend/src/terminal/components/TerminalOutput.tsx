@@ -32,7 +32,7 @@ export default function TerminalOutput({ outputHistory }: TerminalOutputProps) {
         <div key={i} className="terminal-output-block">
           {block.isPrompt && (
             <div>
-              <span className="terminal-prompt-text">{PROMPT}</span>
+              <span className="terminal-prompt-text">{block.promptText || PROMPT}</span>
               <span className="terminal-command-echo">{block.command}</span>
             </div>
           )}

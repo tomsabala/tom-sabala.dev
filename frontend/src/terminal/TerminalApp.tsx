@@ -7,6 +7,7 @@ import CommandSuggestions from './components/CommandSuggestions';
 import { useTerminal } from './hooks/useTerminal';
 import { useTheme } from './hooks/useTheme';
 import { useKonamiCode } from './hooks/useKonamiCode';
+import { getPrompt } from './constants';
 import './commands/clear';
 import './commands/help';
 import './commands/about';
@@ -23,9 +24,14 @@ import './commands/sudo';
 import './commands/cowsay';
 import './commands/whoami';
 import './commands/matrix';
+import './commands/cd';
+import './commands/ls';
+import './commands/pwd';
 
 export default function TerminalApp() {
-  const { setTheme, setContainerRef } = useTheme();
+  const { currentTheme, setTheme, setContainerRef } = useTheme();
+
+  const currentThemeName = useCallback(() => currentTheme.name, [currentTheme]);
 
   const {
     outputHistory,
@@ -36,7 +42,8 @@ export default function TerminalApp() {
     executeCommand,
     addOutput,
     inputRef,
-  } = useTerminal({ setTheme });
+    currentDir,
+  } = useTerminal({ setTheme, currentThemeName });
 
   const handleKonami = useCallback(() => {
     addOutput({
@@ -60,6 +67,7 @@ export default function TerminalApp() {
       <TerminalOutput outputHistory={outputHistory} />
       <div className="terminal-sticky-footer">
         <TerminalInput
+          prompt={getPrompt(currentDir)}
           currentInput={currentInput}
           onInputChange={setCurrentInput}
           onKeyDown={handleKeyDown}

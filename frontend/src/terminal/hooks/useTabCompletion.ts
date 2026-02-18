@@ -1,31 +1,32 @@
 import { useRef, useCallback } from 'react';
 import { getSuggestions } from '../commands/registry';
+import { getPathSuggestions, type FSNode } from '../filesystem';
+import { themes } from '../themes';
 import type { OutputBlock } from '../commands/types';
 
-export function useTabCompletion(addOutput: (block: OutputBlock) => void) {
+const PATH_COMMANDS = new Set(['cd', 'ls']);
+const DOUBLE_TAB_THRESHOLD_MS = 400;
+
+export function useTabCompletion(
+  addOutput: (block: OutputBlock) => void,
+  getFilesystem?: () => FSNode,
+  getCurrentDir?: () => string,
+) {
   const lastPartialRef = useRef<string>('');
   const cycleIndexRef = useRef<number>(0);
   const lastTabTimeRef = useRef<number>(0);
 
-  const complete = useCallback((currentInput: string): string | null => {
-    const now = Date.now();
-    const parts = currentInput.split(/\s+/);
-    const partial = parts[0]?.toLowerCase() || '';
-
-    // Only complete the command name (first word)
-    if (parts.length > 1 || !partial) return null;
-
-    const suggestions = getSuggestions(partial);
-    if (suggestions.length === 0) return null;
-
-    const isDoubleTab = now - lastTabTimeRef.current < 400 && partial === lastPartialRef.current;
+  /**
+   * Handle cycling through suggestions and double-tab display.
+   * Returns the selected suggestion, or null if double-tab listed all options.
+   */
+  function cycleOrList(suggestions: string[], partial: string, now: number): string | null {
+    const isDoubleTab = now - lastTabTimeRef.current < DOUBLE_TAB_THRESHOLD_MS
+      && partial === lastPartialRef.current;
     lastTabTimeRef.current = now;
 
     if (isDoubleTab && suggestions.length > 1) {
-      // Show all suggestions
-      addOutput({
-        lines: [{ text: suggestions.join('  ') }],
-      });
+      addOutput({ lines: [{ text: suggestions.join('  ') }] });
       return null;
     }
 
@@ -37,7 +38,41 @@ export function useTabCompletion(addOutput: (block: OutputBlock) => void) {
     }
 
     return suggestions[cycleIndexRef.current];
-  }, [addOutput]);
+  }
+
+  const complete = useCallback((currentInput: string): string | null => {
+    const now = Date.now();
+    const parts = currentInput.split(/\s+/);
+    const command = parts[0]?.toLowerCase() || '';
+
+    // Path completion for cd/ls
+    if (PATH_COMMANDS.has(command) && getFilesystem && getCurrentDir) {
+      const partial = parts.length > 1 ? parts.slice(1).join(' ') : '';
+      const suggestions = getPathSuggestions(getCurrentDir(), getFilesystem(), partial);
+      if (suggestions.length === 0) return null;
+
+      const selected = cycleOrList(suggestions, partial, now);
+      return selected !== null ? `${command} ${selected}` : null;
+    }
+
+    // Theme name completion
+    if (command === 'theme') {
+      const partial = parts[1]?.toLowerCase() || '';
+      const themeNames = themes.map(t => t.name).filter(n => n.startsWith(partial));
+      if (themeNames.length === 0) return null;
+
+      const selected = cycleOrList(themeNames, partial, now);
+      return selected !== null ? `theme ${selected}` : null;
+    }
+
+    // Command name completion (first word only)
+    if (parts.length > 1 || !command) return null;
+
+    const suggestions = getSuggestions(command);
+    if (suggestions.length === 0) return null;
+
+    return cycleOrList(suggestions, command, now);
+  }, [addOutput, getFilesystem, getCurrentDir]);
 
   const resetCompletion = useCallback(() => {
     lastPartialRef.current = '';

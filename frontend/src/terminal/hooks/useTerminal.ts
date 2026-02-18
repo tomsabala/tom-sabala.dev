@@ -1,18 +1,27 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useMemo } from 'react';
 import type { OutputBlock, CommandResult, SideEffect } from '../commands/types';
 import { execute, getAllCommands } from '../commands/registry';
 import { useCommandHistory } from './useCommandHistory';
 import { useTabCompletion } from './useTabCompletion';
+import { buildFilesystem } from '../filesystem';
+import { getPrompt } from '../constants';
 
 interface UseTerminalOptions {
   setTheme: (name: string) => boolean;
+  currentThemeName: () => string;
 }
 
-export function useTerminal({ setTheme }: UseTerminalOptions) {
+export function useTerminal({ setTheme, currentThemeName }: UseTerminalOptions) {
   const [outputHistory, setOutputHistory] = useState<OutputBlock[]>([]);
   const [currentInput, setCurrentInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [currentDir, setCurrentDir] = useState('~');
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const filesystem = useMemo(() => buildFilesystem(), []);
+
+  const currentDirRef = useRef(currentDir);
+  currentDirRef.current = currentDir;
 
   const addOutput = useCallback((block: OutputBlock) => {
     setOutputHistory(prev => [...prev, block]);
@@ -25,7 +34,12 @@ export function useTerminal({ setTheme }: UseTerminalOptions) {
   const { history, addToHistory, navigateUp, navigateDown, resetNavigation } = useCommandHistory();
   const historyRef = useRef<string[]>(history);
   historyRef.current = history;
-  const { complete, resetCompletion } = useTabCompletion(addOutput);
+
+  const { complete, resetCompletion } = useTabCompletion(
+    addOutput,
+    () => filesystem,
+    () => currentDirRef.current,
+  );
 
   const handleSideEffect = useCallback((effect: SideEffect) => {
     switch (effect.type) {
@@ -47,12 +61,13 @@ export function useTerminal({ setTheme }: UseTerminalOptions) {
 
   const executeCommand = useCallback(async (input: string) => {
     const trimmed = input.trim();
+    const promptText = getPrompt(currentDirRef.current);
 
-    // Add prompt + command echo to output
     addOutput({
       command: trimmed,
       lines: [],
       isPrompt: true,
+      promptText,
     });
 
     if (!trimmed) {
@@ -73,6 +88,13 @@ export function useTerminal({ setTheme }: UseTerminalOptions) {
         commands: getAllCommands,
         history: () => historyRef.current,
         setTheme,
+        currentDir: currentDirRef.current,
+        setCurrentDir: (dir: string) => {
+          setCurrentDir(dir);
+          currentDirRef.current = dir;
+        },
+        getFilesystem: () => filesystem,
+        currentThemeName,
       });
 
       if (result.output.length > 0) {
@@ -89,7 +111,7 @@ export function useTerminal({ setTheme }: UseTerminalOptions) {
     } finally {
       setIsProcessing(false);
     }
-  }, [addOutput, addToHistory, clearTerminal, handleSideEffect, resetNavigation, resetCompletion, setTheme]);
+  }, [addOutput, addToHistory, clearTerminal, filesystem, handleSideEffect, resetNavigation, resetCompletion, setTheme, currentThemeName]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -124,5 +146,6 @@ export function useTerminal({ setTheme }: UseTerminalOptions) {
     executeCommand,
     addOutput,
     inputRef,
+    currentDir,
   };
 }
