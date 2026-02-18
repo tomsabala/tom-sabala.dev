@@ -8,15 +8,18 @@ registerCommand({
   usage: 'theme [name]',
   execute: (args: string[], ctx: TerminalContext): CommandResult => {
     if (args.length === 0) {
+      const currentName = ctx.currentThemeName();
       const lines: OutputLine[] = [
         { text: 'Available themes:', bold: true },
         { text: '' },
       ];
 
       for (const t of themes) {
+        const isActive = t.name === currentName;
+        const marker = isActive ? '>' : ' ';
         const dot = '\u25CF';
         lines.push({
-          text: `  ${dot} ${t.name.padEnd(14)} ${t.label}`,
+          text: `${marker} ${dot} ${t.name.padEnd(18)} ${t.label}`,
           color: t.colors.fg,
         });
       }
