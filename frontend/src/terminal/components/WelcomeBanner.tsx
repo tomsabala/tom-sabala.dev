@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { PERSONAL_INFO } from '../data';
+import { getAllCommands } from '../commands/registry';
 
 const BANNER_FULL = `
  _____                  ____        _           _
@@ -26,11 +27,16 @@ export default function WelcomeBanner() {
   }, []);
 
   const banner = isMobile ? BANNER_SMALL : BANNER_FULL;
+  const commandCount = getAllCommands().length;
 
   return (
     <div className="terminal-banner" aria-label="Welcome banner">
       <pre className="terminal-banner-art">{banner}</pre>
       <div className="terminal-banner-subtitle">{PERSONAL_INFO.title}</div>
+      <div className="terminal-banner-meta">
+        v2.0 &middot; {commandCount} commands &middot; 7 themes
+      </div>
+      <div className="terminal-banner-separator">{'─'.repeat(isMobile ? 30 : 50)}</div>
       <div className="terminal-banner-hint">
         Type '<span className="terminal-banner-cmd">help</span>' to get started.
       </div>

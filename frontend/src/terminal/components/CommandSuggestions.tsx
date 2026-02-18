@@ -1,4 +1,4 @@
-const SUGGESTIONS = ['help', 'about', 'skills', 'projects', 'social', 'contact'];
+const SUGGESTIONS = ['help', 'about', 'skills', 'projects', 'social', 'contact', 'ls', 'pwd'];
 
 interface CommandSuggestionsProps {
   onExecute: (command: string) => void;
