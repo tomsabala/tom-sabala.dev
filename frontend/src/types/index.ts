@@ -6,6 +6,7 @@ export interface PortfolioItem {
   github_url?: string;
   live_url?: string;
   image_url?: string;
+  content?: string;
   isVisible: boolean;
   displayOrder: number;
   createdAt?: string;
@@ -19,6 +20,7 @@ export interface ProjectFormData {
   github_url?: string;
   live_url?: string;
   image_url?: string;
+  content?: string;
 }
 
 export interface ProjectOrderUpdate {
@@ -137,11 +139,9 @@ export interface PdfUploadResponse {
 export interface AboutData {
   id: number | null;
   content: string;
-  profilePhotoUrl: string | null;
   updatedAt: string | null;
 }
 
 export interface AboutFormData {
   content: string;
-  profilePhotoUrl?: string;
 }

@@ -91,9 +91,32 @@ def createProject():
             technologies=data['technologies'],
             githubUrl=data.get('githubUrl'),
             liveUrl=data.get('liveUrl'),
-            imageUrl=data.get('imageUrl')
+            imageUrl=data.get('imageUrl'),
+            content=data.get('content')
         )
         return jsonify({'success': True, 'data': project.toDict()}), 201
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@portfolio_bp.route('/portfolio/<int:projectId>', methods=['GET'])
+def getProjectById(projectId):
+    """
+    Get a single portfolio project by ID (public endpoint)
+
+    Args:
+        projectId (int): ID of the project
+
+    Returns:
+        200: Project data
+        404: Project not found
+        500: Server error
+    """
+    try:
+        project = ProjectDAO.getProjectById(projectId)
+        if not project:
+            return jsonify({'success': False, 'error': 'Project not found'}), 404
+        return jsonify({'success': True, 'data': project.toDict()}), 200
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 

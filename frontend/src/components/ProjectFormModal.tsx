@@ -25,6 +25,7 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
     github_url: '',
     live_url: '',
     image_url: '',
+    content: '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -42,6 +43,7 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
           github_url: project.github_url || '',
           live_url: project.live_url || '',
           image_url: project.image_url || '',
+          content: project.content || '',
         });
       } else {
         // Reset form for add mode
@@ -52,6 +54,7 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
           github_url: '',
           live_url: '',
           image_url: '',
+          content: '',
         });
       }
       setErrors({});
@@ -140,6 +143,7 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
         github_url: formData.github_url.trim() || undefined,
         live_url: formData.live_url.trim() || undefined,
         image_url: formData.image_url.trim() || undefined,
+        content: formData.content.trim() || undefined,
       };
 
       let response;
@@ -229,7 +233,7 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
               name="title"
               value={formData.title}
               onChange={handleInputChange}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 ${
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 errors.title ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="Project title"
@@ -248,7 +252,7 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
               value={formData.description}
               onChange={handleInputChange}
               rows={4}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 ${
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 errors.description ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="Project description"
@@ -267,7 +271,7 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
               name="technologies"
               value={formData.technologies}
               onChange={handleInputChange}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 ${
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 errors.technologies ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="React, TypeScript, Node.js (comma-separated)"
@@ -299,7 +303,7 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
               name="github_url"
               value={formData.github_url}
               onChange={handleInputChange}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 ${
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 errors.github_url ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="https://github.com/username/repo"
@@ -318,12 +322,31 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
               name="live_url"
               value={formData.live_url}
               onChange={handleInputChange}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 ${
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 errors.live_url ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="https://example.com"
             />
             {errors.live_url && <p className="mt-1 text-sm text-red-600">{errors.live_url}</p>}
+          </div>
+
+          {/* Article Content Field */}
+          <div>
+            <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">
+              Article Content (Markdown)
+            </label>
+            <textarea
+              id="content"
+              name="content"
+              value={formData.content}
+              onChange={handleInputChange}
+              rows={15}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+              placeholder="Write a detailed article about this project..."
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Supports Markdown: **bold**, `code`, ## headings, - lists, etc.
+            </p>
           </div>
 
           {/* Submit Error */}
@@ -346,7 +369,10 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
             <button
               type="submit"
               disabled={submitting}
-              className="px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+              className="px-6 py-2 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+              style={{ background: 'hsl(210, 65%, 60%)' }}
+              onMouseEnter={e => !e.currentTarget.disabled && (e.currentTarget.style.background = 'hsl(210, 55%, 52%)')}
+              onMouseLeave={e => !e.currentTarget.disabled && (e.currentTarget.style.background = 'hsl(210, 65%, 60%)')}
             >
               {submitting ? (
                 <>

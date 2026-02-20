@@ -1,39 +1,85 @@
-import { Link, Outlet } from 'react-router-dom';
+import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext.tsx';
+import { useTheme } from '../contexts/ThemeContext.tsx';
 import LoginModal from './LoginModal.tsx';
+import LogoMark from './LogoMark.tsx';
+
+const navItems = [
+  {
+    to: '/',
+    label: 'Home',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+        <polyline points="9 22 9 12 15 12 15 22"/>
+      </svg>
+    ),
+  },
+  {
+    to: '/portfolio',
+    label: 'Portfolio',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="7" height="7"/>
+        <rect x="14" y="3" width="7" height="7"/>
+        <rect x="14" y="14" width="7" height="7"/>
+        <rect x="3" y="14" width="7" height="7"/>
+      </svg>
+    ),
+  },
+  {
+    to: '/cv',
+    label: 'CV',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/>
+        <line x1="16" y1="17" x2="8" y2="17"/>
+      </svg>
+    ),
+  },
+  {
+    to: '/contact',
+    label: 'Contact',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+        <polyline points="22,6 12,13 2,6"/>
+      </svg>
+    ),
+  },
+];
 
 const Layout = () => {
   const { isAuthenticated, logout } = useAuth();
-  const [clickCount, setClickCount] = useState(0);
+  const { theme, toggleTheme } = useTheme();
+  const location = useLocation();
+  const [expanded, setExpanded] = useState(() =>
+    localStorage.getItem('sidebarExpanded') === 'true'
+  );
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const clickTimestamps = useRef<number[]>([]);
+  const [clickCount, setClickCount] = useState(0);
 
-  // Handle header clicks for hidden login trigger
-  const handleHeaderClick = () => {
+  const handleLogoClick = () => {
+    if (isAuthenticated) return;
+
     const now = Date.now();
-
-    // Add current timestamp
     clickTimestamps.current.push(now);
-
-    // Remove timestamps older than 2 seconds
     clickTimestamps.current = clickTimestamps.current.filter(
-      timestamp => now - timestamp <= 2000
+      ts => now - ts <= 2000
     );
-
-    // Update click count
     setClickCount(clickTimestamps.current.length);
 
-    // Open modal if 7 clicks within 2 seconds
     if (clickTimestamps.current.length >= 7) {
       setIsLoginModalOpen(true);
-      // Reset counter
       clickTimestamps.current = [];
       setClickCount(0);
     }
   };
 
-  // Reset click count after 2 seconds of no clicks
   useEffect(() => {
     if (clickCount > 0) {
       const timer = setTimeout(() => {
@@ -44,118 +90,213 @@ const Layout = () => {
     }
   }, [clickCount]);
 
-  // Handle logout
-  const handleLogout = async () => {
-    await logout();
+  const toggleSidebar = () => {
+    setExpanded(prev => {
+      const next = !prev;
+      localStorage.setItem('sidebarExpanded', String(next));
+      return next;
+    });
+  };
+
+  const isActive = (to: string) => {
+    if (to === '/') return location.pathname === '/';
+    return location.pathname.startsWith(to);
   };
 
   return (
-    <div className="h-screen bg-[#f5f5f5] flex flex-col">
-      {/* Fixed Header Navigation */}
-      <nav className="fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-40">
-        <div className="max-w-7xl mx-auto px-8 py-4">
-          <div className="flex justify-between items-center">
-            {/* Logo/Name - Hidden login trigger (only when not authenticated) */}
-            <Link
-              to="/"
-              onClick={!isAuthenticated ? handleHeaderClick : undefined}
-              className="flex items-center space-x-2 cursor-pointer select-none hover:opacity-80 transition-opacity"
+    <div className="flex h-screen bg-[#f8f8f7] dark:bg-[#111111] overflow-hidden">
+      {/* Sidebar */}
+      <aside
+        className="flex-shrink-0 bg-white dark:bg-[#1a1a1a] flex flex-col h-full overflow-hidden"
+        style={{
+          width: expanded ? '220px' : '56px',
+          transition: 'width 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+        }}
+      >
+        {/* Logo row */}
+        <div className="flex items-center h-14 px-3 flex-shrink-0 gap-2">
+          <LogoMark onClick={handleLogoClick} />
+          {expanded && (
+            <span className="flex-1 ml-1 font-semibold text-gray-900 dark:text-gray-100 text-sm whitespace-nowrap overflow-hidden">
+              Tom Sabała
+            </span>
+          )}
+          {expanded && (
+            <button
+              onClick={toggleTheme}
+              className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-md text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+              type="button"
             >
-              <div className="w-8 h-8 bg-orange-400 rounded-full"></div>
-              <div>
-                <span className="font-semibold text-gray-900">Tom Sabala</span>
-                <span className="text-gray-500 text-sm ml-2">Software Engineer</span>
-              </div>
-            </Link>
-
-            {/* Navigation Links */}
-            <div className="flex items-center space-x-1 text-sm text-gray-600">
-              <Link to="/cv" className="hover:text-gray-900 transition-colors">
-                Resume
-              </Link>
-              <span className="text-gray-400">|</span>
-              <Link to="/portfolio" className="hover:text-gray-900 transition-colors">
-                Projects
-              </Link>
-              <span className="text-gray-400">|</span>
-              <Link to="/contact" className="hover:text-gray-900 transition-colors">
-                Contact
-              </Link>
-
-              {/* Sign Out Button (only shown when authenticated) */}
-              {isAuthenticated && (
-                <>
-                  <span className="text-gray-400">|</span>
-                  <button
-                    onClick={handleLogout}
-                    className="text-orange-500 hover:text-orange-600 transition-colors font-medium"
-                  >
-                    Sign Out
-                  </button>
-                </>
+              {theme === 'light' ? (
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+                </svg>
+              ) : (
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="5"/>
+                  <line x1="12" y1="1" x2="12" y2="3"/>
+                  <line x1="12" y1="21" x2="12" y2="23"/>
+                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                  <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                  <line x1="1" y1="12" x2="3" y2="12"/>
+                  <line x1="21" y1="12" x2="23" y2="12"/>
+                  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                  <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                </svg>
               )}
-            </div>
-          </div>
+            </button>
+          )}
         </div>
-      </nav>
 
-      {/* Scrollable Main Content */}
-      <main className="flex-1 overflow-y-auto pt-[72px] pb-[100px]">
+        <div className="w-full h-px bg-gray-100 dark:bg-gray-700 flex-shrink-0" />
+
+        {/* Nav items */}
+        <nav className="flex-1 py-3 overflow-hidden">
+          {navItems.map(({ to, label, icon }) => {
+            const active = isActive(to);
+            return (
+              <Link
+                key={to}
+                to={to}
+                title={!expanded ? label : undefined}
+                className={`relative flex items-center h-10 px-3 mx-1 rounded-md transition-colors ${
+                  active
+                    ? 'bg-blue-50 dark:bg-blue-950'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800'
+                }`}
+                style={active ? { color: 'hsl(210, 65%, 60%)' } : undefined}
+              >
+                {/* Active dot */}
+                {active && (
+                  <span
+                    className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r-full"
+                    style={{ background: 'hsl(210, 65%, 60%)' }}
+                  />
+                )}
+                <span className="flex-shrink-0">{icon}</span>
+                {expanded && (
+                  <span className="ml-3 text-sm font-medium whitespace-nowrap">{label}</span>
+                )}
+              </Link>
+            );
+          })}
+
+          {/* Terminal — external link */}
+          <a
+            href="https://terminal.tom-sabala.dev"
+            target="_blank"
+            rel="noopener noreferrer"
+            title={!expanded ? 'Terminal' : undefined}
+            className="flex items-center h-10 px-3 mx-1 rounded-md transition-colors text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
+          >
+            <span className="flex-shrink-0">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="4 17 10 11 4 5"/>
+                <line x1="12" y1="19" x2="20" y2="19"/>
+              </svg>
+            </span>
+            {expanded && (
+              <span className="ml-3 text-sm font-medium whitespace-nowrap flex items-center gap-1">
+                Terminal
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+                  <polyline points="15 3 21 3 21 9"/>
+                  <line x1="10" y1="14" x2="21" y2="3"/>
+                </svg>
+              </span>
+            )}
+          </a>
+        </nav>
+
+        <div className="w-full h-px bg-gray-100 dark:bg-gray-700 flex-shrink-0" />
+
+        {/* Social + sign out */}
+        <div className="py-3 overflow-hidden">
+          <a
+            href="https://github.com/tomsabala"
+            target="_blank"
+            rel="noopener noreferrer"
+            title={!expanded ? 'GitHub' : undefined}
+            className="flex items-center h-10 px-3 mx-1 rounded-md transition-colors text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
+          >
+            <span className="flex-shrink-0">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+              </svg>
+            </span>
+            {expanded && (
+              <span className="ml-3 text-sm font-medium whitespace-nowrap">GitHub</span>
+            )}
+          </a>
+
+          <a
+            href="https://www.linkedin.com/in/tom-sabala-a9513721a/"
+            target="_blank"
+            rel="noopener noreferrer"
+            title={!expanded ? 'LinkedIn' : undefined}
+            className="flex items-center h-10 px-3 mx-1 rounded-md transition-colors text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
+          >
+            <span className="flex-shrink-0">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+              </svg>
+            </span>
+            {expanded && (
+              <span className="ml-3 text-sm font-medium whitespace-nowrap">LinkedIn</span>
+            )}
+          </a>
+
+          {/* Sign Out (admin only) */}
+          {isAuthenticated && (
+            <button
+              onClick={logout}
+              title={!expanded ? 'Sign Out' : undefined}
+              className="flex items-center h-10 px-3 mx-1 w-[calc(100%-8px)] rounded-md transition-colors text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
+              type="button"
+            >
+              <span className="flex-shrink-0">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+                  <polyline points="16 17 21 12 16 7"/>
+                  <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+              </span>
+              {expanded && (
+                <span className="ml-3 text-sm font-medium whitespace-nowrap">Sign Out</span>
+              )}
+            </button>
+          )}
+        </div>
+
+        <div className="w-full h-px bg-gray-100 dark:bg-gray-700 flex-shrink-0" />
+
+        {/* Collapse toggle */}
+        <div className="flex-shrink-0 h-12 flex items-center px-3">
+          <button
+            onClick={toggleSidebar}
+            className="flex items-center justify-center w-8 h-8 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            title={expanded ? 'Collapse sidebar' : 'Expand sidebar'}
+            type="button"
+          >
+            {expanded ? (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6"/>
+              </svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+            )}
+          </button>
+        </div>
+      </aside>
+
+      {/* Main content */}
+      <main className="flex-1 overflow-y-auto">
         <Outlet />
       </main>
 
-      {/* Fixed Footer */}
-      <footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40">
-        <div className="max-w-7xl mx-auto px-8 py-6">
-          <div className="flex justify-between items-start">
-            {/* Phone */}
-            <div>
-              <h3 className="font-semibold text-gray-900 text-sm mb-1">Phone</h3>
-              <p className="text-gray-600 text-sm">+972-54-526-6266</p>
-            </div>
-
-            {/* Email */}
-            <div>
-              <h3 className="font-semibold text-gray-900 text-sm mb-1">Email</h3>
-              <p className="text-gray-600 text-sm">sabala144@gmail.com</p>
-            </div>
-
-            {/* Social Links */}
-            <div>
-              <h3 className="font-semibold text-gray-900 text-sm mb-1">Follow Me</h3>
-              <div className="flex space-x-3">
-                <a
-                  href="https://www.linkedin.com/in/tom-sabala-a9513721a/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-gray-600 hover:text-blue-600 transition-colors"
-                >
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
-                  </svg>
-                </a>
-                <a
-                  href="https://github.com/tomsabala"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-gray-600 hover:text-gray-900 transition-colors"
-                >
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                  </svg>
-                </a>
-              </div>
-            </div>
-
-            {/* Copyright */}
-            <div className="text-gray-500 text-xs self-end">
-              <p>© 2025 Tom Sabala. All rights reserved.</p>
-            </div>
-          </div>
-        </div>
-      </footer>
-
-      {/* Login Modal */}
       <LoginModal
         isOpen={isLoginModalOpen}
         onClose={() => setIsLoginModalOpen(false)}

@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import * as aboutRepository from '../repositories/aboutRepository.ts';
-import ProfilePhotoUploadField from './ProfilePhotoUploadField.tsx';
 import type { AboutData } from '../types/index.ts';
 
 interface AboutFormModalProps {
@@ -17,18 +16,14 @@ const AboutFormModal: React.FC<AboutFormModalProps> = ({
   onSuccess,
 }) => {
   const [content, setContent] = useState('');
-  const [profilePhotoUrl, setProfilePhotoUrl] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
-  const [uploadError, setUploadError] = useState<string>('');
 
   // Initialize form data when modal opens
   useEffect(() => {
     if (isOpen && currentData) {
       setContent(currentData.content || '');
-      setProfilePhotoUrl(currentData.profilePhotoUrl || '');
       setError('');
-      setUploadError('');
     }
   }, [isOpen, currentData]);
 
@@ -59,7 +54,6 @@ const AboutFormModal: React.FC<AboutFormModalProps> = ({
     try {
       const response = await aboutRepository.updateAbout({
         content: content.trim(),
-        profilePhotoUrl: profilePhotoUrl || undefined,
       });
 
       if (response.success) {
@@ -87,13 +81,13 @@ const AboutFormModal: React.FC<AboutFormModalProps> = ({
       className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black bg-opacity-30"
       onClick={handleBackdropClick}
     >
-      <div className="bg-white rounded-lg shadow-xl p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-[#1e1e1e] rounded-lg shadow-xl p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-semibold text-gray-900">Edit About Section</h2>
+          <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Edit About Section</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
             aria-label="Close modal"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -104,22 +98,9 @@ const AboutFormModal: React.FC<AboutFormModalProps> = ({
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Profile Photo */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Profile Photo
-            </label>
-            <ProfilePhotoUploadField
-              currentPhotoUrl={profilePhotoUrl}
-              onPhotoUploaded={setProfilePhotoUrl}
-              onUploadError={setUploadError}
-            />
-            {uploadError && <p className="mt-1 text-sm text-red-600">{uploadError}</p>}
-          </div>
-
           {/* About Content */}
           <div>
-            <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="content" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               About Text
             </label>
             <textarea
@@ -127,7 +108,7 @@ const AboutFormModal: React.FC<AboutFormModalProps> = ({
               value={content}
               onChange={(e) => setContent(e.target.value)}
               rows={8}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
               placeholder="Write about yourself..."
             />
             <p className="mt-1 text-xs text-gray-500">
@@ -148,14 +129,17 @@ const AboutFormModal: React.FC<AboutFormModalProps> = ({
               type="button"
               onClick={onClose}
               disabled={submitting}
-              className="px-5 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-5 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+              className="px-6 py-2 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+              style={{ background: 'hsl(210, 65%, 60%)' }}
+              onMouseEnter={e => !e.currentTarget.disabled && (e.currentTarget.style.background = 'hsl(210, 55%, 52%)')}
+              onMouseLeave={e => !e.currentTarget.disabled && (e.currentTarget.style.background = 'hsl(210, 65%, 60%)')}
             >
               {submitting ? (
                 <>

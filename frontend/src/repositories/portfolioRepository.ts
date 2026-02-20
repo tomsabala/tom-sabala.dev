@@ -56,6 +56,14 @@ export async function reorderProjects(orderUpdates: ProjectOrderUpdate[]) {
 }
 
 /**
+ * Get a single portfolio project by ID (public)
+ */
+export async function getProject(id: number) {
+  const response = await apiClient.get(`/portfolio/${id}`);
+  return response.data;
+}
+
+/**
  * Upload project image (admin - requires auth)
  */
 export async function uploadProjectImage(file: File) {
