@@ -196,7 +196,8 @@ function Contact() {
                   value={formData.email2}
                   onChange={(e) => setFormData({ ...formData, email2: e.target.value })}
                   tabIndex={-1}
-                  autoComplete="off"
+                  autoComplete="nope"
+                  aria-hidden="true"
                 />
               </div>
 
@@ -222,13 +223,14 @@ function Contact() {
               <div className="honeypot-field" aria-hidden="true">
                 <label htmlFor="phoneNumber">Phone Number</label>
                 <input
-                  type="tel"
+                  type="text"
                   id="phoneNumber"
                   name="phoneNumber"
                   value={formData.phoneNumber}
                   onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
                   tabIndex={-1}
-                  autoComplete="off"
+                  autoComplete="nope"
+                  aria-hidden="true"
                 />
               </div>
 
