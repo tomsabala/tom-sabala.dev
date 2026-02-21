@@ -1,10 +1,10 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext.tsx';
-import { useTheme } from '../contexts/ThemeContext.tsx';
 import LoginModal from './LoginModal.tsx';
 import LogoMark from './LogoMark.tsx';
 import TerminalBackground from './TerminalBackground.tsx';
+import { useTheme } from '../contexts/ThemeContext.tsx';
 
 const navItems = [
   {
@@ -53,7 +53,7 @@ const navItems = [
   },
 ];
 
-const Layout = () => {
+function Layout() {
   const { isAuthenticated, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
@@ -167,13 +167,13 @@ const Layout = () => {
                     ? 'bg-blue-50 dark:bg-blue-950'
                     : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800'
                 }`}
-                style={active ? { color: 'hsl(210, 65%, 60%)' } : undefined}
+                style={active ? { color: 'var(--accent)' } : undefined}
               >
                 {/* Active dot */}
                 {active && (
                   <span
                     className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r-full"
-                    style={{ background: 'hsl(210, 65%, 60%)' }}
+                    style={{ background: 'var(--accent)' }}
                   />
                 )}
                 <span className="flex-shrink-0">{icon}</span>
@@ -305,6 +305,6 @@ const Layout = () => {
       />
     </div>
   );
-};
+}
 
 export default Layout;

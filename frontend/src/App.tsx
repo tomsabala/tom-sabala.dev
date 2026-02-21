@@ -1,13 +1,13 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { GoogleReCaptchaProvider } from 'react-google-recaptcha-v3';
 import { Analytics } from '@vercel/analytics/react';
-import { ThemeProvider } from './contexts/ThemeContext';
-import Layout from './components/Layout';
-import Home from './pages/Home';
-import Portfolio from './pages/Portfolio';
-import CV from './pages/CV';
-import Contact from './pages/Contact';
-import ProjectDetail from './pages/ProjectDetail';
+import { ThemeProvider } from './contexts/ThemeContext.tsx';
+import Layout from './components/Layout.tsx';
+import Home from './pages/Home.tsx';
+import Portfolio from './pages/Portfolio.tsx';
+import CV from './pages/CV.tsx';
+import Contact from './pages/Contact.tsx';
+import ProjectDetail from './pages/ProjectDetail.tsx';
 
 const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_V3_SITE_KEY || '';
 

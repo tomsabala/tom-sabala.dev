@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
-import * as portfolioRepository from '../repositories/portfolioRepository';
-import type { PortfolioItem } from '../types/index';
+import * as portfolioRepository from '../repositories/portfolioRepository.ts';
+import type { PortfolioItem } from '../types/index.ts';
 
-const ProjectDetail = () => {
+function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const [project, setProject] = useState<PortfolioItem | null>(null);
   const [loading, setLoading] = useState(true);
@@ -144,6 +144,6 @@ const ProjectDetail = () => {
       </div>
     </div>
   );
-};
+}
 
 export default ProjectDetail;

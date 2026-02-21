@@ -1,12 +1,12 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
-import { submitContact } from '../repositories/contactRepository';
-import { fetchCsrfToken } from '../repositories/csrfTokenRepository';
-import type { ContactFormData } from '../types/index';
-import { useAuth } from '../contexts/AuthContext';
-import ContactSubmissionsList from '../components/ContactSubmissionsList';
+import { useAuth } from '../contexts/AuthContext.tsx';
+import { submitContact } from '../repositories/contactRepository.ts';
+import { fetchCsrfToken } from '../repositories/csrfTokenRepository.ts';
+import type { ContactFormData } from '../types/index.ts';
+import ContactSubmissionsList from '../components/ContactSubmissionsList.tsx';
 
-const Contact = () => {
+function Contact() {
   const { isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState<'form' | 'inbox'>('form');
 
@@ -98,7 +98,7 @@ const Contact = () => {
     }
   };
 
-  const accentStyle = { background: 'hsl(210, 65%, 60%)' };
+  const accentStyle = { background: 'var(--accent)' };
 
   return (
     <div className="py-6">
@@ -181,7 +181,7 @@ const Contact = () => {
                   required
                   disabled={isSubmitting || !csrfToken}
                   className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:border-transparent transition-colors disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                  style={{ '--tw-ring-color': 'hsl(210, 65%, 60%)' } as React.CSSProperties}
+                  style={{ '--tw-ring-color': 'var(--accent)' } as React.CSSProperties}
                   placeholder="John Doe"
                 />
               </div>
@@ -256,8 +256,8 @@ const Contact = () => {
                 disabled={isSubmitting || !csrfToken || !!csrfTokenError}
                 className="w-full text-white font-medium py-3 px-6 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 style={accentStyle}
-                onMouseEnter={e => !e.currentTarget.disabled && (e.currentTarget.style.background = 'hsl(210, 55%, 52%)')}
-                onMouseLeave={e => !e.currentTarget.disabled && (e.currentTarget.style.background = 'hsl(210, 65%, 60%)')}
+                onMouseEnter={e => !e.currentTarget.disabled && (e.currentTarget.style.background = 'var(--accent-hover)')}
+                onMouseLeave={e => !e.currentTarget.disabled && (e.currentTarget.style.background = 'var(--accent)')}
               >
                 {isSubmitting ? (
                   <>
@@ -282,11 +282,11 @@ const Contact = () => {
               {/* reCAPTCHA Disclosure (required by Google) */}
               <p className="text-xs text-gray-500 text-center">
                 This site is protected by reCAPTCHA and the Google{' '}
-                <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="hover:underline" style={{ color: 'hsl(210, 65%, 60%)' }}>
+                <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="hover:underline" style={{ color: 'var(--accent)' }}>
                   Privacy Policy
                 </a>{' '}
                 and{' '}
-                <a href="https://policies.google.com/terms" target="_blank" rel="noopener noreferrer" className="hover:underline" style={{ color: 'hsl(210, 65%, 60%)' }}>
+                <a href="https://policies.google.com/terms" target="_blank" rel="noopener noreferrer" className="hover:underline" style={{ color: 'var(--accent)' }}>
                   Terms of Service
                 </a>{' '}
                 apply.
@@ -307,6 +307,6 @@ const Contact = () => {
       </div>
     </div>
   );
-};
+}
 
 export default Contact;

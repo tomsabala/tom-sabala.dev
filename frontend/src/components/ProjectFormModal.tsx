@@ -203,15 +203,15 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
       className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black bg-opacity-30"
       onClick={handleBackdropClick}
     >
-      <div className="bg-white rounded-lg shadow-xl p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-[#252525] rounded-lg shadow-xl p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-semibold text-gray-900">
+          <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
             {mode === 'add' ? 'Add New Project' : 'Edit Project'}
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
             aria-label="Close modal"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -224,7 +224,7 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Title Field */}
           <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Title <span className="text-red-500">*</span>
             </label>
             <input
@@ -233,8 +233,8 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
               name="title"
               value={formData.title}
               onChange={handleInputChange}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.title ? 'border-red-500' : 'border-gray-300'
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
+                errors.title ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
               }`}
               placeholder="Project title"
             />
@@ -243,7 +243,7 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
 
           {/* Description Field */}
           <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Description <span className="text-red-500">*</span>
             </label>
             <textarea
@@ -252,8 +252,8 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
               value={formData.description}
               onChange={handleInputChange}
               rows={4}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.description ? 'border-red-500' : 'border-gray-300'
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
+                errors.description ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
               }`}
               placeholder="Project description"
             />
@@ -262,7 +262,7 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
 
           {/* Technologies Field */}
           <div>
-            <label htmlFor="technologies" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="technologies" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Technologies <span className="text-red-500">*</span>
             </label>
             <input
@@ -271,8 +271,8 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
               name="technologies"
               value={formData.technologies}
               onChange={handleInputChange}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.technologies ? 'border-red-500' : 'border-gray-300'
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
+                errors.technologies ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
               }`}
               placeholder="React, TypeScript, Node.js (comma-separated)"
             />
@@ -281,7 +281,7 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
 
           {/* Image Upload Field */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Project Image
             </label>
             <ImageUploadField
@@ -294,7 +294,7 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
 
           {/* GitHub URL Field */}
           <div>
-            <label htmlFor="github_url" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="github_url" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               GitHub URL
             </label>
             <input
@@ -303,8 +303,8 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
               name="github_url"
               value={formData.github_url}
               onChange={handleInputChange}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.github_url ? 'border-red-500' : 'border-gray-300'
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
+                errors.github_url ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
               }`}
               placeholder="https://github.com/username/repo"
             />
@@ -313,7 +313,7 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
 
           {/* Live URL Field */}
           <div>
-            <label htmlFor="live_url" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="live_url" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Live URL
             </label>
             <input
@@ -322,8 +322,8 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
               name="live_url"
               value={formData.live_url}
               onChange={handleInputChange}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.live_url ? 'border-red-500' : 'border-gray-300'
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
+                errors.live_url ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
               }`}
               placeholder="https://example.com"
             />
@@ -332,7 +332,7 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
 
           {/* Article Content Field */}
           <div>
-            <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="content" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Article Content (Markdown)
             </label>
             <textarea
@@ -341,7 +341,7 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
               value={formData.content}
               onChange={handleInputChange}
               rows={15}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-mono text-sm"
               placeholder="Write a detailed article about this project..."
             />
             <p className="mt-1 text-xs text-gray-500">
@@ -362,7 +362,7 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
               type="button"
               onClick={onClose}
               disabled={submitting}
-              className="px-5 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-5 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Cancel
             </button>
@@ -370,9 +370,9 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
               type="submit"
               disabled={submitting}
               className="px-6 py-2 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-              style={{ background: 'hsl(210, 65%, 60%)' }}
-              onMouseEnter={e => !e.currentTarget.disabled && (e.currentTarget.style.background = 'hsl(210, 55%, 52%)')}
-              onMouseLeave={e => !e.currentTarget.disabled && (e.currentTarget.style.background = 'hsl(210, 65%, 60%)')}
+              style={{ background: 'var(--accent)' }}
+              onMouseEnter={e => !e.currentTarget.disabled && (e.currentTarget.style.background = 'var(--accent-hover)')}
+              onMouseLeave={e => !e.currentTarget.disabled && (e.currentTarget.style.background = 'var(--accent)')}
             >
               {submitting ? (
                 <>

@@ -4,7 +4,7 @@ import * as aboutRepository from '../repositories/aboutRepository.ts';
 import AboutFormModal from '../components/AboutFormModal.tsx';
 import type { AboutData } from '../types/index.ts';
 
-const Home = () => {
+function Home() {
   const { isAuthenticated } = useAuth();
   const [aboutData, setAboutData] = useState<AboutData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -77,6 +77,6 @@ const Home = () => {
       />
     </div>
   );
-};
+}
 
 export default Home;

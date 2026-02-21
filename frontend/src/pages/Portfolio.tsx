@@ -16,12 +16,12 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import * as portfolioRepository from '../repositories/portfolioRepository';
-import { useAuth } from '../contexts/AuthContext';
-import ProjectFormModal from '../components/ProjectFormModal';
-import type { PortfolioItem } from '../types/index';
+import * as portfolioRepository from '../repositories/portfolioRepository.ts';
+import { useAuth } from '../contexts/AuthContext.tsx';
+import ProjectFormModal from '../components/ProjectFormModal.tsx';
+import type { PortfolioItem } from '../types/index.ts';
 
-const Portfolio = () => {
+function Portfolio() {
   const { isAuthenticated } = useAuth();
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -163,9 +163,9 @@ const Portfolio = () => {
             <button
               onClick={handleAddClick}
               className="text-white font-medium px-4 py-2 rounded-lg transition-colors shadow-sm flex items-center gap-2 text-sm"
-              style={{ background: 'hsl(210, 65%, 60%)' }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'hsl(210, 55%, 52%)')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'hsl(210, 65%, 60%)')}
+              style={{ background: 'var(--accent)' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--accent-hover)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'var(--accent)')}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -237,7 +237,7 @@ const Portfolio = () => {
       />
     </div>
   );
-};
+}
 
 // ProjectCard Component
 interface ProjectCardProps {
@@ -349,7 +349,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
 
       {/* Hidden Badge (admin only) */}
       {isAdmin && !project.isVisible && (
-        <div className="absolute top-2 left-12 z-10 text-white text-xs px-2 py-1 rounded-full shadow-md" style={{ background: 'hsl(210, 65%, 60%)' }}>
+        <div className="absolute top-2 left-12 z-10 text-white text-xs px-2 py-1 rounded-full shadow-md" style={{ background: 'var(--accent)' }}>
           Hidden
         </div>
       )}

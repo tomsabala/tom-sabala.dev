@@ -8,7 +8,7 @@
  * simulation with realistic pauses and streamed output.
  */
 import { useEffect, useRef } from 'react';
-import { useTheme } from '../contexts/ThemeContext';
+import { useTheme } from '../contexts/ThemeContext.tsx';
 
 // ── Fonts ─────────────────────────────────────────────────────────────────────
 const MONO_FONTS = [
@@ -241,8 +241,6 @@ class TerminalPane {
   private charIdx = 0;
   private outIdx = 0;
   private streamIdx = 0;
-  private cursorOn = true;
-  private cursorTimer = 0;
   private zoneIdx: number;
   private lifetime: number; // ms until forced close
   posX = 0;
@@ -352,9 +350,6 @@ class TerminalPane {
 
     this.lifetime -= dt;
     if (this.lifetime <= 0) { this.done = true; return false; }
-
-    this.cursorTimer += dt;
-    if (this.cursorTimer > 520) { this.cursorOn = !this.cursorOn; this.cursorTimer = 0; }
 
     this.timer -= dt;
     if (this.timer > 0) return false;
@@ -477,7 +472,7 @@ const TerminalBackground: React.FC = () => {
 
     function spawnPane() {
       if (panes.length >= MAX_PANES) return;
-      const pane = new TerminalPane(container, ALL_TYPES, color, panes);
+      const pane = new TerminalPane(container!, ALL_TYPES, color, panes);
       panes.push(pane);
     }
 

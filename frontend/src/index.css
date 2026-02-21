@@ -9,9 +9,6 @@
 
   --accent: hsl(210, 65%, 60%);
   --accent-hover: hsl(210, 55%, 52%);
-  --accent-dim: hsl(210 65% 60% / 0.12);
-  --sidebar-collapsed-width: 56px;
-  --sidebar-expanded-width: 220px;
 }
 
 body {
@@ -24,19 +21,6 @@ html.dark body {
   background-color: #111111;
 }
 
-@layer components {
-  .btn-primary {
-    @apply bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors duration-200;
-  }
-
-  .btn-secondary {
-    @apply bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-6 rounded-lg transition-colors duration-200;
-  }
-
-  .card {
-    @apply bg-white shadow-lg rounded-lg p-6 border border-gray-100;
-  }
-}
 
 /**
  * Honeypot field hiding strategy.

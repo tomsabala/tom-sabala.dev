@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import * as resumeRepository from '../repositories/resumeRepository';
-import PdfViewer from '../components/PdfViewer';
-import PdfUploadForm from '../components/PdfUploadForm';
-import PdfHistoryList from '../components/PdfHistoryList';
-import type { ResumePdfVersion } from '../types';
+import { useAuth } from '../contexts/AuthContext.tsx';
+import * as resumeRepository from '../repositories/resumeRepository.ts';
+import PdfViewer from '../components/PdfViewer.tsx';
+import PdfUploadForm from '../components/PdfUploadForm.tsx';
+import PdfHistoryList from '../components/PdfHistoryList.tsx';
+import type { ResumePdfVersion } from '../types/index.ts';
 
-const CV = () => {
+function CV() {
   const { isAuthenticated } = useAuth();
   const [activePdf, setActivePdf] = useState<ResumePdfVersion | null>(null);
   const [loading, setLoading] = useState(true);
@@ -60,7 +60,7 @@ const CV = () => {
     window.location.href = downloadUrl;
   };
 
-  const accentStyle = { background: 'hsl(210, 65%, 60%)' };
+  const accentStyle = { background: 'var(--accent)' };
 
   return (
     <div className="py-12">
@@ -130,7 +130,7 @@ const CV = () => {
           <div className="bg-white dark:bg-[#252525] rounded-lg shadow-lg border border-transparent dark:border-gray-700 p-8">
             {loading && (
               <div className="flex items-center justify-center min-h-[600px]">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: 'hsl(210, 65%, 60%)' }} />
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: 'var(--accent)' }} />
               </div>
             )}
 
@@ -229,6 +229,6 @@ const CV = () => {
       </div>
     </div>
   );
-};
+}
 
 export default CV;
