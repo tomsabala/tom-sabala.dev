@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
@@ -16,6 +16,19 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ pdfUrl, fileName }) => {
   const [pageNumber, setPageNumber] = useState<number>(1);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState<number | null>(null);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(entries => {
+      const entry = entries[0];
+      if (entry) setContainerWidth(entry.contentRect.width - 2);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
@@ -39,7 +52,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ pdfUrl, fileName }) => {
   return (
     <div className="flex flex-col items-center space-y-4">
       {/* PDF Document */}
-      <div className="border border-gray-300 rounded-lg shadow-lg overflow-hidden bg-gray-100">
+      <div ref={containerRef} className="border border-gray-300 rounded-lg shadow-lg overflow-hidden bg-gray-100 w-full">
         {loading && (
           <div className="flex items-center justify-center h-96">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
@@ -76,7 +89,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ pdfUrl, fileName }) => {
             renderTextLayer={true}
             renderAnnotationLayer={true}
             className="max-w-full"
-            width={800}
+            width={containerWidth !== null ? Math.min(containerWidth, 800) : undefined}
           />
         </Document>
       </div>

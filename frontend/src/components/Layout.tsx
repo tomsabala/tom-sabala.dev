@@ -60,6 +60,10 @@ function Layout() {
   const [expanded, setExpanded] = useState(() =>
     localStorage.getItem('sidebarExpanded') === 'true'
   );
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { setMobileOpen(false); }, [location.pathname]);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const clickTimestamps = useRef<number[]>([]);
   const [clickCount, setClickCount] = useState(0);
@@ -107,12 +111,42 @@ function Layout() {
   return (
     <div className="flex h-screen overflow-hidden">
       <TerminalBackground />
+
+      {/* Mobile hamburger button */}
+      <button
+        onClick={() => setMobileOpen(true)}
+        className="md:hidden fixed top-3 left-3 z-40 flex items-center justify-center w-9 h-9 rounded-md bg-white dark:bg-[#1a1a1a] shadow-md text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+        type="button"
+        aria-label="Open navigation"
+      >
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+          <line x1="2" y1="4" x2="16" y2="4"/>
+          <line x1="2" y1="9" x2="16" y2="9"/>
+          <line x1="2" y1="14" x2="16" y2="14"/>
+        </svg>
+      </button>
+
+      {/* Mobile backdrop */}
+      {mobileOpen && (
+        <div
+          className="md:hidden fixed inset-0 z-40 bg-black/30"
+          onClick={() => setMobileOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
       {/* Sidebar */}
       <aside
-        className="flex-shrink-0 bg-white dark:bg-[#1a1a1a] flex flex-col h-full overflow-hidden"
+        className={`
+          flex-shrink-0 bg-white dark:bg-[#1a1a1a] flex flex-col h-full overflow-hidden
+          fixed inset-y-0 left-0 z-50
+          md:relative md:z-auto
+          transition-transform duration-[250ms]
+          ${mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+        `}
         style={{
-          width: expanded ? '220px' : '56px',
-          transition: 'width 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+          width: mobileOpen ? '220px' : (expanded ? '220px' : '56px'),
+          transition: 'width 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       >
         {/* Logo row */}
@@ -122,6 +156,19 @@ function Layout() {
             <span className="flex-1 ml-1 font-semibold text-gray-900 dark:text-gray-100 text-sm whitespace-nowrap overflow-hidden">
               Tom Sabała
             </span>
+          )}
+          {mobileOpen && (
+            <button
+              onClick={() => setMobileOpen(false)}
+              className="md:hidden flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              type="button"
+              aria-label="Close navigation"
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <line x1="1" y1="1" x2="13" y2="13"/>
+                <line x1="13" y1="1" x2="1" y2="13"/>
+              </svg>
+            </button>
           )}
           {expanded && (
             <button
@@ -161,6 +208,7 @@ function Layout() {
               <Link
                 key={to}
                 to={to}
+                onClick={() => setMobileOpen(false)}
                 title={!expanded ? label : undefined}
                 className={`relative flex items-center h-10 px-3 mx-1 rounded-md transition-colors ${
                   active

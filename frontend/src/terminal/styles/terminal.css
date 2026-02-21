@@ -161,6 +161,7 @@ body {
   bottom: 0;
   background-color: var(--term-bg);
   padding: 2px 0;
+  padding-bottom: env(safe-area-inset-bottom, 2px);
 }
 
 /* ── Input ── */

@@ -36,9 +36,9 @@ function Home() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-8 py-10">
-      <div className="bg-white dark:bg-[#252525] rounded-lg shadow-md border border-transparent dark:border-gray-700 p-8">
-        <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-1">Tom Sabała</h1>
+    <div className="max-w-2xl mx-auto px-4 sm:px-8 py-10">
+      <div className="bg-white dark:bg-[#252525] rounded-lg shadow-md border border-transparent dark:border-gray-700 p-4 sm:p-8">
+        <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-1">Tom Sabała</h1>
         <p className="text-gray-500 dark:text-gray-400 text-sm mb-8">Software Engineer</p>
 
         {loading ? (
