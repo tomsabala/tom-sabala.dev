@@ -106,7 +106,7 @@ const Contact = () => {
         {/* Admin Tab Navigation */}
         {isAuthenticated && (
           <div className="flex justify-end mb-6">
-            <div className="inline-flex rounded-lg border border-gray-300 dark:border-gray-600 p-1 bg-white dark:bg-[#1e1e1e]">
+            <div className="inline-flex rounded-lg border border-gray-300 dark:border-gray-600 p-1 bg-white dark:bg-[#252525]">
               <button
                 onClick={() => setActiveTab('form')}
                 className="px-4 py-2 rounded-md text-sm font-medium transition-colors text-gray-700 dark:text-gray-300"
@@ -127,7 +127,7 @@ const Contact = () => {
 
         {/* Contact Form Tab */}
         {activeTab === 'form' && (
-          <div className="bg-white dark:bg-[#1e1e1e] rounded-lg shadow-lg p-8 mb-8">
+          <div className="bg-white dark:bg-[#252525] rounded-lg shadow-lg border border-transparent dark:border-gray-700 p-8 mb-8">
             {/* CSRF Token Loading Error */}
             {csrfTokenError && (
               <div className="mb-6 bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
@@ -297,7 +297,7 @@ const Contact = () => {
 
         {/* Admin Inbox Tab */}
         {isAuthenticated && activeTab === 'inbox' && (
-          <div className="bg-white dark:bg-[#1e1e1e] rounded-lg shadow-lg p-6">
+          <div className="bg-white dark:bg-[#252525] rounded-lg shadow-lg border border-transparent dark:border-gray-700 p-6">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">
               Contact Submissions
             </h2>

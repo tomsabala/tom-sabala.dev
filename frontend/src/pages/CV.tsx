@@ -68,7 +68,7 @@ const CV = () => {
         {/* Admin Tab Navigation */}
         {isAuthenticated && (
           <div className="flex justify-end mb-6">
-            <div className="inline-flex rounded-lg border border-gray-300 dark:border-gray-600 p-1 bg-white dark:bg-[#1e1e1e]">
+            <div className="inline-flex rounded-lg border border-gray-300 dark:border-gray-600 p-1 bg-white dark:bg-[#252525]">
               <button
                 onClick={() => setActiveTab('view')}
                 className="px-4 py-2 rounded-md text-sm font-medium transition-colors text-gray-700 dark:text-gray-300"
@@ -101,7 +101,7 @@ const CV = () => {
 
         {/* Admin Panel Tab */}
         {isAuthenticated && activeTab === 'admin' && (
-          <div className="bg-white dark:bg-[#1e1e1e] rounded-lg shadow-lg p-6 mb-8">
+          <div className="bg-white dark:bg-[#252525] rounded-lg shadow-lg border border-transparent dark:border-gray-700 p-6 mb-8">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">
               Admin: Manage Resume PDFs
             </h2>
@@ -127,7 +127,7 @@ const CV = () => {
 
         {/* Web View Tab */}
         {activeTab === 'view' && (
-          <div className="bg-white dark:bg-[#1e1e1e] rounded-lg shadow-lg p-8">
+          <div className="bg-white dark:bg-[#252525] rounded-lg shadow-lg border border-transparent dark:border-gray-700 p-8">
             {loading && (
               <div className="flex items-center justify-center min-h-[600px]">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: 'hsl(210, 65%, 60%)' }} />

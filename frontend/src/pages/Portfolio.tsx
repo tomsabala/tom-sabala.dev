@@ -276,7 +276,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
     <div
       ref={setNodeRef}
       style={style}
-      className={`bg-white dark:bg-[#1e1e1e] rounded-lg shadow-md hover:shadow-xl border-2 ${
+      className={`bg-white dark:bg-[#252525] rounded-lg shadow-md hover:shadow-xl border-2 ${
         project.isVisible ? 'border-transparent' : 'border-blue-200 dark:border-blue-800'
       } transition-all duration-300 overflow-hidden group relative`}
     >

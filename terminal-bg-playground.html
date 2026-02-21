@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Terminal Background Playground</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400&family=Fira+Code:wght@300;400&family=IBM+Plex+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#111;--surface:#1a1a1a;--border:#252525;
+  --text:#ddd;--muted:#555;--accent:#5b9bd5;
+}
+body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);
+  display:grid;grid-template-columns:270px 1fr;height:100vh;overflow:hidden;font-size:13px}
+
+/* CONTROLS */
+.ctrl{background:var(--surface);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow-y:auto;padding:14px;gap:16px}
+.ctrl h1{font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text)}
+.slabel{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.chip{background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:8px 6px;
+  cursor:pointer;text-align:center;user-select:none;transition:border-color .15s}
+.chip:hover{border-color:#3a3a3a}
+.chip.on{border-color:var(--accent);background:rgba(91,155,213,.08)}
+.chip .cn{font-size:11px;font-weight:600;margin-bottom:2px}
+.chip .cd{font-size:9.5px;color:var(--muted);line-height:1.3}
+
+.sr{display:flex;flex-direction:column;gap:3px}
+.slrow{display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}
+.slrow span:last-child{color:var(--text);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer}
+
+.tog-row{display:flex;align-items:center;justify-content:space-between;
+  padding:5px 0;border-bottom:1px solid var(--border)}
+.tog-row:last-child{border-bottom:none}
+.tog-row label{font-size:11px;color:var(--muted)}
+.tog{position:relative;width:30px;height:17px;flex-shrink:0}
+.tog input{opacity:0;width:0;height:0}
+.tt{position:absolute;inset:0;background:#2e2e2e;border-radius:9px;cursor:pointer;transition:background .2s}
+.tog input:checked+.tt{background:var(--accent)}
+.tt::after{content:'';position:absolute;left:2px;top:2px;width:13px;height:13px;
+  background:#fff;border-radius:50%;transition:transform .2s}
+.tog input:checked+.tt::after{transform:translateX(13px)}
+
+.colors{display:flex;gap:5px;flex-wrap:wrap}
+.cc{width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid transparent;
+  transition:border-color .15s,transform .15s;flex-shrink:0}
+.cc:hover{transform:scale(1.15)}
+.cc.on{border-color:#fff}
+
+.rbtn{width:100%;padding:8px;background:rgba(91,155,213,.15);border:1px solid var(--accent);
+  color:var(--accent);border-radius:5px;cursor:pointer;font-size:11px;font-weight:600;
+  letter-spacing:.04em;transition:background .15s}
+.rbtn:hover{background:rgba(91,155,213,.25)}
+
+/* RIGHT */
+.right{display:flex;flex-direction:column;overflow:hidden}
+.prev-wrap{flex:1;position:relative;overflow:hidden}
+#page{width:100%;height:100%;position:relative;overflow:hidden;background:#f8f8f7;transition:background .4s}
+#page.dark{background:#111111}
+#bglayer{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+
+.ptoolbar{position:absolute;top:10px;right:10px;z-index:100;display:flex;gap:5px}
+.pbtn{background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.15);color:#ccc;
+  font-size:11px;padding:3px 9px;border-radius:4px;cursor:pointer;backdrop-filter:blur(4px)}
+.pbtn.on{background:rgba(91,155,213,.4);color:#fff;border-color:var(--accent)}
+
+/* Fake content card */
+.fake{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:28px;z-index:10}
+.fcard{background:rgba(255,255,255,.91);border-radius:10px;padding:26px 30px;max-width:460px;width:100%;
+  box-shadow:0 4px 24px rgba(0,0,0,.07);backdrop-filter:blur(10px)}
+#page.dark .fcard{background:rgba(20,20,20,.91);box-shadow:0 4px 24px rgba(0,0,0,.5)}
+.fcard h2{font-size:21px;font-weight:700;color:#111;margin-bottom:4px}
+#page.dark .fcard h2{color:#f0f0f0}
+.fcard .fsub{font-size:12px;color:#888;margin-bottom:14px}
+.fcard p{font-size:13px;color:#444;line-height:1.6;margin-bottom:14px}
+#page.dark .fcard p{color:#aaa}
+.ftags{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:14px}
+.ftag{background:#eff6ff;color:#3b82f6;font-size:11px;padding:2px 9px;border-radius:20px;border:1px solid #bfdbfe}
+#page.dark .ftag{background:#1e3a5f;color:#93c5fd;border-color:#1e40af}
+.flinks{display:flex;gap:10px}
+.flink{font-size:12px;color:#3b82f6;font-weight:500}
+
+/* Prompt */
+.psect{border-top:1px solid var(--border);padding:10px 14px;background:var(--surface);flex-shrink:0}
+.phdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.phdr span{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.cpbtn{background:var(--accent);color:#fff;border:none;padding:3px 11px;border-radius:4px;font-size:11px;cursor:pointer}
+#ptext{font-size:12px;color:var(--muted);line-height:1.5;max-height:56px;overflow-y:auto}
+</style>
+</head>
+<body>
+
+<div class="ctrl">
+  <h1>Terminal BG — v2</h1>
+
+  <div>
+    <div class="slabel">Layout</div>
+    <div class="grid2" id="layout-grid">
+      <div class="chip on" data-v="floating" onclick="pick('layout',this)">
+        <div class="cn">Floating</div><div class="cd">OS-style windows</div>
+      </div>
+      <div class="chip" data-v="tiled" onclick="pick('layout',this)">
+        <div class="cn">Tiled</div><div class="cd">Equal grid panes</div>
+      </div>
+      <div class="chip" data-v="staggered" onclick="pick('layout',this)">
+        <div class="cn">Staggered</div><div class="cd">Diagonal strips</div>
+      </div>
+      <div class="chip" data-v="columns" onclick="pick('layout',this)">
+        <div class="cn">Columns</div><div class="cd">Token rain</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sr">
+    <div class="slabel">Pane count</div>
+    <div class="slrow"><span>Panes</span><span id="panes-val">5</span></div>
+    <input type="range" min="2" max="9" value="5" id="panes-sl" oninput="onPanes(this)">
+  </div>
+
+  <div class="sr">
+    <div class="slabel">Appearance</div>
+    <div class="slrow"><span>Opacity</span><span id="opacity-val">9%</span></div>
+    <input type="range" min="3" max="22" value="9" id="opacity-sl" oninput="onOpacity(this)">
+    <div class="slrow" style="margin-top:7px"><span>Font size</span><span id="size-val">11px</span></div>
+    <input type="range" min="8" max="15" value="11" id="size-sl" oninput="onSize(this)">
+    <div class="slrow" style="margin-top:7px"><span>Type speed</span><span id="speed-val">normal</span></div>
+    <input type="range" min="1" max="5" value="3" id="speed-sl" oninput="onSpeed(this)">
+  </div>
+
+  <div>
+    <div class="slabel">Color tint</div>
+    <div class="colors" id="color-grid">
+      <div class="cc on" data-v="green"  style="background:#22c55e" onclick="pick('color',this)" title="Terminal green"></div>
+      <div class="cc" data-v="blue"   style="background:#60a5fa" onclick="pick('color',this)" title="Code blue"></div>
+      <div class="cc" data-v="purple" style="background:#a78bfa" onclick="pick('color',this)" title="Purple"></div>
+      <div class="cc" data-v="amber"  style="background:#f59e0b" onclick="pick('color',this)" title="Log amber"></div>
+      <div class="cc" data-v="gray"   style="background:#94a3b8" onclick="pick('color',this)" title="Neutral"></div>
+      <div class="cc" data-v="cyan"   style="background:#22d3ee" onclick="pick('color',this)" title="Cyan"></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="slabel">Session types</div>
+    <div class="tog-row"><label>Git operations</label>
+      <label class="tog"><input type="checkbox" checked id="t-git" onchange="rebuild()"><div class="tt"></div></label></div>
+    <div class="tog-row"><label>Build / compile</label>
+      <label class="tog"><input type="checkbox" checked id="t-build" onchange="rebuild()"><div class="tt"></div></label></div>
+    <div class="tog-row"><label>Dev server logs</label>
+      <label class="tog"><input type="checkbox" checked id="t-server" onchange="rebuild()"><div class="tt"></div></label></div>
+    <div class="tog-row"><label>Test runner</label>
+      <label class="tog"><input type="checkbox" id="t-test" onchange="rebuild()"><div class="tt"></div></label></div>
+    <div class="tog-row"><label>Docker / deploy</label>
+      <label class="tog"><input type="checkbox" id="t-docker" onchange="rebuild()"><div class="tt"></div></label></div>
+    <div class="tog-row"><label>Python / scripts</label>
+      <label class="tog"><input type="checkbox" id="t-python" onchange="rebuild()"><div class="tt"></div></label></div>
+  </div>
+
+  <div>
+    <div class="slabel">Preview</div>
+    <div class="tog-row"><label>Show content card</label>
+      <label class="tog"><input type="checkbox" checked id="t-card" onchange="toggleCard(this)"><div class="tt"></div></label></div>
+    <div class="tog-row"><label>Dark mode</label>
+      <label class="tog"><input type="checkbox" id="t-dark" onchange="toggleDark(this)"><div class="tt"></div></label></div>
+  </div>
+
+  <button class="rbtn" onclick="rebuild(true)">🎲 Randomize Layout</button>
+</div>
+
+<div class="right">
+  <div class="prev-wrap">
+    <div id="page">
+      <div id="bglayer"></div>
+      <div class="fake" id="fake-content">
+        <div class="fcard">
+          <h2>Tom Sabała</h2>
+          <div class="fsub">Software Engineer</div>
+          <p>Building scalable web applications and developer tooling. Focused on great UX and clean systems design.</p>
+          <div class="ftags">
+            <span class="ftag">TypeScript</span><span class="ftag">React</span>
+            <span class="ftag">Python</span><span class="ftag">Go</span>
+          </div>
+          <div class="flinks">
+            <a class="flink" href="#">GitHub →</a>
+            <a class="flink" href="#">Portfolio →</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="psect">
+    <div class="phdr">
+      <span>Generated Prompt</span>
+      <button class="cpbtn" onclick="copyPrompt()">Copy</button>
+    </div>
+    <div id="ptext">—</div>
+  </div>
+</div>
+
+<script>
+// ─── FONTS ────────────────────────────────────────────────────────────────────
+const FONTS = [
+  { name:'JetBrains Mono', css:"'JetBrains Mono', monospace" },
+  { name:'Fira Code',      css:"'Fira Code', monospace" },
+  { name:'IBM Plex Mono',  css:"'IBM Plex Mono', monospace" },
+];
+
+// ─── COLORS ───────────────────────────────────────────────────────────────────
+const PALETTE = {
+  green:  { l:'#15803d', d:'#4ade80' },
+  blue:   { l:'#1d4ed8', d:'#60a5fa' },
+  purple: { l:'#6d28d9', d:'#a78bfa' },
+  amber:  { l:'#92400e', d:'#fcd34d' },
+  gray:   { l:'#475569', d:'#94a3b8' },
+  cyan:   { l:'#0e7490', d:'#22d3ee' },
+};
+
+// ─── SESSION SCRIPTS ──────────────────────────────────────────────────────────
+// Each session type: array of { cmd, output[], pauseAfter? }
+// Special: streaming:true means continuous log output (no commands)
+const SESSION_TYPES = {
+
+  git: {
+    label:'git',
+    sequences: [
+      [
+        { cmd:'git status', out:['On branch feature/dark-mode','Your branch is up to date with \'origin/feature/dark-mode\'.','','Changes to be committed:','  (use "git restore --staged <file>..." to unstage)','','        modified:   src/contexts/ThemeContext.tsx','        new file:   src/pages/ProjectDetail.tsx','','Changes not staged for commit:','        modified:   src/index.css'] },
+        { cmd:'git add src/', out:[], pause:400 },
+        { cmd:'git commit -m "feat: dark mode toggle with system pref"', out:['[feature/dark-mode a3f2c1d] feat: dark mode toggle with system pref','  3 files changed, 89 insertions(+), 4 deletions(-)','  create mode 100644 src/contexts/ThemeContext.tsx','  create mode 100644 src/pages/ProjectDetail.tsx'], pause:1200 },
+        { cmd:'git push origin feature/dark-mode', out:['Enumerating objects: 12, done.','Counting objects: 100% (12/12), done.','Delta compression using up to 8 threads','Compressing objects: 100% (7/7), done.','Writing objects: 100% (7/7), 3.14 KiB | 3.14 MiB/s, done.','Total 7 (delta 4), reused 0 (delta 0)','To github.com:tomsabala/portfolio.git','   b8e4a2f..a3f2c1d  feature/dark-mode -> feature/dark-mode'], pause:2000 },
+      ],
+      [
+        { cmd:'git log --oneline -8', out:['a3f2c1d (HEAD -> main) feat: dark mode toggle','b8e4a2f fix: correct sidebar z-index on mobile','c91d3b0 refactor: extract ThemeContext from Layout','d5f7e4a style: update nav hover states for dark mode','e2c8b3f chore: bump react-router to 6.27','f1a9d2c feat: project detail pages with markdown','02b7e5f fix: mobile overflow in sidebar','18f3a4d feat: LogoMark component'] },
+        { cmd:'git diff --stat HEAD~3', out:['  src/App.tsx             |  12 +++--','  src/components/Layout.tsx|  94 +++++++++------','  src/contexts/ThemeContext.tsx | 41 ++++++++++++++','  src/index.css          |   5 ++-','  4 files changed, 130 insertions(+), 22 deletions(-)'], pause:1500 },
+        { cmd:'git stash', out:['Saved working directory and index state WIP on main: a3f2c1d feat: dark mode'] },
+        { cmd:'git stash pop', out:['On branch main','Changes not staged for commit:','        modified:   src/pages/Home.tsx','Dropped refs/stash@{0} (dc3a...)'], pause:1000 },
+      ],
+    ]
+  },
+
+  build: {
+    label:'build',
+    sequences: [
+      [
+        { cmd:'npm run build', out:['','> portfolio@0.1.0 build','> vite build','','vite v5.4.2 building for production...','✓ 317 modules transformed.','','dist/index.html                   0.61 kB │ gzip:  0.38 kB','dist/assets/index-BKX2f9qP.css   28.14 kB │ gzip:  5.42 kB','dist/assets/index-Dh2c8Kmq.js   187.43 kB │ gzip: 58.11 kB','','✓ built in 3.42s'], pause:1500 },
+        { cmd:'npx tsc --noEmit', out:[], pause:2000 },
+        { cmd:'echo "✓ types OK"', out:['✓ types OK'] },
+      ],
+      [
+        { cmd:'npm run lint', out:['','> portfolio@0.1.0 lint','> eslint src --ext ts,tsx --max-warnings 0','','src/pages/Portfolio.tsx','  Line 94: React Hook useEffect missing dep  [react-hooks/exhaustive-deps]','','✖ 1 problem (0 errors, 1 warning)'] },
+        { cmd:'npm run lint -- --fix', out:['','> portfolio@0.1.0 lint','> eslint src --ext ts,tsx --fix','','All files pass linting.'], pause:1000 },
+        { cmd:'git add -p', out:['diff --git a/src/pages/Portfolio.tsx b/src/pages/Portfolio.tsx','--- a/src/pages/Portfolio.tsx','+++ b/src/pages/Portfolio.tsx','@@ -92,7 +92,7 @@','   useEffect(() => {','     fetchPortfolio();','-  }, []);','+  }, [isAuthenticated]);','(1/1) Stage this hunk [y,n,q,a,d,e,?]? y'], pause:800 },
+      ],
+    ]
+  },
+
+  server: {
+    label:'dev server',
+    streaming: true,
+    lines: [
+      '  VITE v5.4.2  ready in 298 ms',
+      '  ➜  Local:   http://localhost:5173/',
+      '  ➜  press h + enter to show help',
+      '',
+      '11:04:32 [vite] hmr update /src/index.css',
+      '11:04:38 [vite] hmr update /src/components/Layout.tsx',
+      '11:04:38 [vite] hmr update /src/contexts/ThemeContext.tsx',
+      '11:04:51 [vite] ✓ 2 modules transformed.',
+      '11:05:03 [vite] hmr update /src/pages/Home.tsx',
+      'GET /api/portfolio         200  12ms',
+      'GET /api/cv/pdf/file       200  38ms',
+      'GET /api/auth/me           401   4ms',
+      'POST /api/auth/google      200  84ms',
+      'GET /api/auth/me           200   9ms',
+      'GET /api/portfolio?includeHidden=true 200 14ms',
+      '11:06:17 [vite] hmr update /src/pages/Portfolio.tsx (x2)',
+      'POST /api/portfolio        201  22ms',
+      'GET /api/portfolio         200  11ms',
+      '11:07:02 [vite] ✓ 1 module transformed.',
+      'POST /api/contact          429 Too Many Requests',
+      'GET /api/health            200   2ms',
+    ]
+  },
+
+  test: {
+    label:'test',
+    sequences: [
+      [
+        { cmd:'npx vitest run', out:['','  DEV  v1.6.0','',' ✓ src/terminal/__tests__/commands.test.ts (42)','   ✓ help command returns all commands (3ms)','   ✓ ls command shows files','   ✓ cd command changes directory','   ✓ theme command cycles themes (2ms)','   ✓ whoami returns correct user','   ... 37 more tests','',' ✓ src/terminal/__tests__/TerminalApp.test.tsx (27)','   ✓ renders initial prompt','   ✓ handles keyboard input','   ... 25 more tests','','Test Files  2 passed (2)','     Tests  69 passed (69)','   Duration  1.84s'], pause:2000 },
+        { cmd:'npx vitest --coverage', out:['','Collecting coverage...','','File                 | % Stmts | % Branch | % Funcs | % Lines','---------------------|---------|----------|---------|--------','All files            |   94.3  |   88.1   |   96.7  |  94.3  ','  commands/          |   97.2  |   91.4   |  100.0  |  97.2  ','  components/        |   91.8  |   84.2   |   93.3  |  91.8  ','  hooks/             |   94.1  |   87.5   |  100.0  |  94.1  ','---------------------|---------|----------|---------|--------',''], pause:1800 },
+      ],
+    ]
+  },
+
+  docker: {
+    label:'docker',
+    sequences: [
+      [
+        { cmd:'docker build -t portfolio-backend .', out:['[+] Building 14.3s (12/12) FINISHED','=> [internal] load build definition from Dockerfile','=> [internal] load .dockerignore','=> [1/7] FROM python:3.11-slim','=> [2/7] WORKDIR /app','=> [3/7] COPY requirements.txt .','=> [4/7] RUN pip install -r requirements.txt','=> [5/7] COPY . .','=> [6/7] EXPOSE 5000','=> [7/7] CMD ["gunicorn", "run:app"]','=> exporting to image','=> naming to docker.io/library/portfolio-backend:latest'], pause:1200 },
+        { cmd:'docker ps', out:['CONTAINER ID   IMAGE                 STATUS         PORTS','a4f2c1d9e8b7   portfolio-backend     Up 2 minutes   0.0.0.0:5000->5000/tcp','b8e4a2f3c1d0   postgres:15           Up 2 minutes   5432/tcp'] },
+        { cmd:'docker logs portfolio-backend --tail 20', out:['[2026-02-21 11:04:12] INFO  Starting gunicorn 21.2.0','[2026-02-21 11:04:12] INFO  Listening at: http://0.0.0.0:5000','[2026-02-21 11:04:12] INFO  Worker booted (pid: 8)','[2026-02-21 11:04:31] INFO  GET /api/health 200','[2026-02-21 11:04:38] INFO  POST /api/auth/google 200','[2026-02-21 11:05:02] INFO  GET /api/portfolio 200'], pause:2000 },
+      ],
+    ]
+  },
+
+  python: {
+    label:'python',
+    sequences: [
+      [
+        { cmd:'python scripts/migrate_data.py', out:['Connecting to database...','✓ Connected to postgres://localhost:5432/portfolio','','Reading current projects...','Found 8 projects.','','Running migrations...','[1/3] Adding content column to projects... ✓','[2/3] Indexing display_order... ✓','[3/3] Updating timestamps... ✓','','All migrations complete.','Migrated 8 rows.'], pause:1500 },
+        { cmd:'python -m pytest tests/ -v --tb=short', out:['========================= test session starts ==========================','platform linux -- Python 3.11.4, pytest-7.4.0','collected 34 items','','tests/test_portfolio.py::test_get_projects PASSED          [  2%]','tests/test_portfolio.py::test_create_project PASSED        [  5%]','tests/test_portfolio.py::test_update_project PASSED        [  8%]','tests/test_portfolio.py::test_delete_project PASSED        [ 11%]','tests/test_auth.py::test_google_oauth PASSED               [ 14%]','tests/test_auth.py::test_jwt_refresh PASSED                [ 17%]','tests/test_contact.py::test_submit_form PASSED             [ 20%]','tests/test_contact.py::test_rate_limiting PASSED           [ 23%]','','========================= 34 passed in 2.18s =========================='], pause:2000 },
+      ],
+    ]
+  },
+
+};
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+const S = {
+  layout:'floating',
+  paneCount:5,
+  opacity:9,
+  fontSize:11,
+  speed:3,
+  color:'green',
+  darkMode:false,
+  types:{ git:true, build:true, server:true, test:false, docker:false, python:false },
+};
+
+// ─── TERMINAL SESSION CLASS ───────────────────────────────────────────────────
+class TerminalSession {
+  constructor(bodyEl, type, font) {
+    this.el = bodyEl;
+    this.type = type;
+    this.font = font;
+    this.def = SESSION_TYPES[type];
+
+    // screen buffer
+    this.buf = [];
+    this.maxLines = 40;
+
+    // state machine
+    this.state = 'init_pause';
+    this.timer = 800 + Math.random() * 3000; // staggered start
+
+    // current sequence
+    if (this.def.streaming) {
+      this.state = 'streaming';
+      this.streamIdx = 0;
+      this.timer = 200 + Math.random() * 2000;
+    } else {
+      this.seqIdx = Math.floor(Math.random() * this.def.sequences.length);
+      this.cmdIdx = 0;
+      this.charIdx = 0;
+      this.outIdx = 0;
+    }
+
+    this.cursorOn = true;
+    this.cursorTimer = 0;
+    this.prompt = '$ ';
+  }
+
+  get seq() { return this.def.sequences[this.seqIdx]; }
+  get cmd() { return this.seq[this.cmdIdx]; }
+  get speedMultiplier() { return [3, 1.8, 1, 0.55, 0.28][S.speed - 1]; }
+
+  addLine(s) {
+    this.buf.push(s);
+    if (this.buf.length > this.maxLines) this.buf.shift();
+  }
+
+  render() {
+    const col = PALETTE[S.color][S.darkMode ? 'd' : 'l'];
+    // render buffer + current typing line
+    const lines = [...this.buf];
+    this.el.style.color = col;
+    this.el.textContent = lines.join('\n');
+  }
+
+  update(dt) {
+    // blink cursor
+    this.cursorTimer += dt;
+    if (this.cursorTimer > 520) { this.cursorOn = !this.cursorOn; this.cursorTimer = 0; }
+
+    this.timer -= dt;
+    if (this.timer > 0) return false;
+
+    // state machine
+    switch(this.state) {
+      case 'init_pause':
+        this.addLine('');
+        this.state = 'show_prompt';
+        this.timer = 200;
+        break;
+
+      case 'show_prompt':
+        this.addLine(this.prompt);
+        this.charIdx = 0;
+        this.state = 'typing';
+        this.timer = 120 * this.speedMultiplier + Math.random() * 200;
+        break;
+
+      case 'typing': {
+        const full = this.cmd.cmd;
+        if (this.charIdx >= full.length) {
+          // done typing — add a trailing cursor momentarily then execute
+          this.buf[this.buf.length - 1] = this.prompt + full;
+          this.state = 'exec_pause';
+          this.timer = 80 + Math.random() * 200;
+          break;
+        }
+        const ch = full[this.charIdx];
+        this.charIdx++;
+        this.buf[this.buf.length - 1] = this.prompt + full.slice(0, this.charIdx);
+
+        // Human-like timing: pause at word boundaries, fast mid-word
+        let delay;
+        if (ch === ' ') delay = 60 + Math.random() * 100;
+        else if (ch === '-' || ch === '/') delay = 40 + Math.random() * 80;
+        else delay = 20 + Math.random() * 55;
+
+        // occasional "thinking" pause mid-command (rare)
+        if (Math.random() < 0.04) delay += 300 + Math.random() * 600;
+
+        this.timer = delay * this.speedMultiplier;
+        break;
+      }
+
+      case 'exec_pause':
+        this.outIdx = 0;
+        if (this.cmd.out.length === 0) {
+          this.advanceCmd();
+        } else {
+          this.state = 'outputting';
+          this.timer = 60 + Math.random() * 120;
+        }
+        break;
+
+      case 'outputting':
+        if (this.outIdx >= this.cmd.out.length) {
+          this.advanceCmd();
+          break;
+        }
+        this.addLine(this.cmd.out[this.outIdx]);
+        this.outIdx++;
+        // variable output speed: faster for plain text, slower for formatted
+        const line = this.cmd.out[this.outIdx - 1];
+        const isSlow = line.includes('...') || line.includes('%') || line === '';
+        this.timer = (isSlow ? 180 : 60 + Math.random() * 80) * this.speedMultiplier;
+        break;
+
+      case 'end_pause':
+        this.state = 'show_prompt';
+        this.timer = 300;
+        break;
+
+      case 'streaming': {
+        const lines = this.def.lines;
+        this.addLine(lines[this.streamIdx % lines.length]);
+        this.streamIdx++;
+        // server logs: burst occasionally, then quiet
+        const burst = Math.random() < 0.15;
+        this.timer = burst
+          ? 80 + Math.random() * 120
+          : 600 + Math.random() * 2000;
+        break;
+      }
+    }
+    return true; // needs render
+  }
+
+  advanceCmd() {
+    const pauseAfter = this.cmd.pause || 0;
+    this.cmdIdx++;
+    if (this.cmdIdx >= this.seq.length) {
+      // sequence done — pick next sequence, idle briefly
+      this.seqIdx = Math.floor(Math.random() * this.def.sequences.length);
+      this.cmdIdx = 0;
+      this.addLine('');
+      this.state = 'init_pause';
+      this.timer = 1500 + Math.random() * 3000 + pauseAfter;
+    } else {
+      this.addLine('');
+      this.state = 'show_prompt';
+      this.timer = (pauseAfter || 400) + Math.random() * 600;
+    }
+  }
+}
+
+// ─── PANE CREATION ───────────────────────────────────────────────────────────
+let sessions = [];
+let rafId = null;
+let lastT = 0;
+
+function getEnabledTypes() {
+  const types = [];
+  if (S.types.git)    types.push('git');
+  if (S.types.build)  types.push('build');
+  if (S.types.server) types.push('server');
+  if (S.types.test)   types.push('test');
+  if (S.types.docker) types.push('docker');
+  if (S.types.python) types.push('python');
+  return types.length ? types : ['git'];
+}
+
+function randFont() { return FONTS[Math.floor(Math.random() * FONTS.length)]; }
+function randType(pool) { return pool[Math.floor(Math.random() * pool.length)]; }
+function rand(a, b) { return a + Math.random() * (b - a); }
+
+function buildFloating(container, n, col) {
+  const W = container.clientWidth, H = container.clientHeight;
+  const types = getEnabledTypes();
+  sessions = [];
+
+  // Generate n non-totally-overlapping windows
+  const placed = [];
+  for (let i = 0; i < n; i++) {
+    const font = randFont();
+    const type = randType(types);
+    const def = SESSION_TYPES[type];
+    const w = Math.floor(rand(260, Math.min(420, W * 0.55)));
+    const h = Math.floor(rand(140, Math.min(260, H * 0.5)));
+
+    // Try to place with some separation
+    let x, y, tries = 0;
+    do {
+      x = Math.floor(rand(0, W - w));
+      y = Math.floor(rand(0, H - h));
+      tries++;
+    } while (tries < 20 && placed.some(p => Math.abs(p.x - x) < 80 && Math.abs(p.y - y) < 50));
+    placed.push({x, y});
+
+    const wrap = document.createElement('div');
+    wrap.style.cssText = `
+      position:absolute; left:${x}px; top:${y}px; width:${w}px; height:${h}px;
+      overflow:hidden; border:1px solid ${col}28; border-radius:6px;
+      opacity:${S.opacity/100};
+    `;
+
+    // Title bar
+    const bar = document.createElement('div');
+    bar.style.cssText = `
+      height:19px; background:${col}12; border-bottom:1px solid ${col}20;
+      display:flex; align-items:center; padding:0 8px; gap:4px; flex-shrink:0;
+      font-family:${font.css}; font-size:9px; color:${col}70;
+    `;
+    bar.innerHTML = `
+      <span style="width:7px;height:7px;border-radius:50%;background:${col}30;flex-shrink:0"></span>
+      <span style="width:7px;height:7px;border-radius:50%;background:${col}30;flex-shrink:0"></span>
+      <span style="width:7px;height:7px;border-radius:50%;background:${col}30;flex-shrink:0"></span>
+      <span style="flex:1;text-align:center;">${def.label} — ${font.name}</span>
+    `;
+
+    const body = document.createElement('div');
+    body.style.cssText = `
+      font-family:${font.css}; font-size:${S.fontSize}px; line-height:1.5;
+      color:${col}; white-space:pre; overflow:hidden;
+      padding:5px 8px; height:calc(100% - 19px);
+    `;
+
+    wrap.appendChild(bar);
+    wrap.appendChild(body);
+    container.appendChild(wrap);
+
+    const sess = new TerminalSession(body, type, font);
+    sess.maxLines = Math.ceil(h / (S.fontSize * 1.5)) + 3;
+    sessions.push(sess);
+  }
+}
+
+function buildTiled(container, n, col) {
+  const W = container.clientWidth, H = container.clientHeight;
+  const types = getEnabledTypes();
+  sessions = [];
+
+  const cols = Math.ceil(Math.sqrt(n));
+  const rows = Math.ceil(n / cols);
+  const pw = Math.floor(W / cols), ph = Math.floor(H / rows);
+
+  for (let i = 0; i < n; i++) {
+    const c = i % cols, r = Math.floor(i / cols);
+    const font = randFont();
+    const type = randType(types);
+
+    const wrap = document.createElement('div');
+    wrap.style.cssText = `
+      position:absolute; left:${c*pw}px; top:${r*ph}px;
+      width:${pw-1}px; height:${ph-1}px; overflow:hidden;
+      border-right:1px solid ${col}18; border-bottom:1px solid ${col}18;
+      opacity:${S.opacity/100};
+    `;
+
+    const bar = document.createElement('div');
+    bar.style.cssText = `
+      height:16px; background:${col}0c; border-bottom:1px solid ${col}15;
+      font-family:${font.css}; font-size:8.5px; color:${col}60;
+      display:flex; align-items:center; padding:0 6px; flex-shrink:0;
+    `;
+    bar.textContent = `${SESSION_TYPES[type].label}  ·  ${font.name}`;
+
+    const body = document.createElement('div');
+    body.style.cssText = `
+      font-family:${font.css}; font-size:${S.fontSize}px; line-height:1.45;
+      color:${col}; white-space:pre; overflow:hidden;
+      padding:4px 6px; height:calc(100% - 16px);
+    `;
+
+    wrap.appendChild(bar);
+    wrap.appendChild(body);
+    container.appendChild(wrap);
+
+    const sess = new TerminalSession(body, type, font);
+    sess.maxLines = Math.ceil(ph / (S.fontSize * 1.45)) + 2;
+    sessions.push(sess);
+  }
+}
+
+function buildStaggered(container, n, col) {
+  const W = container.clientWidth, H = container.clientHeight;
+  const types = getEnabledTypes();
+  sessions = [];
+
+  // Use streaming-capable or pick random
+  for (let i = 0; i < n; i++) {
+    const font = randFont();
+    const type = randType(types.filter(t => SESSION_TYPES[t].streaming) .length ? types : ['server', ...types]);
+    const yFrac = i / n;
+    const yOff = H * yFrac - 20 + rand(-15, 15);
+    const angle = rand(-5, -2);
+
+    const wrap = document.createElement('div');
+    wrap.style.cssText = `
+      position:absolute; left:-60px; top:${yOff}px;
+      width:${W+120}px; overflow:hidden;
+      transform:rotate(${angle}deg);
+      font-family:${font.css}; font-size:${S.fontSize}px; line-height:1.5;
+      color:${col}; white-space:nowrap; opacity:${S.opacity/100};
+      padding:3px 0; border-top:1px solid ${col}12;
+    `;
+
+    container.appendChild(wrap);
+
+    // Create a fake streaming session for staggered
+    const sess = new TerminalSession(wrap, 'server', font);
+    sess.type = type;
+    sess.def = SESSION_TYPES[type];
+    // Override to scroll single long line
+    sess.render = function() {
+      const col2 = PALETTE[S.color][S.darkMode ? 'd' : 'l'];
+      this.el.style.color = col2;
+      this.el.textContent = this.buf.slice(-2).join('    ·    ');
+    };
+    sessions.push(sess);
+  }
+}
+
+function buildColumns(container, n, col) {
+  const W = container.clientWidth, H = container.clientHeight;
+  const types = getEnabledTypes();
+  sessions = [];
+
+  // Gather all output tokens
+  let allTokens = [];
+  Object.values(SESSION_TYPES).forEach(t => {
+    if (t.streaming) allTokens.push(...t.lines);
+    else t.sequences.forEach(seq => seq.forEach(cmd => {
+      allTokens.push('$ ' + cmd.cmd);
+      allTokens.push(...cmd.out);
+    }));
+  });
+  allTokens = allTokens.filter(t => t.trim().length > 0);
+
+  const colW = Math.max(S.fontSize * 7.5, 70);
+  const numCols = Math.min(n + 2, Math.floor(W / colW));
+
+  for (let c = 0; c < numCols; c++) {
+    const font = randFont();
+    const x = c * (W / numCols) + rand(-10, 10);
+
+    const col2el = document.createElement('div');
+    col2el.style.cssText = `
+      position:absolute; left:${x}px; top:0; width:${colW}px; height:${H}px;
+      overflow:hidden; display:flex; flex-direction:column;
+      font-family:${font.css}; font-size:${S.fontSize}px; line-height:1.6;
+      color:${col}; opacity:${S.opacity/100}; white-space:nowrap;
+    `;
+    container.appendChild(col2el);
+
+    // Populate initial tokens
+    const startIdx = Math.floor(Math.random() * allTokens.length);
+    const rowH = S.fontSize * 1.6;
+    const rows = Math.ceil(H / rowH) + 5;
+    const toks = [];
+    for (let r = 0; r < rows; r++) toks.push(allTokens[(startIdx + r) % allTokens.length]);
+    col2el.textContent = toks.join('\n');
+
+    // Animate by translating
+    const speed = (0.3 + Math.random() * 0.7) * S.speed * 0.4;
+    let offset = Math.random() * rowH * rows;
+    sessions.push({
+      el: col2el,
+      tokens: allTokens,
+      startIdx,
+      offset,
+      speed,
+      rowH,
+      rows,
+      update(dt) {
+        this.offset += dt * this.speed * 0.01;
+        const mod = this.rowH;
+        const shift = Math.floor(this.offset / mod);
+        this.el.style.transform = `translateY(${-(this.offset % mod)}px)`;
+        // Rebuild text to give infinite scroll illusion
+        if (shift > 0) {
+          this.offset -= shift * mod;
+          this.startIdx = (this.startIdx + shift) % this.tokens.length;
+          const t = [];
+          for (let r = 0; r < this.rows; r++) t.push(this.tokens[(this.startIdx + r) % this.tokens.length]);
+          this.el.textContent = t.join('\n');
+        }
+        return false;
+      },
+      render() {}
+    });
+  }
+}
+
+// ─── ANIMATION LOOP ───────────────────────────────────────────────────────────
+function animate(ts) {
+  const dt = Math.min(ts - lastT, 80); // cap at 80ms to avoid big jumps
+  lastT = ts;
+  sessions.forEach(s => {
+    const dirty = s.update(dt);
+    if (dirty !== false) s.render();
+  });
+  rafId = requestAnimationFrame(animate);
+}
+
+// ─── REBUILD ──────────────────────────────────────────────────────────────────
+function rebuild(randomize = false) {
+  if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+  const container = document.getElementById('bglayer');
+  container.innerHTML = '';
+  sessions = [];
+
+  const col = PALETTE[S.color][S.darkMode ? 'd' : 'l'];
+  const n = S.paneCount;
+
+  if (S.layout === 'floating')  buildFloating(container, n, col);
+  else if (S.layout === 'tiled') buildTiled(container, n, col);
+  else if (S.layout === 'staggered') buildStaggered(container, n + 1, col);
+  else if (S.layout === 'columns') buildColumns(container, n, col);
+
+  lastT = performance.now();
+  rafId = requestAnimationFrame(animate);
+  updatePrompt();
+}
+
+// ─── CONTROL HANDLERS ─────────────────────────────────────────────────────────
+function pick(group, el) {
+  const grid = { layout:'layout-grid', color:'color-grid' }[group];
+  document.querySelectorAll(`#${grid} .chip,#${grid} .cc`).forEach(e => e.classList.remove('on'));
+  el.classList.add('on');
+  if (group === 'layout') S.layout = el.dataset.v;
+  if (group === 'color')  S.color = el.dataset.v;
+  rebuild();
+}
+
+function onPanes(el) {
+  S.paneCount = +el.value;
+  document.getElementById('panes-val').textContent = el.value;
+  rebuild();
+}
+function onOpacity(el) {
+  S.opacity = +el.value;
+  document.getElementById('opacity-val').textContent = el.value + '%';
+  rebuild();
+}
+function onSize(el) {
+  S.fontSize = +el.value;
+  document.getElementById('size-val').textContent = el.value + 'px';
+  rebuild();
+}
+function onSpeed(el) {
+  S.speed = +el.value;
+  const labels = ['very slow','slow','normal','fast','very fast'];
+  document.getElementById('speed-val').textContent = labels[el.value - 1];
+}
+
+function toggleCard(el) {
+  document.getElementById('fake-content').style.display = el.checked ? '' : 'none';
+}
+function toggleDark(el) {
+  S.darkMode = el.checked;
+  document.getElementById('page').classList.toggle('dark', S.darkMode);
+  rebuild();
+}
+
+document.getElementById('t-git').onchange    = () => { S.types.git    = document.getElementById('t-git').checked;    rebuild(); };
+document.getElementById('t-build').onchange  = () => { S.types.build  = document.getElementById('t-build').checked;  rebuild(); };
+document.getElementById('t-server').onchange = () => { S.types.server = document.getElementById('t-server').checked; rebuild(); };
+document.getElementById('t-test').onchange   = () => { S.types.test   = document.getElementById('t-test').checked;   rebuild(); };
+document.getElementById('t-docker').onchange = () => { S.types.docker = document.getElementById('t-docker').checked; rebuild(); };
+document.getElementById('t-python').onchange = () => { S.types.python = document.getElementById('t-python').checked; rebuild(); };
+
+// ─── PROMPT ───────────────────────────────────────────────────────────────────
+function updatePrompt() {
+  const layouts = { floating:'floating OS-style windows with title bars and per-pane fonts',
+    tiled:'equal tiled grid', staggered:'diagonal staggered strips', columns:'vertical column rain' };
+  const activeTypes = Object.entries(S.types).filter(([,v])=>v).map(([k])=>k).join(', ');
+  const speedLabel = ['very slow','slow','normal','fast','very fast'][S.speed-1];
+  document.getElementById('ptext').textContent =
+    `Animated terminal background, ${layouts[S.layout]}, ${S.paneCount} panes. ` +
+    `Each pane uses a randomly assigned font (JetBrains Mono / Fira Code / IBM Plex Mono) and ` +
+    `runs an independent simulated session with character-by-character typing, realistic pauses, ` +
+    `and streamed output. Session types: ${activeTypes}. Opacity ${S.opacity}%, font ${S.fontSize}px, ` +
+    `${S.color} tint, speed ${speedLabel}. ` +
+    `Layer is position:absolute, pointer-events:none, sits behind all page content.`;
+}
+
+function copyPrompt() {
+  navigator.clipboard.writeText(document.getElementById('ptext').textContent).then(() => {
+    const b = document.querySelector('.cpbtn');
+    b.textContent = 'Copied!';
+    setTimeout(() => b.textContent = 'Copy', 1500);
+  });
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+window.addEventListener('resize', () => rebuild());
+rebuild();
+</script>
+</body>
+</html>

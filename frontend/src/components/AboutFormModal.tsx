@@ -81,7 +81,7 @@ const AboutFormModal: React.FC<AboutFormModalProps> = ({
       className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black bg-opacity-30"
       onClick={handleBackdropClick}
     >
-      <div className="bg-white dark:bg-[#1e1e1e] rounded-lg shadow-xl p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-[#252525] rounded-lg shadow-xl p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Edit About Section</h2>

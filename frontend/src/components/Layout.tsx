@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext.tsx';
 import { useTheme } from '../contexts/ThemeContext.tsx';
 import LoginModal from './LoginModal.tsx';
 import LogoMark from './LogoMark.tsx';
+import TerminalBackground from './TerminalBackground.tsx';
 
 const navItems = [
   {
@@ -104,7 +105,8 @@ const Layout = () => {
   };
 
   return (
-    <div className="flex h-screen bg-[#f8f8f7] dark:bg-[#111111] overflow-hidden">
+    <div className="flex h-screen overflow-hidden">
+      <TerminalBackground />
       {/* Sidebar */}
       <aside
         className="flex-shrink-0 bg-white dark:bg-[#1a1a1a] flex flex-col h-full overflow-hidden"

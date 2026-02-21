@@ -23,8 +23,10 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const root = document.documentElement;
     if (theme === 'dark') {
       root.classList.add('dark');
+      document.body.style.backgroundColor = '#111111';
     } else {
       root.classList.remove('dark');
+      document.body.style.backgroundColor = '#f8f8f7';
     }
     localStorage.setItem('theme', theme);
   }, [theme]);
