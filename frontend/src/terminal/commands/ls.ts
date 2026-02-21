@@ -1,7 +1,6 @@
 import { registerCommand } from './registry';
 import { getPortfolio } from '../../repositories/portfolioRepository';
 import { resolvePath, getNode, populateProjects } from '../filesystem';
-import { getCachedProjects } from './projects';
 import type { CommandResult, TerminalContext, OutputLine } from './types';
 
 const PROJECTS_PATH = '/home/visitor/projects';
@@ -11,7 +10,7 @@ async function ensureProjectsPopulated(ctx: TerminalContext): Promise<void> {
   const projectsNode = getNode(fs, PROJECTS_PATH);
   if (!projectsNode?.children || projectsNode.children.length > 0) return;
 
-  const projects = getCachedProjects() ?? await getPortfolio().catch(() => null);
+  const projects = await getPortfolio().catch(() => null);
   if (projects) {
     populateProjects(fs, projects);
   }

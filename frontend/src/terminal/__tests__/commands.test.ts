@@ -6,17 +6,15 @@ import { execute, getSuggestions, getAllCommands } from '../commands/registry';
 import '../commands/clear';
 import '../commands/help';
 import '../commands/about';
-import '../commands/skills';
-import '../commands/social';
+import '../commands/cat';
 import '../commands/contact';
 import '../commands/history';
 import '../commands/theme';
-import '../commands/cowsay';
 import '../commands/whoami';
 import '../commands/sudo';
 import '../commands/pwd';
 import '../commands/cd';
-// Skipping: projects, download, open, matrix, neofetch, ls
+// Skipping: download, open, ls
 // (they depend on browser APIs, fetch, or dynamic imports)
 
 import { buildFilesystem } from '../filesystem';
@@ -63,12 +61,6 @@ describe('Command Registry', () => {
   it('is case-insensitive for command names', async () => {
     const result = await execute('WHOAMI', createMockContext());
     expect(result.output).toEqual([{ text: 'visitor' }]);
-  });
-
-  it('passes arguments to commands', async () => {
-    const result = await execute('cowsay hello world', createMockContext());
-    const text = result.output.map(l => l.text).join('\n');
-    expect(text).toContain('hello world');
   });
 });
 
@@ -159,31 +151,44 @@ describe('about command', () => {
   });
 });
 
-describe('skills command', () => {
-  it('displays skill categories with progress bars', async () => {
-    const result = await execute('skills', createMockContext());
-    const text = result.output.map(l => l.text).join('\n');
-    expect(text).toContain('Languages');
-    expect(text).toContain('Python');
-    expect(text).toContain('90%');
+describe('cat command', () => {
+  it('shows usage when called without args', async () => {
+    const result = await execute('cat', createMockContext());
+    expect(result.output[0].text).toContain('Usage: cat');
   });
-});
 
-describe('social command', () => {
-  it('displays social links', async () => {
-    const result = await execute('social', createMockContext());
+  it('reads a file from the about directory', async () => {
+    const ctx = createMockContext({ currentDir: '~/about' });
+    const result = await execute('cat bio.txt', ctx);
     const text = result.output.map(l => l.text).join('\n');
-    expect(text).toContain('Social Links:');
-    const links = result.output.filter(l => l.link);
-    expect(links.length).toBeGreaterThanOrEqual(2);
+    expect(text).toContain('full-stack');
+  });
+
+  it('reads a file with an absolute-style path from home', async () => {
+    const result = await execute('cat about/bio.txt', createMockContext());
+    const text = result.output.map(l => l.text).join('\n');
+    expect(text).toContain('full-stack');
+  });
+
+  it('errors on a non-existent file', async () => {
+    const result = await execute('cat nonexistent.txt', createMockContext());
+    expect(result.output[0].text).toContain('No such file or directory');
+  });
+
+  it('errors when target is a directory', async () => {
+    const result = await execute('cat about', createMockContext());
+    expect(result.output[0].text).toContain('Is a directory');
   });
 });
 
 describe('contact command', () => {
-  it('displays contact info', async () => {
+  it('displays contact info and social links', async () => {
     const result = await execute('contact', createMockContext());
     const text = result.output.map(l => l.text).join('\n');
     expect(text).toContain('contact@tom-sabala.dev');
+    expect(text).toContain('Social Links:');
+    const links = result.output.filter(l => l.link);
+    expect(links.length).toBeGreaterThanOrEqual(2);
   });
 });
 
@@ -200,29 +205,6 @@ describe('history command', () => {
     const ctx = createMockContext({ history: () => [] });
     const result = await execute('history', ctx);
     expect(result.output[0].text).toContain('No command history');
-  });
-});
-
-describe('cowsay command', () => {
-  it('renders cow with default message', async () => {
-    const result = await execute('cowsay', createMockContext());
-    const text = result.output.map(l => l.text).join('\n');
-    expect(text).toContain('moo');
-    expect(text).toContain('\\   ^__^');
-  });
-
-  it('renders cow with custom message', async () => {
-    const result = await execute('cowsay test message', createMockContext());
-    const text = result.output.map(l => l.text).join('\n');
-    expect(text).toContain('test message');
-  });
-
-  it('wraps long messages', async () => {
-    const longMsg = 'word '.repeat(20).trim();
-    const result = await execute(`cowsay ${longMsg}`, createMockContext());
-    // Should produce multiple lines in the bubble
-    const bubbleLines = result.output.filter(l => l.text.startsWith('/') || l.text.startsWith('|') || l.text.startsWith('\\'));
-    expect(bubbleLines.length).toBeGreaterThan(1);
   });
 });
 

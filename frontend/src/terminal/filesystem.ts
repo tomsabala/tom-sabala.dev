@@ -39,14 +39,6 @@ export function buildFilesystem(): FSNode {
       {
         name: 'contact',
         type: 'dir',
-        children: [
-          { name: 'email.txt', type: 'file', content: PERSONAL_INFO.email },
-          { name: 'website.txt', type: 'file', content: PERSONAL_INFO.website },
-        ],
-      },
-      {
-        name: 'social',
-        type: 'dir',
         children: SOCIAL_LINKS.map(link => ({
           name: `${link.name}.txt`,
           type: 'file' as const,

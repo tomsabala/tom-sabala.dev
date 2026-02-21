@@ -23,8 +23,8 @@ describe('buildFilesystem', () => {
     expect(names).toContain('projects');
     expect(names).toContain('skills');
     expect(names).toContain('contact');
-    expect(names).toContain('social');
     expect(names).toContain('cv');
+    expect(names).not.toContain('social');
   });
 
   it('about dir has files with content', () => {
