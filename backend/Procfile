@@ -1,2 +1,1 @@
-release: flask db upgrade
-web: gunicorn -c gunicorn_config.py "app:create_app()"
+web: flask db upgrade && gunicorn -c gunicorn_config.py "app:create_app()"
