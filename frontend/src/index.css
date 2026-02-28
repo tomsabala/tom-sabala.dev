@@ -1,6 +1,15 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+/* Prevent prose inline-code styles (bg, padding, radius) from bleeding into block code */
+.prose pre code {
+  background: transparent !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  color: inherit !important;
+  font-size: inherit !important;
+}
+
 /* ── Highlight.js VS Code Dark+ theme ── */
 .hljs                    { color: #d4d4d4; background: none; }
 .hljs-keyword            { color: #569cd6; }

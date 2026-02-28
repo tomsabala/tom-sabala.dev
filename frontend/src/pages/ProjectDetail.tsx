@@ -7,9 +7,34 @@ import rehypeRaw from 'rehype-raw';
 import rehypeSlug from 'rehype-slug';
 import rehypeHighlight from 'rehype-highlight';
 import remarkGfm from 'remark-gfm';
+import type { Root, Element } from 'hast';
 import * as portfolioRepository from '../repositories/portfolioRepository.ts';
 import type { PortfolioItem } from '../types/index.ts';
 import { useToc } from '../contexts/TocContext.tsx';
+
+// Strip the leading \n that remark-rehype injects into code block text nodes
+function rehypeTrimCodeNewlines() {
+  return (tree: Root) => {
+    const walk = (node: Root | Element) => {
+      if ('children' in node) {
+        if ((node as Element).tagName === 'pre') {
+          const code = (node as Element).children.find(
+            (c): c is Element => (c as Element).tagName === 'code'
+          );
+          if (code?.children[0]?.type === 'text') {
+            code.children[0].value = code.children[0].value.replace(/^\n/, '');
+            const last = code.children[code.children.length - 1];
+            if (last?.type === 'text') last.value = last.value.replace(/\n$/, '');
+          }
+        }
+        (node as Element).children?.forEach(c => {
+          if (c.type === 'element') walk(c as Element);
+        });
+      }
+    };
+    walk(tree);
+  };
+}
 
 function extractText(node: ReactNode): string {
   if (typeof node === 'string' || typeof node === 'number') return String(node);
@@ -234,7 +259,7 @@ function ProjectDetail() {
             >
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
-                rehypePlugins={[rehypeRaw, rehypeSlug, rehypeHighlight]}
+                rehypePlugins={[rehypeRaw, rehypeSlug, rehypeTrimCodeNewlines, rehypeHighlight]}
                 components={mdComponents}
               >
                 {deepDive ?? project.content!}
