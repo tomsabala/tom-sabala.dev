@@ -9,7 +9,7 @@ import shutil
 import sys
 import tarfile
 import threading
-import urllib.request
+import requests as httpx
 from flask import Blueprint, request, jsonify, send_file, abort
 
 docs_bp = Blueprint('docs', __name__)
@@ -42,9 +42,9 @@ def _downloadAndExtract(slug: str, repo: str, branch: str = 'main'):
         token = os.getenv('GITHUB_TOKEN')
         if token:
             headers['Authorization'] = f'Bearer {token}'
-        req = urllib.request.Request(url, headers=headers)
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            data = resp.read()
+        resp = httpx.get(url, headers=headers, timeout=30)
+        resp.raise_for_status()
+        data = resp.content
     except Exception as e:
         print(f'[docs webhook] Download failed: {e}', file=sys.stderr)
         return

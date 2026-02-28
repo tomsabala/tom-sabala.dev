@@ -8,7 +8,7 @@ import io
 import os
 import sys
 import tarfile
-import urllib.request
+import requests
 
 DOCS = [
     {
@@ -31,9 +31,9 @@ def downloadAndExtract(slug, repo, branch):
         token = os.getenv('GITHUB_TOKEN')
         if token:
             headers['Authorization'] = f'Bearer {token}'
-        req = urllib.request.Request(url, headers=headers)
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            data = resp.read()
+        resp = requests.get(url, headers=headers, timeout=30)
+        resp.raise_for_status()
+        data = resp.content
     except Exception as e:
         print(f'[setup_docs] Download failed: {e}', file=sys.stderr)
         return False
