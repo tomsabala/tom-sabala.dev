@@ -22,11 +22,13 @@ REPO_MAP = {
     'mlmp': 'tomsabala/MLMP-docs',
     'chess-engine': 'tomsabala/ChessEngine-docs',
     'portfolio': 'tomsabala/tom-sabala.dev-docs',
+    'terminal': 'tomsabala/tom-sabala.dev-terminal-docs',
 }
 
 # Override auto-derived slug for repos where the name doesn't map cleanly
 REPO_NAME_TO_SLUG = {
     'tom-sabala.dev-docs': 'portfolio',
+    'tom-sabala.dev-terminal-docs': 'terminal',
 }
 
 
