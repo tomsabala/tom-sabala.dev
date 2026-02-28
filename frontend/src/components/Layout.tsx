@@ -15,7 +15,7 @@ function TocEntry({ item, activeId, depth }: { item: TocItem; activeId: string; 
     <div>
       <a
         href={`#${item.id}`}
-        style={{ paddingLeft: `${16 + depth * 10}px`, ...(isActive ? { color: 'var(--accent)' } : {}) }}
+        style={{ paddingLeft: `${44 + depth * 10}px`, ...(isActive ? { color: 'var(--accent)' } : {}) }}
         className={`block py-0.5 text-xs leading-5 truncate transition-colors pr-3 ${
           isActive
             ? 'font-medium'
@@ -231,30 +231,40 @@ function Layout() {
         <nav className="flex-1 py-3 overflow-y-auto overflow-x-hidden">
           {navItems.map(({ to, label, icon }) => {
             const active = isActive(to);
+            const isPortfolio = to === '/portfolio';
+            const showToc = isPortfolio && toc.length > 0 && (expanded || mobileOpen);
             return (
-              <Link
-                key={to}
-                to={to}
-                onClick={() => setMobileOpen(false)}
-                title={!expanded && !mobileOpen ? label : undefined}
-                className={`relative flex items-center h-10 px-3 mx-1 rounded-md transition-colors ${
-                  active
-                    ? 'bg-blue-50 dark:bg-blue-950'
-                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800'
-                }`}
-                style={active ? { color: 'var(--accent)' } : undefined}
-              >
-                {active && (
-                  <span
-                    className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r-full"
-                    style={{ background: 'var(--accent)' }}
-                  />
+              <div key={to}>
+                <Link
+                  to={to}
+                  onClick={() => setMobileOpen(false)}
+                  title={!expanded && !mobileOpen ? label : undefined}
+                  className={`relative flex items-center h-10 px-3 mx-1 rounded-md transition-colors ${
+                    active
+                      ? 'bg-blue-50 dark:bg-blue-950'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800'
+                  }`}
+                  style={active ? { color: 'var(--accent)' } : undefined}
+                >
+                  {active && (
+                    <span
+                      className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r-full"
+                      style={{ background: 'var(--accent)' }}
+                    />
+                  )}
+                  <span className="flex-shrink-0">{icon}</span>
+                  {(expanded || mobileOpen) && (
+                    <span className="ml-3 text-sm font-medium whitespace-nowrap">{label}</span>
+                  )}
+                </Link>
+                {showToc && (
+                  <div className="pb-1 overflow-x-hidden max-h-64 overflow-y-auto">
+                    {toc.map((item, i) => (
+                      <TocEntry key={i} item={item} activeId={activeId} depth={0} />
+                    ))}
+                  </div>
                 )}
-                <span className="flex-shrink-0">{icon}</span>
-                {(expanded || mobileOpen) && (
-                  <span className="ml-3 text-sm font-medium whitespace-nowrap">{label}</span>
-                )}
-              </Link>
+              </div>
             );
           })}
 
@@ -284,23 +294,6 @@ function Layout() {
             )}
           </a>
         </nav>
-
-        {/* TOC section — only when a deep-dive page is active */}
-        {toc.length > 0 && (
-          <>
-            <div className="w-full h-px bg-gray-100 dark:bg-gray-700 flex-shrink-0" />
-            <div className="py-2 overflow-y-auto overflow-x-hidden flex-shrink-0 max-h-64">
-              {(expanded || mobileOpen) && (
-                <p className="px-4 mb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
-                  On this page
-                </p>
-              )}
-              {(expanded || mobileOpen) && toc.map((item, i) => (
-                <TocEntry key={i} item={item} activeId={activeId} depth={0} />
-              ))}
-            </div>
-          </>
-        )}
 
         <div className="w-full h-px bg-gray-100 dark:bg-gray-700 flex-shrink-0" />
 
