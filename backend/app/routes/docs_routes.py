@@ -21,6 +21,12 @@ REPO_MAP = {
     'cgeo': 'tomsabala/CGEO-docs',
     'mlmp': 'tomsabala/MLMP-docs',
     'chess-engine': 'tomsabala/ChessEngine-docs',
+    'portfolio': 'tomsabala/tom-sabala.dev-docs',
+}
+
+# Override auto-derived slug for repos where the name doesn't map cleanly
+REPO_NAME_TO_SLUG = {
+    'tom-sabala.dev-docs': 'portfolio',
 }
 
 
@@ -99,9 +105,12 @@ def githubWebhook():
 
     repoName = payload.get('repository', {}).get('name', '')
     branch = payload.get('ref', 'refs/heads/main').split('/')[-1]
-    name = repoName.replace('-docs', '').replace('_docs', '')
-    name = re.sub(r'([a-z\d])([A-Z])', r'\1-\2', name)
-    slug = re.sub(r'([A-Z]+)([A-Z][a-z])', r'\1-\2', name).lower()
+    if repoName in REPO_NAME_TO_SLUG:
+        slug = REPO_NAME_TO_SLUG[repoName]
+    else:
+        name = repoName.replace('-docs', '').replace('_docs', '')
+        name = re.sub(r'([a-z\d])([A-Z])', r'\1-\2', name)
+        slug = re.sub(r'([A-Z]+)([A-Z][a-z])', r'\1-\2', name).lower()
 
     repo = REPO_MAP.get(slug)
     if not repo:
