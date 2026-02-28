@@ -29,6 +29,7 @@ def downloadAndExtract(slug, repo, branch):
     try:
         headers = {'User-Agent': 'portfolio-setup'}
         token = os.getenv('GITHUB_TOKEN')
+        print(f'[setup_docs] GITHUB_TOKEN present: {bool(token)}', flush=True)
         if token:
             headers['Authorization'] = f'Bearer {token}'
         resp = requests.get(url, headers=headers, timeout=30)
