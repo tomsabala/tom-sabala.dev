@@ -1,105 +1,51 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { ReactNode, ReactElement } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import type { Components } from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import rehypeSlug from 'rehype-slug';
+import rehypeHighlight from 'rehype-highlight';
 import remarkGfm from 'remark-gfm';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-
-// Minimal VS Code Dark+ theme — only token colors, no background overrides
-const vscodeStyle: Record<string, CSSProperties> = {
-  'code[class*="language-"]': { color: '#d4d4d4' },
-  'pre[class*="language-"]':  { color: '#d4d4d4', background: 'none' },
-  comment:    { color: '#6a9955', fontStyle: 'italic' },
-  prolog:     { color: '#6a9955' },
-  doctype:    { color: '#6a9955' },
-  cdata:      { color: '#6a9955' },
-  punctuation:{ color: '#d4d4d4' },
-  keyword:    { color: '#569cd6' },
-  'control-flow': { color: '#c586c0' },
-  boolean:    { color: '#569cd6' },
-  number:     { color: '#b5cea8' },
-  string:     { color: '#ce9178' },
-  char:       { color: '#ce9178' },
-  'template-string': { color: '#ce9178' },
-  'template-punctuation': { color: '#ce9178' },
-  regex:      { color: '#d16969' },
-  operator:   { color: '#d4d4d4' },
-  function:   { color: '#dcdcaa' },
-  'function-variable': { color: '#dcdcaa' },
-  'class-name': { color: '#4ec9b0' },
-  'maybe-class-name': { color: '#4ec9b0' },
-  builtin:    { color: '#dcdcaa' },
-  property:   { color: '#9cdcfe' },
-  'attr-name': { color: '#9cdcfe' },
-  'attr-value': { color: '#ce9178' },
-  variable:   { color: '#9cdcfe' },
-  constant:   { color: '#9cdcfe' },
-  symbol:     { color: '#b5cea8' },
-  selector:   { color: '#d7ba7d' },
-  tag:        { color: '#569cd6' },
-  atrule:     { color: '#c586c0' },
-  inserted:   { color: '#b5cea8' },
-  deleted:    { color: '#f44747' },
-  bold:       { fontWeight: 'bold' },
-  italic:     { fontStyle: 'italic' },
-};
 import * as portfolioRepository from '../repositories/portfolioRepository.ts';
 import type { PortfolioItem } from '../types/index.ts';
 import { useToc } from '../contexts/TocContext.tsx';
 
+function extractText(node: ReactNode): string {
+  if (typeof node === 'string' || typeof node === 'number') return String(node);
+  if (Array.isArray(node)) return node.map(extractText).join('');
+  if (node && typeof node === 'object' && 'props' in node)
+    return extractText((node as ReactElement<{ children?: ReactNode }>).props.children);
+  return '';
+}
+
 const mdComponents: Components = {
-  // Strip the prose <pre> wrapper — our code component renders its own container
   pre({ children }) {
-    return <>{children}</>;
-  },
-  code({ className, children }) {
-    const match = /language-(\w+)/.exec(className || '');
-    const lang = match?.[1];
-    const isBlock = !!match || String(children).includes('\n');
+    const codeEl = children as ReactElement<{ className?: string; children?: ReactNode }>;
+    const codeClass = codeEl?.props?.className ?? '';
+    const match = /language-(\w+)/.exec(codeClass);
+    const lang = match?.[1] ?? 'code';
 
-    if (isBlock) {
-      return (
-        <div style={{ borderRadius: '8px', overflow: 'hidden', boxShadow: '0 4px 24px rgba(0,0,0,.5)', margin: '1.5rem 0' }}>
-          <div style={{ background: '#2d2d2d', padding: '7px 14px', borderBottom: '1px solid #1a1a1a', display: 'flex', alignItems: 'center' }}>
-            <span style={{ fontSize: '11px', color: '#858585', background: '#3a3a3a', padding: '2px 8px', borderRadius: '12px', fontFamily: 'Menlo, Consolas, Monaco, monospace' }}>
-              {lang ?? 'code'}
-            </span>
-          </div>
-          <SyntaxHighlighter
-            language={lang ?? 'text'}
-            style={vscodeStyle}
-            showLineNumbers
-            lineNumberStyle={{
-              color: '#858585',
-              backgroundColor: '#2d2d2d',
-              paddingLeft: '8px',
-              paddingRight: '12px',
-              marginRight: '12px',
-              minWidth: '2.5em',
-              userSelect: 'none',
-              borderRight: '1px solid #1a1a1a',
-            }}
-            customStyle={{
-              margin: 0,
-              borderRadius: 0,
-              background: '#1e1e1e',
-              padding: '16px',
-              fontSize: '13px',
-              lineHeight: '1.6',
-            }}
-            codeTagProps={{ style: { fontFamily: "'Menlo', 'Consolas', 'Monaco', monospace" } }}
-          >
-            {String(children).replace(/\n$/, '')}
-          </SyntaxHighlighter>
-        </div>
-      );
-    }
+    const rawText = extractText(codeEl?.props?.children);
+    const lines = rawText.split('\n');
+    const lineCount = lines.at(-1) === '' ? lines.length - 1 : lines.length;
 
-    // Inline code — keep prose styling
     return (
-      <code className={className}>{children}</code>
+      <div style={{ borderRadius: '8px', overflow: 'hidden', boxShadow: '0 4px 24px rgba(0,0,0,.5)', margin: '1.5rem 0' }}>
+        <div style={{ background: '#2d2d2d', padding: '7px 14px', borderBottom: '1px solid #1a1a1a', display: 'flex', alignItems: 'center' }}>
+          <span style={{ fontSize: '11px', color: '#858585', background: '#3a3a3a', padding: '2px 8px', borderRadius: '12px', fontFamily: 'Menlo, Consolas, Monaco, monospace' }}>
+            {lang}
+          </span>
+        </div>
+        <div style={{ display: 'flex', background: '#1e1e1e', overflowX: 'auto' }}>
+          <div style={{ background: '#2d2d2d', padding: '16px 10px 16px 8px', color: '#858585', fontSize: '13px', lineHeight: '1.6', textAlign: 'right', userSelect: 'none', borderRight: '1px solid #1a1a1a', flexShrink: 0, fontFamily: "'Menlo', 'Consolas', 'Monaco', monospace" }}>
+            {Array.from({ length: lineCount }, (_, i) => <div key={i}>{i + 1}</div>)}
+          </div>
+          <pre style={{ flex: 1, margin: 0, padding: '16px', background: 'none', fontSize: '13px', lineHeight: '1.6', color: '#d4d4d4', whiteSpace: 'pre', fontFamily: "'Menlo', 'Consolas', 'Monaco', monospace" }}>
+            {children}
+          </pre>
+        </div>
+      </div>
     );
   },
 };
@@ -286,7 +232,11 @@ function ProjectDetail() {
               ref={contentRef}
               className="prose prose-gray dark:prose-invert max-w-none prose-headings:font-semibold prose-a:text-[hsl(210,65%,60%)] prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:text-gray-800 dark:prose-code:text-gray-200"
             >
-              <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw, rehypeSlug]} components={mdComponents}>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                rehypePlugins={[rehypeRaw, rehypeSlug, rehypeHighlight]}
+                components={mdComponents}
+              >
                 {deepDive ?? project.content!}
               </ReactMarkdown>
             </div>

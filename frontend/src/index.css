@@ -1,6 +1,45 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+/* ── Highlight.js VS Code Dark+ theme ── */
+.hljs                    { color: #d4d4d4; background: none; }
+.hljs-keyword            { color: #569cd6; }
+.hljs-built_in           { color: #dcdcaa; }
+.hljs-type               { color: #4ec9b0; }
+.hljs-literal            { color: #569cd6; }
+.hljs-number             { color: #b5cea8; }
+.hljs-operator           { color: #d4d4d4; }
+.hljs-punctuation        { color: #d4d4d4; }
+.hljs-property           { color: #9cdcfe; }
+.hljs-regexp             { color: #d16969; }
+.hljs-string             { color: #ce9178; }
+.hljs-char               { color: #ce9178; }
+.hljs-subst              { color: #d4d4d4; }
+.hljs-symbol             { color: #b5cea8; }
+.hljs-variable           { color: #9cdcfe; }
+.hljs-variable.language_ { color: #569cd6; }
+.hljs-title              { color: #dcdcaa; }
+.hljs-title.class_       { color: #4ec9b0; }
+.hljs-title.function_    { color: #dcdcaa; }
+.hljs-params             { color: #9cdcfe; }
+.hljs-comment            { color: #6a9955; font-style: italic; }
+.hljs-doctag             { color: #6a9955; }
+.hljs-meta               { color: #9b9b9b; }
+.hljs-section            { color: #dcdcaa; }
+.hljs-tag                { color: #569cd6; }
+.hljs-name               { color: #569cd6; }
+.hljs-attr               { color: #9cdcfe; }
+.hljs-attribute          { color: #ce9178; }
+.hljs-selector-class     { color: #d7ba7d; }
+.hljs-selector-id        { color: #dcdcaa; }
+.hljs-selector-tag       { color: #569cd6; }
+.hljs-selector-attr      { color: #9cdcfe; }
+.hljs-selector-pseudo    { color: #d7ba7d; }
+.hljs-addition           { color: #b5cea8; }
+.hljs-deletion           { color: #f44747; }
+.hljs-emphasis           { font-style: italic; }
+.hljs-strong             { font-weight: bold; }
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
