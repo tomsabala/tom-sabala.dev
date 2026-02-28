@@ -9,12 +9,13 @@ import { useToc } from '../contexts/TocContext.tsx';
 
 import type { TocItem } from '../contexts/TocContext.tsx';
 
-function TocEntry({ item, activeId, depth }: { item: TocItem; activeId: string; depth: number }) {
+function TocEntry({ item, activeId, onSelect, depth }: { item: TocItem; activeId: string; onSelect: (id: string) => void; depth: number }) {
   const isActive = activeId === item.id;
   return (
     <div>
       <a
         href={`#${item.id}`}
+        onClick={() => onSelect(item.id)}
         style={{ paddingLeft: `${44 + depth * 10}px`, ...(isActive ? { color: 'var(--accent)' } : {}) }}
         className={`block py-0.5 text-xs leading-5 truncate transition-colors pr-3 ${
           isActive
@@ -26,7 +27,7 @@ function TocEntry({ item, activeId, depth }: { item: TocItem; activeId: string; 
         {item.label}
       </a>
       {item.children?.map((child, i) => (
-        <TocEntry key={i} item={child} activeId={activeId} depth={depth + 1} />
+        <TocEntry key={i} item={child} activeId={activeId} onSelect={onSelect} depth={depth + 1} />
       ))}
     </div>
   );
@@ -83,7 +84,7 @@ function Layout() {
   const { isAuthenticated, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
-  const { toc, activeId, tocTitle } = useToc();
+  const { toc, activeId, tocTitle, setActiveId } = useToc();
   const [expanded, setExpanded] = useState(() =>
     localStorage.getItem('sidebarExpanded') === 'true'
   );
@@ -268,7 +269,7 @@ function Layout() {
                       </span>
                     )}
                     {toc.map((item, i) => (
-                      <TocEntry key={i} item={item} activeId={activeId} depth={1} />
+                      <TocEntry key={i} item={item} activeId={activeId} onSelect={setActiveId} depth={1} />
                     ))}
                   </div>
                 )}
