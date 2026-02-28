@@ -5,6 +5,7 @@ import hashlib
 import hmac
 import io
 import os
+import re
 import shutil
 import sys
 import tarfile
@@ -19,6 +20,7 @@ DOCS_DIR = os.path.join(os.path.dirname(__file__), '..', '..', 'docs')
 REPO_MAP = {
     'cgeo': 'tomsabala/CGEO-docs',
     'mlmp': 'tomsabala/MLMP-docs',
+    'chess-engine': 'tomsabala/ChessEngine-docs',
 }
 
 
@@ -97,7 +99,9 @@ def githubWebhook():
 
     repoName = payload.get('repository', {}).get('name', '')
     branch = payload.get('ref', 'refs/heads/main').split('/')[-1]
-    slug = repoName.replace('-docs', '').replace('_docs', '').lower()
+    name = repoName.replace('-docs', '').replace('_docs', '')
+    name = re.sub(r'([a-z\d])([A-Z])', r'\1-\2', name)
+    slug = re.sub(r'([A-Z]+)([A-Z][a-z])', r'\1-\2', name).lower()
 
     repo = REPO_MAP.get(slug)
     if not repo:
