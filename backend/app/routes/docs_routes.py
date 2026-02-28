@@ -18,6 +18,7 @@ DOCS_DIR = os.path.join(os.path.dirname(__file__), '..', '..', 'docs')
 
 REPO_MAP = {
     'cgeo': 'tomsabala/CGEO-docs',
+    'mlmp': 'tomsabala/MLMP-docs',
 }
 
 
