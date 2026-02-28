@@ -38,7 +38,11 @@ def _downloadAndExtract(slug: str, repo: str, branch: str = 'main'):
     print(f'[docs webhook] Downloading {repo}@{branch} → docs/{slug}/', flush=True)
 
     try:
-        req = urllib.request.Request(url, headers={'User-Agent': 'portfolio-docs'})
+        headers = {'User-Agent': 'portfolio-docs'}
+        token = os.getenv('GITHUB_TOKEN')
+        if token:
+            headers['Authorization'] = f'Bearer {token}'
+        req = urllib.request.Request(url, headers=headers)
         with urllib.request.urlopen(req, timeout=30) as resp:
             data = resp.read()
     except Exception as e:

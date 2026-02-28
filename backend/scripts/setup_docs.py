@@ -27,7 +27,11 @@ def downloadAndExtract(slug, repo, branch):
     print(f'[setup_docs] Downloading {repo}@{branch} → docs/{slug}/', flush=True)
 
     try:
-        req = urllib.request.Request(url, headers={'User-Agent': 'portfolio-setup'})
+        headers = {'User-Agent': 'portfolio-setup'}
+        token = os.getenv('GITHUB_TOKEN')
+        if token:
+            headers['Authorization'] = f'Bearer {token}'
+        req = urllib.request.Request(url, headers=headers)
         with urllib.request.urlopen(req, timeout=30) as resp:
             data = resp.read()
     except Exception as e:
