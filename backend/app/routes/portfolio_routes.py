@@ -2,8 +2,10 @@
 Portfolio routes - public viewing and admin CRUD operations
 """
 import os
+import re
 import traceback
 import sys
+import yaml
 from flask import Blueprint, request, jsonify, send_file, Response
 from flask_jwt_extended import jwt_required, verify_jwt_in_request
 from werkzeug.utils import secure_filename
@@ -372,14 +374,13 @@ def serveProjectImage(filename):
 @portfolio_bp.route('/portfolio/<int:projectId>/deep-dive', methods=['GET'])
 def getProjectDeepDive(projectId):
     """
-    Return the deep-dive markdown for a project, with relative image paths
-    rewritten to absolute API URLs.
+    Return the deep-dive markdown and TOC for a project.
 
-    Args:
-        projectId (int): ID of the project
+    Reads deep-dive.md, strips YAML frontmatter (which contains the toc),
+    rewrites relative image paths to absolute API URLs, and returns both.
 
     Returns:
-        200: {"success": true, "content": "<markdown>"}
+        200: {"success": true, "content": "<markdown>", "toc": [...]}
         404: Project not found or no docs configured
         500: Server error
     """
@@ -389,31 +390,47 @@ def getProjectDeepDive(projectId):
             return jsonify({'success': False, 'error': 'Project not found'}), 404
 
         if not project.docsSlug:
-            return jsonify({'success': False, 'error': 'No deep-dive docs configured for this project'}), 404
+            return jsonify({'success': False, 'error': 'No docs for this project'}), 404
 
         docsDir = os.path.join(os.path.dirname(__file__), '..', '..', 'docs')
         mdPath = os.path.realpath(os.path.join(docsDir, project.docsSlug, 'deep-dive.md'))
 
-        # Safety check — stay inside docs dir
         safeBase = os.path.realpath(docsDir)
         if not mdPath.startswith(safeBase + os.sep):
             return jsonify({'success': False, 'error': 'Invalid docs path'}), 400
 
         if not os.path.isfile(mdPath):
-            return jsonify({'success': False, 'error': 'deep-dive.md not found'}), 404
+            return jsonify({'success': False, 'error': 'Docs not available'}), 404
 
         with open(mdPath, 'r', encoding='utf-8') as f:
-            content = f.read()
+            raw = f.read()
 
-        # Rewrite relative asset paths to API URLs
-        # e.g. assets/screenshots/x.png → /api/docs/cgeo/assets/screenshots/x.png
+        meta, content = _parseFrontmatter(raw)
+        toc = meta.get('toc', []) if meta else []
+
         content = content.replace('](assets/', f'](/api/docs/{project.docsSlug}/assets/')
 
-        return jsonify({'success': True, 'content': content}), 200
+        return jsonify({'success': True, 'content': content, 'toc': toc}), 200
     except Exception as e:
         print(f"ERROR in /portfolio/{projectId}/deep-dive:", file=sys.stderr)
         print(traceback.format_exc(), file=sys.stderr)
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+def _parseFrontmatter(raw: str):
+    """Parse YAML frontmatter from a markdown string.
+
+    Returns (meta_dict, content_string). If no frontmatter, returns ({}, raw).
+    """
+    match = re.match(r'^---\n(.*?)\n---\n?(.*)', raw, re.DOTALL)
+    if not match:
+        return {}, raw
+    try:
+        meta = yaml.safe_load(match.group(1)) or {}
+    except yaml.YAMLError:
+        meta = {}
+    content = match.group(2).strip()
+    return meta, content
 
 
 def _deleteImageFromStorage(imageUrl):

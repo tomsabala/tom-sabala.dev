@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { GoogleReCaptchaProvider } from 'react-google-recaptcha-v3';
 import { Analytics } from '@vercel/analytics/react';
 import { ThemeProvider } from './contexts/ThemeContext.tsx';
+import { TocProvider } from './contexts/TocContext.tsx';
 import Layout from './components/Layout.tsx';
 import Home from './pages/Home.tsx';
 import Portfolio from './pages/Portfolio.tsx';
@@ -13,6 +14,7 @@ const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_V3_SITE_KEY || '';
 
 function App() {
   return (
+    <TocProvider>
     <ThemeProvider>
       <GoogleReCaptchaProvider
         reCaptchaKey={RECAPTCHA_SITE_KEY}
@@ -36,6 +38,7 @@ function App() {
         <Analytics />
       </GoogleReCaptchaProvider>
     </ThemeProvider>
+    </TocProvider>
   );
 }
 

@@ -5,6 +5,32 @@ import LoginModal from './LoginModal.tsx';
 import LogoMark from './LogoMark.tsx';
 import TerminalBackground from './TerminalBackground.tsx';
 import { useTheme } from '../contexts/ThemeContext.tsx';
+import { useToc } from '../contexts/TocContext.tsx';
+
+import type { TocItem } from '../contexts/TocContext.tsx';
+
+function TocEntry({ item, activeId, depth }: { item: TocItem; activeId: string; depth: number }) {
+  const isActive = activeId === item.id;
+  return (
+    <div>
+      <a
+        href={`#${item.id}`}
+        style={{ paddingLeft: `${16 + depth * 10}px`, ...(isActive ? { color: 'var(--accent)' } : {}) }}
+        className={`block py-0.5 text-xs leading-5 truncate transition-colors pr-3 ${
+          isActive
+            ? 'font-medium'
+            : 'text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+        }`}
+      >
+        {depth > 0 && <span className="mr-1 opacity-40">↳</span>}
+        {item.label}
+      </a>
+      {item.children?.map((child, i) => (
+        <TocEntry key={i} item={child} activeId={activeId} depth={depth + 1} />
+      ))}
+    </div>
+  );
+}
 
 const navItems = [
   {
@@ -57,6 +83,7 @@ function Layout() {
   const { isAuthenticated, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
+  const { toc, activeId } = useToc();
   const [expanded, setExpanded] = useState(() =>
     localStorage.getItem('sidebarExpanded') === 'true'
   );
@@ -201,7 +228,7 @@ function Layout() {
         <div className="w-full h-px bg-gray-100 dark:bg-gray-700 flex-shrink-0" />
 
         {/* Nav items */}
-        <nav className="flex-1 py-3 overflow-hidden">
+        <nav className="flex-1 py-3 overflow-y-auto overflow-x-hidden">
           {navItems.map(({ to, label, icon }) => {
             const active = isActive(to);
             return (
@@ -217,7 +244,6 @@ function Layout() {
                 }`}
                 style={active ? { color: 'var(--accent)' } : undefined}
               >
-                {/* Active dot */}
                 {active && (
                   <span
                     className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r-full"
@@ -258,6 +284,23 @@ function Layout() {
             )}
           </a>
         </nav>
+
+        {/* TOC section — only when a deep-dive page is active */}
+        {toc.length > 0 && (
+          <>
+            <div className="w-full h-px bg-gray-100 dark:bg-gray-700 flex-shrink-0" />
+            <div className="py-2 overflow-y-auto overflow-x-hidden flex-shrink-0 max-h-64">
+              {(expanded || mobileOpen) && (
+                <p className="px-4 mb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                  On this page
+                </p>
+              )}
+              {(expanded || mobileOpen) && toc.map((item, i) => (
+                <TocEntry key={i} item={item} activeId={activeId} depth={0} />
+              ))}
+            </div>
+          </>
+        )}
 
         <div className="w-full h-px bg-gray-100 dark:bg-gray-700 flex-shrink-0" />
 
