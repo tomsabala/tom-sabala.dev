@@ -44,7 +44,16 @@ function extractText(node: ReactNode): string {
   return '';
 }
 
+// Strip the /api suffix from VITE_API_URL to get the backend origin
+// e.g. "https://api.tom-sabala.dev/api" → "https://api.tom-sabala.dev"
+const API_ORIGIN = (import.meta.env.VITE_API_URL as string ?? '').replace(/\/api$/, '');
+
 const mdComponents: Components = {
+  img({ src, alt, ...props }) {
+    // Rewrite root-relative /api/ paths to the backend origin
+    const resolvedSrc = src?.startsWith('/api/') ? `${API_ORIGIN}${src}` : src;
+    return <img src={resolvedSrc} alt={alt} style={{ maxWidth: '100%', height: 'auto' }} {...props} />;
+  },
   pre({ children }) {
     const codeEl = children as ReactElement<{ className?: string; children?: ReactNode }>;
     const codeClass = codeEl?.props?.className ?? '';
