@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
+import rehypeRaw from 'rehype-raw';
 import * as portfolioRepository from '../repositories/portfolioRepository.ts';
 import type { PortfolioItem } from '../types/index.ts';
 
@@ -141,7 +142,7 @@ function ProjectDetail() {
           {/* Article body — deep-dive takes priority over content */}
           {(deepDive ?? project.content) ? (
             <div className="prose prose-gray dark:prose-invert max-w-none prose-headings:font-semibold prose-a:text-[hsl(210,65%,60%)] prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-pre:bg-gray-100 dark:prose-pre:bg-gray-800">
-              <ReactMarkdown>{deepDive ?? project.content!}</ReactMarkdown>
+              <ReactMarkdown rehypePlugins={[rehypeRaw]}>{deepDive ?? project.content!}</ReactMarkdown>
             </div>
           ) : (
             <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
