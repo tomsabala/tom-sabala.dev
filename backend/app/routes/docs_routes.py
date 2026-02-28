@@ -62,7 +62,7 @@ def _downloadAndExtract(slug: str, repo: str, branch: str = 'main'):
                 member.name = parts[1]
                 if not member.name:
                     continue
-                tar.extract(member, destDir)
+                tar.extract(member, destDir, filter='data')
         print(f'[docs webhook] Updated docs/{slug}/', flush=True)
     except Exception as e:
         print(f'[docs webhook] Extraction failed: {e}', file=sys.stderr)

@@ -29,8 +29,7 @@ def downloadAndExtract(slug, repo, branch):
     try:
         headers = {'User-Agent': 'portfolio-setup'}
         token = os.getenv('GITHUB_TOKEN')
-        print(f'[setup_docs] GITHUB_TOKEN present: {bool(token)}', flush=True)
-        if token:
+if token:
             headers['Authorization'] = f'Bearer {token}'
         resp = requests.get(url, headers=headers, timeout=30)
         resp.raise_for_status()
@@ -56,7 +55,7 @@ def downloadAndExtract(slug, repo, branch):
                 member.name = parts[1]
                 if not member.name:
                     continue
-                tar.extract(member, destDir)
+                tar.extract(member, destDir, filter='data')
     except Exception as e:
         print(f'[setup_docs] Extraction failed: {e}', file=sys.stderr)
         return False
