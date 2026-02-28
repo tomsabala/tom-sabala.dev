@@ -83,7 +83,7 @@ function Layout() {
   const { isAuthenticated, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
-  const { toc, activeId } = useToc();
+  const { toc, activeId, tocTitle } = useToc();
   const [expanded, setExpanded] = useState(() =>
     localStorage.getItem('sidebarExpanded') === 'true'
   );
@@ -259,8 +259,16 @@ function Layout() {
                 </Link>
                 {showToc && (
                   <div className="pb-1 overflow-x-hidden max-h-64 overflow-y-auto">
+                    {tocTitle && (
+                      <span
+                        className="block py-0.5 text-xs font-semibold truncate pr-3 text-gray-600 dark:text-gray-300"
+                        style={{ paddingLeft: '44px' }}
+                      >
+                        {tocTitle}
+                      </span>
+                    )}
                     {toc.map((item, i) => (
-                      <TocEntry key={i} item={item} activeId={activeId} depth={0} />
+                      <TocEntry key={i} item={item} activeId={activeId} depth={1} />
                     ))}
                   </div>
                 )}

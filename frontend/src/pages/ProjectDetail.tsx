@@ -14,15 +14,16 @@ function ProjectDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
-  const { setToc, setActiveId } = useToc();
+  const { setToc, setActiveId, setTocTitle } = useToc();
 
   // Clear TOC on unmount
   useEffect(() => {
     return () => {
       setToc([]);
       setActiveId('');
+      setTocTitle('');
     };
-  }, [setToc, setActiveId]);
+  }, [setToc, setActiveId, setTocTitle]);
 
   // Track active heading with IntersectionObserver
   useEffect(() => {
@@ -59,6 +60,7 @@ function ProjectDetail() {
         if (res.success) {
           setProject(res.data);
           if (res.data.docsSlug) {
+            setTocTitle(res.data.title);
             return portfolioRepository.getProjectDeepDive(Number(id))
               .then(ddRes => {
                 if (ddRes.success) {
@@ -185,7 +187,7 @@ function ProjectDetail() {
           {(deepDive ?? project.content) ? (
             <div
               ref={contentRef}
-              className="prose prose-gray dark:prose-invert max-w-none prose-headings:font-semibold prose-a:text-[hsl(210,65%,60%)] prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-pre:bg-gray-100 dark:prose-pre:bg-gray-800"
+              className="prose prose-gray dark:prose-invert max-w-none prose-headings:font-semibold prose-a:text-[hsl(210,65%,60%)] prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:text-gray-800 dark:prose-code:text-gray-200 prose-pre:bg-gray-900 dark:prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-pre:rounded-lg"
             >
               <ReactMarkdown rehypePlugins={[rehypeRaw, rehypeSlug]}>
                 {deepDive ?? project.content!}
