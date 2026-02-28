@@ -1,1 +1,1 @@
-web: flask db upgrade && gunicorn -c gunicorn_config.py "app:create_app()"
+web: mkdir -p docs && ([ -d docs/cgeo/.git ] || git clone https://github.com/tomsabala/CGEO-docs.git docs/cgeo) && flask db upgrade && gunicorn -c gunicorn_config.py "app:create_app()"
