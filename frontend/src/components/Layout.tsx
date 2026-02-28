@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext.tsx';
 import LoginModal from './LoginModal.tsx';
 import LogoMark from './LogoMark.tsx';
 import TerminalBackground from './TerminalBackground.tsx';
+import RobotBackground from './RobotBackground.tsx';
 import { useTheme } from '../contexts/ThemeContext.tsx';
 import { useToc } from '../contexts/TocContext.tsx';
 
@@ -139,6 +140,7 @@ function Layout() {
   return (
     <div className="flex h-screen overflow-hidden">
       <TerminalBackground />
+      <RobotBackground />
 
       {/* Mobile hamburger button */}
       <button
