@@ -7,6 +7,15 @@ import rehypeSlug from 'rehype-slug';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+
+// Strip per-token background overrides — they cause black blotches over the #1e1e1e base
+const vscodeStyle = Object.fromEntries(
+  Object.entries(vscDarkPlus).map(([token, styles]) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { background, backgroundColor, ...rest } = styles as Record<string, string>;
+    return [token, rest];
+  })
+);
 import * as portfolioRepository from '../repositories/portfolioRepository.ts';
 import type { PortfolioItem } from '../types/index.ts';
 import { useToc } from '../contexts/TocContext.tsx';
@@ -31,7 +40,7 @@ const mdComponents: Components = {
           </div>
           <SyntaxHighlighter
             language={lang ?? 'text'}
-            style={vscDarkPlus}
+            style={vscodeStyle}
             showLineNumbers
             lineNumberStyle={{
               color: '#858585',
