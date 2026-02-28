@@ -11,11 +11,11 @@ import tarfile
 import requests
 
 DOCS = [
-    {
-        'slug': 'cgeo',
-        'repo': 'tomsabala/CGEO-docs',
-        'branch': 'main',
-    }
+    {'slug': 'cgeo', 'repo': 'tomsabala/CGEO-docs', 'branch': 'main'},
+    {'slug': 'mlmp', 'repo': 'tomsabala/MLMP-docs', 'branch': 'main'},
+    {'slug': 'chess-engine', 'repo': 'tomsabala/ChessEngine-docs', 'branch': 'main'},
+    {'slug': 'portfolio', 'repo': 'tomsabala/tom-sabala.dev-docs', 'branch': 'main'},
+    {'slug': 'terminal', 'repo': 'tomsabala/tom-sabala.dev-terminal-docs', 'branch': 'main'},
 ]
 
 
