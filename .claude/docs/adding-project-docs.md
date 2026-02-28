@@ -5,11 +5,14 @@ deep-dive page for any portfolio project.
 
 ## How it works
 
-1. A separate GitHub repo (e.g. `CGEO-docs`) holds a `deep-dive.md` file.
+1. A separate GitHub repo (e.g. `CGEO-docs`) holds a `deep-dive.md` file with
+   YAML frontmatter that defines the table of contents.
 2. At startup, the backend downloads the repo as a tarball into `backend/docs/<slug>/`.
-3. `GET /api/portfolio/<id>/deep-dive` reads `deep-dive.md`, rewrites relative
-   image paths to `/api/docs/<slug>/assets/...`, and returns the markdown.
-4. The frontend renders it on the project detail page instead of `project.content`.
+3. `GET /api/portfolio/<id>/deep-dive` reads `deep-dive.md`, strips the YAML
+   frontmatter, rewrites relative image paths to `/api/docs/<slug>/assets/...`,
+   and returns `{ success, content, toc }`.
+4. The frontend renders the markdown on the project detail page and populates
+   the left sidebar "On this page" TOC automatically from the `toc` field.
 5. A GitHub webhook triggers a re-download whenever the docs repo is pushed to.
 
 ---
@@ -23,13 +26,47 @@ Create a new GitHub repo named `<ProjectName>-docs` (e.g. `MyProject-docs`).
 The expected structure:
 
 ```
-deep-dive.md          ← main content file
+deep-dive.md          ← main content file (with YAML frontmatter)
 assets/
   screenshots/        ← images referenced in deep-dive.md
 README.md             ← optional
 ```
 
-Reference images in `deep-dive.md` using relative paths:
+### 1a. Write the YAML frontmatter
+
+`deep-dive.md` **must** start with a YAML frontmatter block that defines the
+table of contents. The backend parses this and returns it as structured data —
+no client-side markdown parsing is involved.
+
+```markdown
+---
+toc:
+  - id: overview
+    label: Overview
+  - id: architecture
+    label: Architecture
+    children:
+      - id: backend
+        label: Backend
+      - id: frontend
+        label: Frontend
+  - id: getting-started
+    label: Getting Started
+---
+
+# My Project Deep Dive
+
+...content here...
+```
+
+**TOC field rules:**
+- `id` — must match the `id` attribute on the corresponding heading. Use
+  `rehype-slug` conventions: lowercase, spaces → hyphens (e.g. heading
+  `## Getting Started` → id `getting-started`).
+- `label` — display text shown in the sidebar.
+- `children` — optional array of nested items (same shape, rendered indented).
+
+Reference images using relative paths:
 
 ```markdown
 ![Alt text](assets/screenshots/my-image.png)
@@ -103,6 +140,35 @@ belong to a GitHub account (or fine-grained PAT) that has at least **read
 Contents** access to the new repo.
 
 If the repo is **public**, no token changes are needed.
+
+---
+
+## API response shape
+
+`GET /api/portfolio/<id>/deep-dive` returns:
+
+```json
+{
+  "success": true,
+  "content": "# My Project\n\n...",
+  "toc": [
+    { "id": "overview", "label": "Overview" },
+    {
+      "id": "architecture",
+      "label": "Architecture",
+      "children": [
+        { "id": "backend", "label": "Backend" },
+        { "id": "frontend", "label": "Frontend" }
+      ]
+    }
+  ]
+}
+```
+
+- `content` — markdown body with frontmatter stripped and image paths rewritten.
+- `toc` — nested array parsed from the `toc` key in the frontmatter. The
+  frontend passes this directly to `TocContext` and the sidebar renders it
+  recursively without any client-side heading parsing.
 
 ---
 
