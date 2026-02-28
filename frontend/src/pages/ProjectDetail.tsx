@@ -1,12 +1,70 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
+import type { Components } from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import rehypeSlug from 'rehype-slug';
 import remarkGfm from 'remark-gfm';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import * as portfolioRepository from '../repositories/portfolioRepository.ts';
 import type { PortfolioItem } from '../types/index.ts';
 import { useToc } from '../contexts/TocContext.tsx';
+
+const mdComponents: Components = {
+  // Strip the prose <pre> wrapper — our code component renders its own container
+  pre({ children }) {
+    return <>{children}</>;
+  },
+  code({ className, children }) {
+    const match = /language-(\w+)/.exec(className || '');
+    const lang = match?.[1];
+    const isBlock = !!match || String(children).includes('\n');
+
+    if (isBlock) {
+      return (
+        <div style={{ borderRadius: '8px', overflow: 'hidden', boxShadow: '0 4px 24px rgba(0,0,0,.5)', margin: '1.5rem 0' }}>
+          <div style={{ background: '#2d2d2d', padding: '7px 14px', borderBottom: '1px solid #1a1a1a', display: 'flex', alignItems: 'center' }}>
+            <span style={{ fontSize: '11px', color: '#858585', background: '#3a3a3a', padding: '2px 8px', borderRadius: '12px', fontFamily: 'Menlo, Consolas, Monaco, monospace' }}>
+              {lang ?? 'code'}
+            </span>
+          </div>
+          <SyntaxHighlighter
+            language={lang ?? 'text'}
+            style={vscDarkPlus}
+            showLineNumbers
+            lineNumberStyle={{
+              color: '#858585',
+              backgroundColor: '#2d2d2d',
+              paddingLeft: '8px',
+              paddingRight: '12px',
+              marginRight: '12px',
+              minWidth: '2.5em',
+              userSelect: 'none',
+              borderRight: '1px solid #1a1a1a',
+            }}
+            customStyle={{
+              margin: 0,
+              borderRadius: 0,
+              background: '#1e1e1e',
+              padding: '16px',
+              fontSize: '13px',
+              lineHeight: '1.6',
+            }}
+            codeTagProps={{ style: { fontFamily: "'Menlo', 'Consolas', 'Monaco', monospace" } }}
+          >
+            {String(children).replace(/\n$/, '')}
+          </SyntaxHighlighter>
+        </div>
+      );
+    }
+
+    // Inline code — keep prose styling
+    return (
+      <code className={className}>{children}</code>
+    );
+  },
+};
 
 function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
@@ -188,9 +246,9 @@ function ProjectDetail() {
           {(deepDive ?? project.content) ? (
             <div
               ref={contentRef}
-              className="prose prose-gray dark:prose-invert max-w-none prose-headings:font-semibold prose-a:text-[hsl(210,65%,60%)] prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:text-gray-800 dark:prose-code:text-gray-200 prose-pre:bg-gray-900 dark:prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-pre:rounded-lg"
+              className="prose prose-gray dark:prose-invert max-w-none prose-headings:font-semibold prose-a:text-[hsl(210,65%,60%)] prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:text-gray-800 dark:prose-code:text-gray-200"
             >
-              <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw, rehypeSlug]}>
+              <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw, rehypeSlug]} components={mdComponents}>
                 {deepDive ?? project.content!}
               </ReactMarkdown>
             </div>
