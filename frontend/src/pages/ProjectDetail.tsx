@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import type { Components } from 'react-markdown';
@@ -6,16 +6,45 @@ import rehypeRaw from 'rehype-raw';
 import rehypeSlug from 'rehype-slug';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
-// Strip per-token background overrides — they cause black blotches over the #1e1e1e base
-const vscodeStyle = Object.fromEntries(
-  Object.entries(vscDarkPlus).map(([token, styles]) => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { background, backgroundColor, ...rest } = styles as Record<string, string>;
-    return [token, rest];
-  })
-);
+// Minimal VS Code Dark+ theme — only token colors, no background overrides
+const vscodeStyle: Record<string, CSSProperties> = {
+  'code[class*="language-"]': { color: '#d4d4d4' },
+  'pre[class*="language-"]':  { color: '#d4d4d4', background: 'none' },
+  comment:    { color: '#6a9955', fontStyle: 'italic' },
+  prolog:     { color: '#6a9955' },
+  doctype:    { color: '#6a9955' },
+  cdata:      { color: '#6a9955' },
+  punctuation:{ color: '#d4d4d4' },
+  keyword:    { color: '#569cd6' },
+  'control-flow': { color: '#c586c0' },
+  boolean:    { color: '#569cd6' },
+  number:     { color: '#b5cea8' },
+  string:     { color: '#ce9178' },
+  char:       { color: '#ce9178' },
+  'template-string': { color: '#ce9178' },
+  'template-punctuation': { color: '#ce9178' },
+  regex:      { color: '#d16969' },
+  operator:   { color: '#d4d4d4' },
+  function:   { color: '#dcdcaa' },
+  'function-variable': { color: '#dcdcaa' },
+  'class-name': { color: '#4ec9b0' },
+  'maybe-class-name': { color: '#4ec9b0' },
+  builtin:    { color: '#dcdcaa' },
+  property:   { color: '#9cdcfe' },
+  'attr-name': { color: '#9cdcfe' },
+  'attr-value': { color: '#ce9178' },
+  variable:   { color: '#9cdcfe' },
+  constant:   { color: '#9cdcfe' },
+  symbol:     { color: '#b5cea8' },
+  selector:   { color: '#d7ba7d' },
+  tag:        { color: '#569cd6' },
+  atrule:     { color: '#c586c0' },
+  inserted:   { color: '#b5cea8' },
+  deleted:    { color: '#f44747' },
+  bold:       { fontWeight: 'bold' },
+  italic:     { fontStyle: 'italic' },
+};
 import * as portfolioRepository from '../repositories/portfolioRepository.ts';
 import type { PortfolioItem } from '../types/index.ts';
 import { useToc } from '../contexts/TocContext.tsx';
