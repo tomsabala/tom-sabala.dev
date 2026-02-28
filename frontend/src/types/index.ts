@@ -7,6 +7,7 @@ export interface PortfolioItem {
   live_url?: string;
   image_url?: string;
   content?: string;
+  docsSlug?: string;
   isVisible: boolean;
   displayOrder: number;
   createdAt?: string;

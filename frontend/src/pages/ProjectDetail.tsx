@@ -7,6 +7,7 @@ import type { PortfolioItem } from '../types/index.ts';
 function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const [project, setProject] = useState<PortfolioItem | null>(null);
+  const [deepDive, setDeepDive] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -16,6 +17,13 @@ function ProjectDetail() {
       .then(res => {
         if (res.success) {
           setProject(res.data);
+          if (res.data.docsSlug) {
+            return portfolioRepository.getProjectDeepDive(Number(id))
+              .then(ddRes => {
+                if (ddRes.success) setDeepDive(ddRes.content);
+              })
+              .catch(() => {/* deep-dive unavailable, fall back to content */});
+          }
         } else {
           setError('Project not found.');
         }
@@ -130,10 +138,10 @@ function ProjectDetail() {
 
           <hr className="border-gray-200 dark:border-gray-700 mb-8" />
 
-          {/* Article body */}
-          {project.content ? (
+          {/* Article body — deep-dive takes priority over content */}
+          {(deepDive ?? project.content) ? (
             <div className="prose prose-gray dark:prose-invert max-w-none prose-headings:font-semibold prose-a:text-[hsl(210,65%,60%)] prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-pre:bg-gray-100 dark:prose-pre:bg-gray-800">
-              <ReactMarkdown>{project.content}</ReactMarkdown>
+              <ReactMarkdown>{deepDive ?? project.content!}</ReactMarkdown>
             </div>
           ) : (
             <p className="text-gray-600 dark:text-gray-400 leading-relaxed">

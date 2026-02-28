@@ -64,6 +64,14 @@ export async function getProject(id: number) {
 }
 
 /**
+ * Get the deep-dive markdown for a project (public)
+ */
+export async function getProjectDeepDive(id: number) {
+  const response = await apiClient.get(`/portfolio/${id}/deep-dive`);
+  return response.data;
+}
+
+/**
  * Upload project image (admin - requires auth)
  */
 export async function uploadProjectImage(file: File) {

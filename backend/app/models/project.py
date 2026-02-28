@@ -13,6 +13,7 @@ class Project(db.Model):
     liveUrl = db.Column('live_url', db.String(500), nullable=True)
     imageUrl = db.Column('image_url', db.String(500), nullable=True)
     content = db.Column('content', db.Text, nullable=True)
+    docsSlug = db.Column('docs_slug', db.String(100), nullable=True)
     isVisible = db.Column('is_visible', db.Boolean, nullable=False, default=True)
     displayOrder = db.Column('display_order', db.Integer, nullable=False, default=0)
     createdAt = db.Column('created_at', db.DateTime, nullable=False, default=datetime.utcnow)
@@ -29,6 +30,7 @@ class Project(db.Model):
             'live_url': self.liveUrl,
             'image_url': self.imageUrl,
             'content': self.content,
+            'docsSlug': self.docsSlug,
             'isVisible': self.isVisible,
             'displayOrder': self.displayOrder,
             'createdAt': self.createdAt.isoformat() if self.createdAt else None,

@@ -26,3 +26,6 @@ Thumbs.db
 # Uploads
 uploads/
 *.pdf
+
+# Project docs (separate git repos cloned at setup)
+docs/

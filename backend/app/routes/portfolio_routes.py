@@ -368,6 +368,53 @@ def serveProjectImage(filename):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@portfolio_bp.route('/portfolio/<int:projectId>/deep-dive', methods=['GET'])
+def getProjectDeepDive(projectId):
+    """
+    Return the deep-dive markdown for a project, with relative image paths
+    rewritten to absolute API URLs.
+
+    Args:
+        projectId (int): ID of the project
+
+    Returns:
+        200: {"success": true, "content": "<markdown>"}
+        404: Project not found or no docs configured
+        500: Server error
+    """
+    try:
+        project = ProjectDAO.getProjectById(projectId)
+        if not project:
+            return jsonify({'success': False, 'error': 'Project not found'}), 404
+
+        if not project.docsSlug:
+            return jsonify({'success': False, 'error': 'No deep-dive docs configured for this project'}), 404
+
+        docsDir = os.path.join(os.path.dirname(__file__), '..', '..', 'docs')
+        mdPath = os.path.realpath(os.path.join(docsDir, project.docsSlug, 'deep-dive.md'))
+
+        # Safety check — stay inside docs dir
+        safeBase = os.path.realpath(docsDir)
+        if not mdPath.startswith(safeBase + os.sep):
+            return jsonify({'success': False, 'error': 'Invalid docs path'}), 400
+
+        if not os.path.isfile(mdPath):
+            return jsonify({'success': False, 'error': 'deep-dive.md not found'}), 404
+
+        with open(mdPath, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        # Rewrite relative asset paths to API URLs
+        # e.g. assets/screenshots/x.png → /api/docs/cgeo/assets/screenshots/x.png
+        content = content.replace('](assets/', f'](/api/docs/{project.docsSlug}/assets/')
+
+        return jsonify({'success': True, 'content': content}), 200
+    except Exception as e:
+        print(f"ERROR in /portfolio/{projectId}/deep-dive:", file=sys.stderr)
+        print(traceback.format_exc(), file=sys.stderr)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 def _deleteImageFromStorage(imageUrl):
     """
     Helper to delete an image from storage

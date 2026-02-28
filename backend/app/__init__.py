@@ -116,6 +116,7 @@ def create_app():
     from app.routes.health_routes import health_bp
     from app.routes.dashboard_routes import dashboard_bp
     from app.routes.about_routes import about_bp
+    from app.routes.docs_routes import docs_bp
 
     app.register_blueprint(portfolio_bp, url_prefix='/api')
     app.register_blueprint(resume_bp, url_prefix='/api')
@@ -124,6 +125,7 @@ def create_app():
     app.register_blueprint(health_bp, url_prefix='/api')
     app.register_blueprint(dashboard_bp, url_prefix='/api')
     app.register_blueprint(about_bp, url_prefix='/api')
+    app.register_blueprint(docs_bp, url_prefix='/api')
 
     # JWT error handlers
     @jwt.unauthorized_loader
