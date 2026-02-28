@@ -1,8 +1,8 @@
 [phases.setup]
-nixPkgs = ["python312", "git"]
+nixPkgs = ["python312"]
 
 [phases.install]
 cmds = ["pip install -r requirements.txt"]
 
 [start]
-cmd = "mkdir -p docs && ([ -d docs/cgeo/.git ] || git clone https://github.com/tomsabala/CGEO-docs.git docs/cgeo) && gunicorn -w 2 -c gunicorn_config.py 'app:create_app()'"
+cmd = "gunicorn -w 2 -c gunicorn_config.py 'app:create_app()'"
