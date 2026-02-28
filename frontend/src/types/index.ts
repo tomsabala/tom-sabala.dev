@@ -22,6 +22,7 @@ export interface ProjectFormData {
   live_url?: string;
   image_url?: string;
   content?: string;
+  docsSlug?: string;
 }
 
 export interface ProjectOrderUpdate {

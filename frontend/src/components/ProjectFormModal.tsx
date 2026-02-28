@@ -26,6 +26,7 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
     live_url: '',
     image_url: '',
     content: '',
+    docs_slug: '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -44,6 +45,7 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
           live_url: project.live_url || '',
           image_url: project.image_url || '',
           content: project.content || '',
+          docs_slug: project.docsSlug || '',
         });
       } else {
         // Reset form for add mode
@@ -55,6 +57,7 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
           live_url: '',
           image_url: '',
           content: '',
+          docs_slug: '',
         });
       }
       setErrors({});
@@ -144,6 +147,7 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
         live_url: formData.live_url.trim() || undefined,
         image_url: formData.image_url.trim() || undefined,
         content: formData.content.trim() || undefined,
+        docsSlug: formData.docs_slug.trim() || undefined,
       };
 
       let response;
@@ -346,6 +350,25 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
             />
             <p className="mt-1 text-xs text-gray-500">
               Supports Markdown: **bold**, `code`, ## headings, - lists, etc.
+            </p>
+          </div>
+
+          {/* Docs Slug Field */}
+          <div>
+            <label htmlFor="docs_slug" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Docs Slug
+            </label>
+            <input
+              type="text"
+              id="docs_slug"
+              name="docs_slug"
+              value={formData.docs_slug}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              placeholder="e.g. cgeo"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Links to a docs repo in <code>backend/docs/&lt;slug&gt;/</code>. Deep-dive markdown will be served from there.
             </p>
           </div>
 
