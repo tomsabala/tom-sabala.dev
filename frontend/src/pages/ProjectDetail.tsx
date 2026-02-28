@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import rehypeSlug from 'rehype-slug';
+import remarkGfm from 'remark-gfm';
 import * as portfolioRepository from '../repositories/portfolioRepository.ts';
 import type { PortfolioItem } from '../types/index.ts';
 import { useToc } from '../contexts/TocContext.tsx';
@@ -189,7 +190,7 @@ function ProjectDetail() {
               ref={contentRef}
               className="prose prose-gray dark:prose-invert max-w-none prose-headings:font-semibold prose-a:text-[hsl(210,65%,60%)] prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:text-gray-800 dark:prose-code:text-gray-200 prose-pre:bg-gray-900 dark:prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-pre:rounded-lg"
             >
-              <ReactMarkdown rehypePlugins={[rehypeRaw, rehypeSlug]}>
+              <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw, rehypeSlug]}>
                 {deepDive ?? project.content!}
               </ReactMarkdown>
             </div>
