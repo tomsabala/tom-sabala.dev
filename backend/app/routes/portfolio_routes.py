@@ -92,7 +92,8 @@ def createProject():
             githubUrl=data.get('githubUrl'),
             liveUrl=data.get('liveUrl'),
             imageUrl=data.get('imageUrl'),
-            content=data.get('content')
+            content=data.get('content'),
+            docsSlug=data.get('docsSlug')
         )
         return jsonify({'success': True, 'data': project.toDict()}), 201
     except Exception as e:
