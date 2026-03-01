@@ -28,17 +28,17 @@
 
 ## 5. Project Deep Dive Page Enhancements
 
-- [ ] Add README rendering (markdown) for each project
+- [x] Add README rendering (markdown) for each project
 - [ ] Embed or link demo (video/live demo URL)
 - [ ] Display architecture diagram (image or interactive)
-- [ ] Tech stack breakdown section
-- [ ] Challenges / lessons learned section
+- [x] Tech stack breakdown section
+- [x] Challenges / lessons learned section
 
 ## 6. Terminal Info Rewrite
 
-- [ ] Audit and rewrite all `info` command content (bio, skills, experience, etc.)
-- [ ] Ensure content is accurate and up to date
-- [ ] Polish formatting and structure of info output
+- [x] Audit and rewrite all `info` command content (bio, skills, experience, etc.)
+- [x] Ensure content is accurate and up to date
+- [x] Polish formatting and structure of info output
 
 ## 7. GitHub Stats
 
