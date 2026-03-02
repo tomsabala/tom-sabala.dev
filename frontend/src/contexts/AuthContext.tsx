@@ -34,23 +34,32 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+// Persists across sessions — set on login, cleared on logout.
+// Avoids the /api/auth/me network round-trip for visitors who have never logged in.
+const HAS_SESSION_KEY = 'hasAdminSession';
+
+function hadPreviousSession(): boolean {
+  try {
+    return localStorage.getItem(HAS_SESSION_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     isAuthenticated: false,
-    isLoading: true,
+    // Only show loading spinner if we actually need to check auth
+    isLoading: hadPreviousSession(),
   });
 
-  // Check authentication status on mount
+  // Only check auth if this browser has seen a successful login before
   useEffect(() => {
-    checkAuth().catch(err => {
-      console.error('Auth check failed:', err);
-      // Set loading to false even if check fails
-      setAuthState({
-        user: null,
-        isAuthenticated: false,
-        isLoading: false,
-      });
+    if (!hadPreviousSession()) return;
+
+    checkAuth().catch(() => {
+      setAuthState({ user: null, isAuthenticated: false, isLoading: false });
     });
   }, []);
 
@@ -89,6 +98,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const response = await authRepository.googleLogin(credential);
       if (response.success && response.data?.user) {
+        try { localStorage.setItem(HAS_SESSION_KEY, 'true'); } catch { /* ignore */ }
         setAuthState({
           user: response.data.user,
           isAuthenticated: true,
@@ -114,6 +124,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
+      try { localStorage.removeItem(HAS_SESSION_KEY); } catch { /* ignore */ }
       setAuthState({
         user: null,
         isAuthenticated: false,
