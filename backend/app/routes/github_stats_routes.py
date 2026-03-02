@@ -5,9 +5,13 @@ Requires GITHUB_STATS_TOKEN env var for contribution calendar (GraphQL).
 Without it, stars, repos, PRs, and language breakdown still work.
 """
 import os
+import logging
+import traceback
 import requests
 from flask import Blueprint, jsonify
 from datetime import datetime, timedelta
+
+logger = logging.getLogger(__name__)
 
 github_stats_bp = Blueprint('github_stats', __name__)
 
@@ -148,23 +152,32 @@ def _calculateStreaks(grid):
 
 def _fetchStats():
     headers = _buildHeaders()
+    hasToken = bool(os.getenv('GITHUB_STATS_TOKEN'))
+    logger.info('Fetching GitHub stats for %s (token: %s)', GITHUB_USERNAME, hasToken)
 
-    # User profile
+    # ── User profile ──────────────────────────────────────────────────────────
     userResp = requests.get(
         f'https://api.github.com/users/{GITHUB_USERNAME}',
         headers=headers,
         timeout=10,
     )
-    userResp.raise_for_status()
+    if userResp.status_code != 200:
+        logger.error('GitHub user fetch failed: %s %s', userResp.status_code, userResp.text[:200])
+        userResp.raise_for_status()
     user = userResp.json()
 
-    # Own repos (up to 100, excludes forks)
-    reposResp = requests.get(
-        'https://api.github.com/user/repos?per_page=100&type=owner&affiliation=owner',
-        headers=headers,
-        timeout=10,
+    # ── Repos ─────────────────────────────────────────────────────────────────
+    # /user/repos returns private + public when authenticated; falls back to
+    # /users/{login}/repos (public only) when no token is present.
+    reposUrl = (
+        'https://api.github.com/user/repos?per_page=100&type=owner&affiliation=owner'
+        if hasToken else
+        f'https://api.github.com/users/{GITHUB_USERNAME}/repos?per_page=100&type=owner'
     )
+    reposResp = requests.get(reposUrl, headers=headers, timeout=10)
     repos = reposResp.json() if reposResp.status_code == 200 else []
+    if reposResp.status_code != 200:
+        logger.warning('GitHub repos fetch returned %s', reposResp.status_code)
 
     stars = sum(r.get('stargazers_count', 0) for r in repos if isinstance(r, dict))
 
@@ -192,7 +205,7 @@ def _fetchStats():
             'color': LANG_COLORS.get(lang, '#8b949e'),
         })
 
-    # Merged PRs via search API
+    # ── Merged PRs ────────────────────────────────────────────────────────────
     prs = 0
     try:
         prResp = requests.get(
@@ -203,10 +216,12 @@ def _fetchStats():
         )
         if prResp.status_code == 200:
             prs = prResp.json().get('total_count', 0)
+        else:
+            logger.warning('GitHub PR search returned %s', prResp.status_code)
     except Exception:
-        pass
+        logger.warning('GitHub PR search failed', exc_info=True)
 
-    # Contribution calendar (GraphQL, requires token)
+    # ── Contribution calendar ─────────────────────────────────────────────────
     contributions = [[0] * 7 for _ in range(52)]
     totalContributions = 0
     currentStreak = 0
@@ -219,6 +234,11 @@ def _fetchStats():
         totalContributions = calendar.get('totalContributions', 0)
         contributions = _buildContributionGrid(calendar)
         currentStreak, longestStreak = _calculateStreaks(contributions)
+
+    logger.info(
+        'GitHub stats fetched: repos=%d stars=%d prs=%d contributions=%d',
+        len(repos), stars, prs, totalContributions,
+    )
 
     return {
         'username': GITHUB_USERNAME,
@@ -250,7 +270,12 @@ def getGithubStats():
         _cache['updated'] = now
         return jsonify({'success': True, 'data': data})
     except Exception as e:
-        # Return stale cache rather than error if available
+        logger.error(
+            'GitHub stats endpoint failed: %s\n%s',
+            str(e),
+            traceback.format_exc(),
+        )
         if cached:
+            logger.info('Returning stale cached stats after error')
             return jsonify({'success': True, 'data': cached, 'cached': True, 'stale': True})
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Failed to fetch GitHub stats'}), 500
