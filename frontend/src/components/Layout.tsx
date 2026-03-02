@@ -92,6 +92,8 @@ const navItems = [
   },
 ];
 
+const API_BASE = (import.meta.env.VITE_API_URL as string) || 'http://localhost:5000/api';
+
 function Layout() {
   const { isAuthenticated, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
@@ -101,6 +103,14 @@ function Layout() {
     localStorage.getItem('sidebarExpanded') === 'true'
   );
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [githubStatsEnabled, setGithubStatsEnabled] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/github-stats/status`)
+      .then(r => r.json())
+      .then(data => setGithubStatsEnabled(data.enabled ?? false))
+      .catch(() => setGithubStatsEnabled(false));
+  }, []);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
@@ -247,8 +257,20 @@ function Layout() {
             const active = isActive(to);
             const isPortfolio = to === '/portfolio';
             const showToc = isPortfolio && toc.length > 0 && (expanded || mobileOpen);
+            const isDisabled = to === '/github-stats' && githubStatsEnabled === false;
             return (
               <div key={to}>
+                {isDisabled ? (
+                  <span
+                    title={!expanded && !mobileOpen ? label : 'GitHub Stats not configured'}
+                    className="relative flex items-center h-10 px-3 mx-1 rounded-md cursor-not-allowed opacity-35 text-gray-500 dark:text-gray-400 select-none"
+                  >
+                    <span className="flex-shrink-0">{icon}</span>
+                    {(expanded || mobileOpen) && (
+                      <span className="ml-3 text-sm font-medium whitespace-nowrap">{label}</span>
+                    )}
+                  </span>
+                ) : (
                 <Link
                   to={to}
                   onClick={() => setMobileOpen(false)}
@@ -271,6 +293,7 @@ function Layout() {
                     <span className="ml-3 text-sm font-medium whitespace-nowrap">{label}</span>
                   )}
                 </Link>
+                )}
                 {showToc && (
                   <div className="pb-1 overflow-x-hidden max-h-64 overflow-y-auto">
                     {tocTitle && (

@@ -3,7 +3,7 @@
  * Shows the full 52-week contribution heatmap, streak badges,
  * contribution count, and language tag pills.
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getGitHubStats } from '../repositories/githubRepository.ts';
 import type { GitHubStats as GitHubStatsType } from '../types/index.ts';
 
@@ -83,6 +83,7 @@ export default function GitHubStats() {
   const [stats,   setStats]   = useState<GitHubStatsType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState('');
+  const heatmapRef = useRef<HTMLDivElement>(null);
 
   // Track dark mode by watching the <html> class attribute
   const [isDark, setIsDark] = useState(() =>
@@ -105,6 +106,13 @@ export default function GitHubStats() {
       .catch(() => setError('Unable to load GitHub stats.'))
       .finally(() => setLoading(false));
   }, []);
+
+  // Scroll heatmap to the right (most recent weeks) on load
+  useEffect(() => {
+    if (stats && heatmapRef.current) {
+      heatmapRef.current.scrollLeft = heatmapRef.current.scrollWidth;
+    }
+  }, [stats]);
 
   const year = new Date().getFullYear();
   const labelColor = isDark ? '#6b7280' : '#9ca3af';
@@ -148,7 +156,7 @@ export default function GitHubStats() {
           )}
 
           {/* ── Contribution heatmap ── */}
-          <div className="overflow-x-auto mb-4 -mx-1 px-1">
+          <div ref={heatmapRef} className="overflow-x-auto mb-4 -mx-1 px-1">
             <svg
               width={SVG_W}
               height={SVG_H}

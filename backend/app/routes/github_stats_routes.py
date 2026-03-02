@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 github_stats_bp = Blueprint('github_stats', __name__)
 
-GITHUB_USERNAME = os.getenv('GITHUB_USERNAME', 'tom-sabala')
+GITHUB_USERNAME = os.getenv('GITHUB_USERNAME')  # Required — feature disabled if unset
 CACHE_TTL = 3600  # 1 hour
 
 LANG_COLORS = {
@@ -255,8 +255,16 @@ def _fetchStats():
     }
 
 
+@github_stats_bp.route('/github-stats/status', methods=['GET'])
+def getGithubStatsStatus():
+    return jsonify({'enabled': bool(GITHUB_USERNAME)})
+
+
 @github_stats_bp.route('/github-stats', methods=['GET'])
 def getGithubStats():
+    if not GITHUB_USERNAME:
+        return jsonify({'success': False, 'disabled': True}), 503
+
     now = datetime.utcnow()
     cached = _cache.get('data')
     updatedAt = _cache.get('updated')
