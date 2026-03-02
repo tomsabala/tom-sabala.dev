@@ -364,7 +364,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
 
       {/* In Progress Badge */}
       {project.is_in_progress && (
-        <div className={`absolute top-2 z-10 bg-amber-400 text-amber-900 text-xs font-semibold px-2 py-1 rounded-full shadow-md ${isAdmin ? 'left-24' : 'left-2'}`}>
+        <div className={`absolute top-2 z-10 bg-amber-400 text-amber-900 text-xs font-semibold px-2 py-1 rounded-full shadow-md ${isAdmin ? 'right-10' : 'right-2'}`}>
           In Progress
         </div>
       )}
