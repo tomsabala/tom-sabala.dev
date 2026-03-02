@@ -91,9 +91,9 @@ def createProject():
             title=data['title'],
             description=data['description'],
             technologies=data['technologies'],
-            githubUrl=data.get('githubUrl'),
-            liveUrl=data.get('liveUrl'),
-            imageUrl=data.get('imageUrl'),
+            githubUrl=data.get('github_url'),
+            liveUrl=data.get('live_url'),
+            imageUrl=data.get('image_url'),
             content=data.get('content'),
             docsSlug=data.get('docsSlug'),
             isInProgress=data.get('is_in_progress', False)
@@ -156,12 +156,16 @@ def updateProject(projectId):
             return jsonify({'success': False, 'error': 'Project not found'}), 404
 
         oldImageUrl = currentProject.imageUrl
-        newImageUrl = data.get('imageUrl')
+        newImageUrl = data.get('image_url')
 
-        # Update the project (remap snake_case is_in_progress to camelCase attr)
-        updateData = {k: v for k, v in data.items() if k != 'is_in_progress'}
-        if 'is_in_progress' in data:
-            updateData['isInProgress'] = data['is_in_progress']
+        # Remap snake_case frontend fields to camelCase model attributes
+        fieldMap = {
+            'github_url': 'githubUrl',
+            'live_url': 'liveUrl',
+            'image_url': 'imageUrl',
+            'is_in_progress': 'isInProgress',
+        }
+        updateData = {fieldMap.get(k, k): v for k, v in data.items()}
         project = ProjectDAO.updateProject(projectId, **updateData)
         if not project:
             return jsonify({'success': False, 'error': 'Project not found'}), 404
