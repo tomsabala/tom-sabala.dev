@@ -50,7 +50,7 @@ def _downloadAndExtract(slug: str, repo: str, branch: str = 'main'):
 
     try:
         headers = {'User-Agent': 'portfolio-docs'}
-        token = os.getenv('GITHUB_TOKEN')
+        token = os.getenv('GITHUB_DOCS_TOKEN')
         if token:
             headers['Authorization'] = f'Bearer {token}'
         resp = httpx.get(url, headers=headers, timeout=30)

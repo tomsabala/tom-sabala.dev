@@ -19,7 +19,7 @@ DOCS = [
 ]
 
 
-def downloadAndExtract(slug, repo, branch):
+def downloadAndExtract(slug: str, repo: str, branch: str):
     docsDir = os.path.join(os.path.dirname(__file__), '..', 'docs')
     destDir = os.path.realpath(os.path.join(docsDir, slug))
 
@@ -28,7 +28,7 @@ def downloadAndExtract(slug, repo, branch):
 
     try:
         headers = {'User-Agent': 'portfolio-setup'}
-        token = os.getenv('GITHUB_TOKEN')
+        token = os.getenv('GITHUB_DOCS_TOKEN')
         if token:
             headers['Authorization'] = f'Bearer {token}'
         resp = requests.get(url, headers=headers, timeout=30)
