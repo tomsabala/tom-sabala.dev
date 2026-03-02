@@ -170,7 +170,7 @@ def _fetchStats():
     # /user/repos returns private + public when authenticated; falls back to
     # /users/{login}/repos (public only) when no token is present.
     reposUrl = (
-        'https://api.github.com/user/repos?per_page=100&type=owner&affiliation=owner'
+        'https://api.github.com/user/repos?per_page=100&affiliation=owner'
         if hasToken else
         f'https://api.github.com/users/{GITHUB_USERNAME}/repos?per_page=100&type=owner'
     )
