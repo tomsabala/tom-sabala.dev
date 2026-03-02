@@ -137,6 +137,28 @@ export interface PdfUploadResponse {
   error?: string;
 }
 
+// GitHub Stats Types
+export interface GitHubLanguage {
+  name: string;
+  pct: number;
+  color: string;
+}
+
+export interface GitHubStats {
+  username: string;
+  publicRepos: number;
+  stars: number;
+  prs: number;
+  totalContributions: number;
+  currentStreak: number;
+  longestStreak: number;
+  /** 52×7 grid: contributions[weekIndex][dayIndex], Sun=0, Sat=6 */
+  contributions: number[][];
+  languages: GitHubLanguage[];
+  fetchedAt: string;
+  hasContributionData: boolean;
+}
+
 // About Types
 export interface AboutData {
   id: number | null;

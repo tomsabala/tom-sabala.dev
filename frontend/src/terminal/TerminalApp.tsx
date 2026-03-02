@@ -22,6 +22,7 @@ import './commands/whoami';
 import './commands/cd';
 import './commands/ls';
 import './commands/pwd';
+import './commands/stats';
 
 export default function TerminalApp() {
   const { currentTheme, setTheme, setContainerRef } = useTheme();
