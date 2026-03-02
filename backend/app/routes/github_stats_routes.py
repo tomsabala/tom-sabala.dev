@@ -181,6 +181,17 @@ def _fetchStats():
 
     stars = sum(r.get('stargazers_count', 0) for r in repos if isinstance(r, dict))
 
+    # Log each repo for debugging language breakdown
+    for repo in repos:
+        if isinstance(repo, dict):
+            logger.info(
+                'repo: %s | lang: %s | fork: %s | private: %s',
+                repo.get('name'),
+                repo.get('language'),
+                repo.get('fork'),
+                repo.get('private'),
+            )
+
     # Language breakdown by repo count (primary language per repo)
     langCounts: dict = {}
     for repo in repos:
