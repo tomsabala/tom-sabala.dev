@@ -9,10 +9,17 @@ from datetime import timedelta
 from dotenv import load_dotenv
 import os
 import sys
+import logging
 import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
 
 load_dotenv()
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
+    stream=sys.stdout,
+)
 
 # Initialize Sentry (production only)
 if os.getenv('FLASK_ENV') == 'production' and os.getenv('SENTRY_DSN'):
