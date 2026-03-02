@@ -181,17 +181,6 @@ def _fetchStats():
 
     stars = sum(r.get('stargazers_count', 0) for r in repos if isinstance(r, dict))
 
-    # Log each repo for debugging language breakdown
-    for repo in repos:
-        if isinstance(repo, dict):
-            logger.info(
-                'repo: %s | lang: %s | fork: %s | private: %s',
-                repo.get('name'),
-                repo.get('language'),
-                repo.get('fork'),
-                repo.get('private'),
-            )
-
     # Language breakdown by repo count (primary language per repo)
     langCounts: dict = {}
     for repo in repos:
@@ -200,7 +189,7 @@ def _fetchStats():
             if lang:
                 langCounts[lang] = langCounts.get(lang, 0) + 1
 
-    topLangs = sorted(langCounts.items(), key=lambda x: -x[1])[:5]
+    topLangs = sorted(langCounts.items(), key=lambda x: -x[1])
     topTotal = sum(v for _, v in topLangs) or 1
     remaining = 100
     languages = []
