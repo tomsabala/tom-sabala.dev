@@ -95,7 +95,8 @@ def createProject():
             liveUrl=data.get('liveUrl'),
             imageUrl=data.get('imageUrl'),
             content=data.get('content'),
-            docsSlug=data.get('docsSlug')
+            docsSlug=data.get('docsSlug'),
+            isInProgress=data.get('is_in_progress', False)
         )
         return jsonify({'success': True, 'data': project.toDict()}), 201
     except Exception as e:
@@ -157,8 +158,11 @@ def updateProject(projectId):
         oldImageUrl = currentProject.imageUrl
         newImageUrl = data.get('imageUrl')
 
-        # Update the project
-        project = ProjectDAO.updateProject(projectId, **data)
+        # Update the project (remap snake_case is_in_progress to camelCase attr)
+        updateData = {k: v for k, v in data.items() if k != 'is_in_progress'}
+        if 'is_in_progress' in data:
+            updateData['isInProgress'] = data['is_in_progress']
+        project = ProjectDAO.updateProject(projectId, **updateData)
         if not project:
             return jsonify({'success': False, 'error': 'Project not found'}), 404
 

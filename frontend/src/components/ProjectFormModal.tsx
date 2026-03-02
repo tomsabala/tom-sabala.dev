@@ -27,6 +27,7 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
     image_url: '',
     content: '',
     docs_slug: '',
+    is_in_progress: false,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -46,6 +47,7 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
           image_url: project.image_url || '',
           content: project.content || '',
           docs_slug: project.docsSlug || '',
+          is_in_progress: project.is_in_progress ?? false,
         });
       } else {
         // Reset form for add mode
@@ -58,6 +60,7 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
           image_url: '',
           content: '',
           docs_slug: '',
+          is_in_progress: false,
         });
       }
       setErrors({});
@@ -146,8 +149,9 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
         github_url: formData.github_url.trim() || undefined,
         live_url: formData.live_url.trim() || undefined,
         image_url: formData.image_url.trim() || undefined,
-        content: formData.content.trim() || undefined,
-        docsSlug: formData.docs_slug.trim() || undefined,
+        content: formData.is_in_progress ? undefined : (formData.content.trim() || undefined),
+        docsSlug: formData.is_in_progress ? undefined : (formData.docs_slug.trim() || undefined),
+        is_in_progress: formData.is_in_progress,
       };
 
       let response;
@@ -183,6 +187,11 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
         return newErrors;
       });
     }
+  };
+
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, checked } = e.target;
+    setFormData(prev => ({ ...prev, [name]: checked }));
   };
 
   const handleImageUploaded = (imageUrl: string) => {
@@ -334,43 +343,62 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
             {errors.live_url && <p className="mt-1 text-sm text-red-600">{errors.live_url}</p>}
           </div>
 
-          {/* Article Content Field */}
-          <div>
-            <label htmlFor="content" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Article Content (Markdown)
-            </label>
-            <textarea
-              id="content"
-              name="content"
-              value={formData.content}
-              onChange={handleInputChange}
-              rows={15}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-mono text-sm"
-              placeholder="Write a detailed article about this project..."
+          {/* In Progress Toggle */}
+          <div className="flex items-center gap-3 p-3 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg">
+            <input
+              type="checkbox"
+              id="is_in_progress"
+              name="is_in_progress"
+              checked={formData.is_in_progress}
+              onChange={handleCheckboxChange}
+              className="w-4 h-4 rounded border-gray-300 accent-amber-500 cursor-pointer"
             />
-            <p className="mt-1 text-xs text-gray-500">
-              Supports Markdown: **bold**, `code`, ## headings, - lists, etc.
-            </p>
+            <label htmlFor="is_in_progress" className="text-sm font-medium text-amber-800 dark:text-amber-300 cursor-pointer select-none">
+              In Progress — hides the detail page; card click shows an info message instead
+            </label>
           </div>
 
-          {/* Docs Slug Field */}
-          <div>
-            <label htmlFor="docs_slug" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Docs Slug
-            </label>
-            <input
-              type="text"
-              id="docs_slug"
-              name="docs_slug"
-              value={formData.docs_slug}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-              placeholder="e.g. cgeo"
-            />
-            <p className="mt-1 text-xs text-gray-500">
-              Links to a docs repo in <code>backend/docs/&lt;slug&gt;/</code>. Deep-dive markdown will be served from there.
-            </p>
-          </div>
+          {/* Article Content Field (hidden when in-progress) */}
+          {!formData.is_in_progress && (
+            <div>
+              <label htmlFor="content" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Article Content (Markdown)
+              </label>
+              <textarea
+                id="content"
+                name="content"
+                value={formData.content}
+                onChange={handleInputChange}
+                rows={15}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-mono text-sm"
+                placeholder="Write a detailed article about this project..."
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Supports Markdown: **bold**, `code`, ## headings, - lists, etc.
+              </p>
+            </div>
+          )}
+
+          {/* Docs Slug Field (hidden when in-progress) */}
+          {!formData.is_in_progress && (
+            <div>
+              <label htmlFor="docs_slug" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Docs Slug
+              </label>
+              <input
+                type="text"
+                id="docs_slug"
+                name="docs_slug"
+                value={formData.docs_slug}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                placeholder="e.g. cgeo"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Links to a docs repo in <code>backend/docs/&lt;slug&gt;/</code>. Deep-dive markdown will be served from there.
+              </p>
+            </div>
+          )}
 
           {/* Submit Error */}
           {errors.submit && (

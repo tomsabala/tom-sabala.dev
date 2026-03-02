@@ -51,7 +51,7 @@ class ProjectDAO:
             raise Exception(f"Failed to fetch project: {str(e)}")
 
     @staticmethod
-    def createProject(title, description, technologies, githubUrl=None, liveUrl=None, imageUrl=None, content=None, docsSlug=None):
+    def createProject(title, description, technologies, githubUrl=None, liveUrl=None, imageUrl=None, content=None, docsSlug=None, isInProgress=False):
         """
         Create a new project with auto-assigned displayOrder
 
@@ -85,7 +85,8 @@ class ProjectDAO:
                 content=content,
                 docsSlug=docsSlug,
                 displayOrder=maxOrder + 1,
-                isVisible=True  # New projects visible by default
+                isVisible=True,  # New projects visible by default
+                isInProgress=isInProgress
             )
             db.session.add(project)
             db.session.commit()

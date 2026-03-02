@@ -15,6 +15,7 @@ class Project(db.Model):
     content = db.Column('content', db.Text, nullable=True)
     docsSlug = db.Column('docs_slug', db.String(100), nullable=True)
     isVisible = db.Column('is_visible', db.Boolean, nullable=False, default=True)
+    isInProgress = db.Column('is_in_progress', db.Boolean, nullable=False, default=False)
     displayOrder = db.Column('display_order', db.Integer, nullable=False, default=0)
     createdAt = db.Column('created_at', db.DateTime, nullable=False, default=datetime.utcnow)
     updatedAt = db.Column('updated_at', db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -32,6 +33,7 @@ class Project(db.Model):
             'content': self.content,
             'docsSlug': self.docsSlug,
             'isVisible': self.isVisible,
+            'is_in_progress': self.isInProgress,
             'displayOrder': self.displayOrder,
             'createdAt': self.createdAt.isoformat() if self.createdAt else None,
             'updatedAt': self.updatedAt.isoformat() if self.updatedAt else None

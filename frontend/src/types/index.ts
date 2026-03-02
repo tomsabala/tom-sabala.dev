@@ -9,6 +9,7 @@ export interface PortfolioItem {
   content?: string;
   docsSlug?: string;
   isVisible: boolean;
+  is_in_progress: boolean;
   displayOrder: number;
   createdAt?: string;
   updatedAt?: string;
@@ -23,6 +24,7 @@ export interface ProjectFormData {
   image_url?: string;
   content?: string;
   docsSlug?: string;
+  is_in_progress?: boolean;
 }
 
 export interface ProjectOrderUpdate {

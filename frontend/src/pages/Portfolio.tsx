@@ -200,6 +200,7 @@ function Portfolio() {
                     onEdit={() => handleEditClick(item)}
                     onDelete={() => handleDeleteClick(item.id, item.title)}
                     onToggleVisibility={() => handleToggleVisibility(item.id)}
+                    onInProgressClick={() => showSuccess('This project is still in progress — stay tuned!')}
                     openMenuId={openMenuId}
                     setOpenMenuId={setOpenMenuId}
                     actionLoading={actionLoading}
@@ -211,7 +212,12 @@ function Portfolio() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {portfolio.map((item) => (
-              <ProjectCard key={item.id} project={item} isAdmin={false} />
+              <ProjectCard
+                key={item.id}
+                project={item}
+                isAdmin={false}
+                onInProgressClick={() => showSuccess('This project is still in progress — stay tuned!')}
+              />
             ))}
           </div>
         )}
@@ -246,6 +252,7 @@ interface ProjectCardProps {
   onEdit?: () => void;
   onDelete?: () => void;
   onToggleVisibility?: () => void;
+  onInProgressClick?: () => void;
   openMenuId?: number | null;
   setOpenMenuId?: (id: number | null) => void;
   actionLoading?: number | null;
@@ -257,6 +264,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
   onEdit,
   onDelete,
   onToggleVisibility,
+  onInProgressClick,
   openMenuId,
   setOpenMenuId,
   actionLoading,
@@ -354,24 +362,53 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
         </div>
       )}
 
-      {/* Project Image — links to detail page */}
+      {/* In Progress Badge */}
+      {project.is_in_progress && (
+        <div className={`absolute top-2 z-10 bg-amber-400 text-amber-900 text-xs font-semibold px-2 py-1 rounded-full shadow-md ${isAdmin ? 'left-24' : 'left-2'}`}>
+          In Progress
+        </div>
+      )}
+
+      {/* Project Image */}
       {project.image_url && (
-        <Link to={`/portfolio/${project.id}`} className="block relative h-48 overflow-hidden bg-gray-100 dark:bg-gray-800">
-          <img
-            src={project.image_url}
-            alt={project.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
-        </Link>
+        project.is_in_progress && !isAdmin ? (
+          <div
+            className="block relative h-48 overflow-hidden bg-gray-100 dark:bg-gray-800 cursor-pointer"
+            onClick={onInProgressClick}
+          >
+            <img
+              src={project.image_url}
+              alt={project.title}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+          </div>
+        ) : (
+          <Link to={`/portfolio/${project.id}`} className="block relative h-48 overflow-hidden bg-gray-100 dark:bg-gray-800">
+            <img
+              src={project.image_url}
+              alt={project.title}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+          </Link>
+        )
       )}
 
       {/* Card Content */}
       <div className="p-6">
-        <Link to={`/portfolio/${project.id}`}>
-          <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2 group-hover:text-[hsl(210,65%,60%)] transition-colors">
+        {project.is_in_progress && !isAdmin ? (
+          <h3
+            className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2 cursor-pointer group-hover:text-[hsl(210,65%,60%)] transition-colors"
+            onClick={onInProgressClick}
+          >
             {project.title}
           </h3>
-        </Link>
+        ) : (
+          <Link to={`/portfolio/${project.id}`}>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2 group-hover:text-[hsl(210,65%,60%)] transition-colors">
+              {project.title}
+            </h3>
+          </Link>
+        )}
         <p className="text-gray-600 dark:text-gray-400 mb-4 line-clamp-3">{project.description}</p>
 
         {/* Tech Stack */}

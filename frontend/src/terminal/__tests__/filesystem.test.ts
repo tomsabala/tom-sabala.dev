@@ -146,6 +146,7 @@ describe('populateProjects', () => {
         description: 'A test project',
         technologies: ['React', 'TypeScript'],
         isVisible: true,
+        is_in_progress: false,
         displayOrder: 1,
         github_url: 'https://github.com/test/test',
       },
