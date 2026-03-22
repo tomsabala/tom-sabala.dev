@@ -18,12 +18,17 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import * as portfolioRepository from '../repositories/portfolioRepository.ts';
+import * as ideasRepository from '../repositories/ideasRepository.ts';
 import { useAuth } from '../contexts/AuthContext.tsx';
 import ProjectFormModal from '../components/ProjectFormModal.tsx';
-import type { PortfolioItem } from '../types/index.ts';
+import IdeaFormModal from '../components/IdeaFormModal.tsx';
+import type { PortfolioItem, IdeaItem } from '../types/index.ts';
 
 function Portfolio() {
   const { isAuthenticated } = useAuth();
+  const [activeTab, setActiveTab] = useState<'projects' | 'ideas'>('projects');
+
+  // Projects state
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,6 +42,17 @@ function Portfolio() {
   const [inProgressItem, setInProgressItem] = useState<PortfolioItem | null>(null);
   const inProgressDialogRef = useRef<HTMLDivElement>(null);
   useFocusTrap(inProgressDialogRef, !!inProgressItem);
+
+  // Ideas state
+  const [ideas, setIdeas] = useState<IdeaItem[]>([]);
+  const [ideasLoading, setIdeasLoading] = useState(true);
+  const [isIdeaModalOpen, setIsIdeaModalOpen] = useState(false);
+  const [ideaModalMode, setIdeaModalMode] = useState<'add' | 'edit'>('add');
+  const [editingIdea, setEditingIdea] = useState<IdeaItem | null>(null);
+  const [ideaActionLoading, setIdeaActionLoading] = useState<number | null>(null);
+  const [deletingIdea, setDeletingIdea] = useState<IdeaItem | null>(null);
+  const deletingIdeaDialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(deletingIdeaDialogRef, !!deletingIdea);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -59,6 +75,22 @@ function Portfolio() {
   useEffect(() => {
     fetchPortfolio();
   }, [isAuthenticated]);
+
+  const fetchIdeas = async () => {
+    try {
+      const response = await ideasRepository.getIdeas();
+      setIdeas(response.data);
+    } catch (err) {
+      showError('Failed to load ideas');
+      console.error('Error fetching ideas:', err);
+    } finally {
+      setIdeasLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchIdeas();
+  }, []);
 
   const handleDragEnd = async (event: any) => {
     const { active, over } = event;
@@ -130,6 +162,33 @@ function Portfolio() {
     }
   };
 
+  const handleIdeaEditClick = (idea: IdeaItem) => {
+    setIdeaModalMode('edit');
+    setEditingIdea(idea);
+    setIsIdeaModalOpen(true);
+  };
+
+  const handleIdeaDeleteRequest = (idea: IdeaItem) => {
+    setDeletingIdea(idea);
+  };
+
+  const handleIdeaDeleteConfirm = async () => {
+    if (!deletingIdea) return;
+    const id = deletingIdea.id;
+    setIdeaActionLoading(id);
+    setDeletingIdea(null);
+    try {
+      await ideasRepository.deleteIdea(id);
+      showSuccess('Idea deleted');
+      await fetchIdeas();
+    } catch (err) {
+      showError('Failed to delete idea');
+      console.error('Error deleting idea:', err);
+    } finally {
+      setIdeaActionLoading(null);
+    }
+  };
+
   const showSuccess = (msg: string) => {
     setSuccessMsg(msg);
     setTimeout(() => setSuccessMsg(null), 5000);
@@ -161,21 +220,60 @@ function Portfolio() {
   return (
     <div className="py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Admin: Add Project Button */}
+        {/* Tab Switcher */}
+        <div className="flex border-b border-gray-200 dark:border-gray-700 mb-6">
+          <button
+            onClick={() => setActiveTab('projects')}
+            className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${
+              activeTab === 'projects'
+                ? 'border-[var(--accent)] text-[var(--accent)]'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+            }`}
+          >
+            Projects
+          </button>
+          <button
+            onClick={() => setActiveTab('ideas')}
+            className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${
+              activeTab === 'ideas'
+                ? 'border-[var(--accent)] text-[var(--accent)]'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+            }`}
+          >
+            Ideas
+          </button>
+        </div>
+
+        {/* Admin: Add Button */}
         {isAuthenticated && (
           <div className="flex justify-end mb-6">
-            <button
-              onClick={handleAddClick}
-              className="text-white font-medium px-4 py-2 rounded-lg transition-colors shadow-sm flex items-center gap-2 text-sm"
-              style={{ background: 'var(--accent)' }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'var(--accent-hover)')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'var(--accent)')}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Add Project
-            </button>
+            {activeTab === 'projects' ? (
+              <button
+                onClick={handleAddClick}
+                className="text-white font-medium px-4 py-2 rounded-lg transition-colors shadow-sm flex items-center gap-2 text-sm"
+                style={{ background: 'var(--accent)' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--accent-hover)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'var(--accent)')}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Add Project
+              </button>
+            ) : (
+              <button
+                onClick={() => { setIdeaModalMode('add'); setEditingIdea(null); setIsIdeaModalOpen(true); }}
+                className="text-white font-medium px-4 py-2 rounded-lg transition-colors shadow-sm flex items-center gap-2 text-sm"
+                style={{ background: 'var(--accent)' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--accent-hover)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'var(--accent)')}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Add Idea
+              </button>
+            )}
           </div>
         )}
 
@@ -191,46 +289,122 @@ function Portfolio() {
           </div>
         )}
 
-        {/* Project Grid with Drag-and-Drop */}
-        {isAuthenticated ? (
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={portfolio.map((p) => p.id)} strategy={verticalListSortingStrategy}>
+        {/* Projects Tab */}
+        {activeTab === 'projects' && (
+          <>
+            {/* Project Grid with Drag-and-Drop */}
+            {isAuthenticated ? (
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <SortableContext items={portfolio.map((p) => p.id)} strategy={verticalListSortingStrategy}>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {portfolio.map((item) => (
+                      <ProjectCard
+                        key={item.id}
+                        project={item}
+                        isAdmin={true}
+                        onEdit={() => handleEditClick(item)}
+                        onDelete={() => handleDeleteClick(item.id, item.title)}
+                        onToggleVisibility={() => handleToggleVisibility(item.id)}
+                        onInProgressClick={() => setInProgressItem(item)}
+                        openMenuId={openMenuId}
+                        setOpenMenuId={setOpenMenuId}
+                        actionLoading={actionLoading}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {portfolio.map((item) => (
                   <ProjectCard
                     key={item.id}
                     project={item}
-                    isAdmin={true}
-                    onEdit={() => handleEditClick(item)}
-                    onDelete={() => handleDeleteClick(item.id, item.title)}
-                    onToggleVisibility={() => handleToggleVisibility(item.id)}
+                    isAdmin={false}
                     onInProgressClick={() => setInProgressItem(item)}
-                    openMenuId={openMenuId}
-                    setOpenMenuId={setOpenMenuId}
-                    actionLoading={actionLoading}
                   />
                 ))}
               </div>
-            </SortableContext>
-          </DndContext>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {portfolio.map((item) => (
-              <ProjectCard
-                key={item.id}
-                project={item}
-                isAdmin={false}
-                onInProgressClick={() => setInProgressItem(item)}
-              />
-            ))}
-          </div>
+            )}
+
+            {/* Empty State */}
+            {portfolio.length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-gray-500 text-lg">No projects available yet.</p>
+              </div>
+            )}
+          </>
         )}
 
-        {/* Empty State */}
-        {portfolio.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">No projects available yet.</p>
-          </div>
+        {/* Ideas Tab */}
+        {activeTab === 'ideas' && (
+          <>
+            {ideasLoading ? (
+              <div className="flex justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400"></div>
+              </div>
+            ) : ideas.length === 0 ? (
+              <div className="text-center py-16">
+                <svg className="w-12 h-12 mx-auto mb-4 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+                <p className="text-gray-500 dark:text-gray-400 text-lg font-medium mb-1">No ideas yet</p>
+                {isAuthenticated ? (
+                  <p className="text-gray-400 dark:text-gray-500 text-sm">Add your first idea.</p>
+                ) : (
+                  <p className="text-gray-400 dark:text-gray-500 text-sm">Check back soon.</p>
+                )}
+              </div>
+            ) : (
+              <div className="flex flex-col gap-4">
+                {ideas.map((idea) => (
+                  <div
+                    key={idea.id}
+                    className="bg-white dark:bg-[#252525] rounded-lg shadow-sm border border-gray-100 dark:border-gray-800 p-6 relative group"
+                  >
+                    {/* Admin action icons */}
+                    {isAuthenticated && (
+                      <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {ideaActionLoading === idea.id ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => handleIdeaEditClick(idea)}
+                              aria-label={`Edit idea: ${idea.title}`}
+                              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={() => handleIdeaDeleteRequest(idea)}
+                              aria-label={`Delete idea: ${idea.title}`}
+                              className="text-gray-400 hover:text-red-500 transition-colors"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    )}
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2 pr-16 truncate">
+                      {idea.title}
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed line-clamp-4 mb-3">
+                      {idea.description}
+                    </p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500">
+                      Added {new Date(idea.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -292,6 +466,57 @@ function Portfolio() {
           setIsModalOpen(false);
           fetchPortfolio();
           showSuccess(modalMode === 'add' ? 'Project added' : 'Project updated');
+        }}
+      />
+
+      {/* Idea Delete Confirmation Dialog */}
+      {deletingIdea && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-lg"
+          aria-hidden="true"
+          onClick={() => setDeletingIdea(null)}
+        >
+          <div
+            ref={deletingIdeaDialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="idea-delete-title"
+            className="bg-white dark:bg-[#252525] rounded-xl shadow-2xl p-8 max-w-sm w-full mx-4 text-center"
+            onClick={e => e.stopPropagation()}
+          >
+            <h2 id="idea-delete-title" className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+              Delete idea?
+            </h2>
+            <p className="text-gray-500 dark:text-gray-400 mb-6">
+              "{deletingIdea.title}" will be permanently deleted.
+            </p>
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={() => setDeletingIdea(null)}
+                className="px-5 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleIdeaDeleteConfirm}
+                className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <IdeaFormModal
+        isOpen={isIdeaModalOpen}
+        mode={ideaModalMode}
+        idea={editingIdea || undefined}
+        onClose={() => setIsIdeaModalOpen(false)}
+        onSuccess={() => {
+          setIsIdeaModalOpen(false);
+          fetchIdeas();
+          showSuccess(ideaModalMode === 'add' ? 'Idea added' : 'Idea updated');
         }}
       />
     </div>
