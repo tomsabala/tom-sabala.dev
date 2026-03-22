@@ -145,11 +145,11 @@ function Jobs() {
   }
 
   return (
-    <div className="py-12">
+    <div className="py-6 sm:py-12">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white dark:bg-[#252525] rounded-lg shadow-md border border-transparent dark:border-gray-700 p-4 sm:p-8">
         {/* Page header */}
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6 sm:mb-8">
           Job Tracking
         </h1>
 
@@ -167,7 +167,7 @@ function Jobs() {
 
         {/* Tab bar + Add button */}
         <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 mb-6">
-          <div className="flex gap-6">
+          <div className="flex gap-4">
             <button
               onClick={() => setActiveTab('companies')}
               className={`pb-3 text-sm font-medium transition-colors border-b-2 -mb-px ${
@@ -177,7 +177,7 @@ function Jobs() {
               }`}
             >
               Companies
-              <span className="ml-2 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-1.5 py-0.5 rounded-full">
+              <span className="ml-1.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-1.5 py-0.5 rounded-full">
                 {companies.length}
               </span>
             </button>
@@ -190,7 +190,7 @@ function Jobs() {
               }`}
             >
               Applications
-              <span className="ml-2 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-1.5 py-0.5 rounded-full">
+              <span className="ml-1.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-1.5 py-0.5 rounded-full">
                 {applications.length}
               </span>
             </button>
@@ -199,28 +199,28 @@ function Jobs() {
             {activeTab === 'companies' ? (
               <button
                 onClick={() => { setModalMode('add'); setEditingCompany(null); setIsCompanyModalOpen(true); }}
-                className="text-white font-medium px-4 py-1.5 rounded-lg transition-colors shadow-sm flex items-center gap-2 text-sm"
+                className="text-white font-medium px-3 py-1.5 rounded-lg transition-colors shadow-sm flex items-center gap-1.5 text-sm"
                 style={{ background: 'var(--accent)' }}
                 onMouseEnter={e => (e.currentTarget.style.background = 'var(--accent-hover)')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'var(--accent)')}
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                Add Company
+                <span className="hidden sm:inline">Add Company</span>
               </button>
             ) : (
               <button
                 onClick={() => { setModalMode('add'); setEditingApplication(null); setIsApplicationModalOpen(true); }}
-                className="text-white font-medium px-4 py-1.5 rounded-lg transition-colors shadow-sm flex items-center gap-2 text-sm"
+                className="text-white font-medium px-3 py-1.5 rounded-lg transition-colors shadow-sm flex items-center gap-1.5 text-sm"
                 style={{ background: 'var(--accent)' }}
                 onMouseEnter={e => (e.currentTarget.style.background = 'var(--accent-hover)')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'var(--accent)')}
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                Add Application
+                <span className="hidden sm:inline">Add Application</span>
               </button>
             )}
           </div>
@@ -266,7 +266,7 @@ function Jobs() {
                     <div className="relative flex-shrink-0">
                       <button
                         onClick={e => { e.stopPropagation(); setOpenMenuId(openMenuId === company.id ? null : company.id); }}
-                        className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors opacity-0 group-hover:opacity-100"
+                        className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors sm:opacity-0 sm:group-hover:opacity-100"
                         aria-label="Actions"
                       >
                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
@@ -391,7 +391,7 @@ function Jobs() {
                     <div className="relative flex-shrink-0">
                       <button
                         onClick={e => { e.stopPropagation(); setOpenMenuId(openMenuId === app.id ? null : app.id); }}
-                        className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors opacity-0 group-hover:opacity-100"
+                        className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors sm:opacity-0 sm:group-hover:opacity-100"
                         aria-label="Actions"
                       >
                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
