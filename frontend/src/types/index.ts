@@ -209,3 +209,16 @@ export interface JobApplicationFormData {
   date_applied: string;
   notes: string;
 }
+
+export interface IdeaItem {
+  id: number;
+  title: string;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface IdeaFormData {
+  title: string;
+  description: string;
+}
