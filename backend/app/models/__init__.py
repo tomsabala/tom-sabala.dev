@@ -6,5 +6,6 @@ from app.models.user import User
 from app.models.resume_pdf import ResumePdfVersion
 from app.models.company import Company
 from app.models.job_application import JobApplication
+from app.models.idea import Idea
 
-__all__ = ['Project', 'Resume', 'About', 'ContactSubmission', 'User', 'ResumePdfVersion', 'Company', 'JobApplication']
+__all__ = ['Project', 'Resume', 'About', 'ContactSubmission', 'User', 'ResumePdfVersion', 'Company', 'JobApplication', 'Idea']

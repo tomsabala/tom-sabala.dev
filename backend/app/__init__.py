@@ -126,6 +126,7 @@ def create_app():
     from app.routes.docs_routes import docs_bp
     from app.routes.github_stats_routes import github_stats_bp
     from app.routes.jobs_routes import jobs_bp
+    from app.routes.ideas_routes import ideas_bp
 
     app.register_blueprint(portfolio_bp, url_prefix='/api')
     app.register_blueprint(resume_bp, url_prefix='/api')
@@ -137,6 +138,7 @@ def create_app():
     app.register_blueprint(docs_bp, url_prefix='/api')
     app.register_blueprint(github_stats_bp, url_prefix='/api')
     app.register_blueprint(jobs_bp, url_prefix='/api')
+    app.register_blueprint(ideas_bp, url_prefix='/api')
 
     # JWT error handlers
     @jwt.unauthorized_loader
