@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import * as jobsRepository from '../repositories/jobsRepository.ts';
 import Modal from './Modal.tsx';
-import type { JobApplication } from '../types/index.ts';
+import type { JobApplication, Company } from '../types/index.ts';
 
 const VALID_STATUSES = [
   'bookmarked', 'applied', 'in_review', 'interview', 'offer', 'rejected', 'withdrawn', 'closed',
@@ -34,6 +34,7 @@ const JobApplicationFormModal: React.FC<JobApplicationFormModalProps> = ({
   onSuccess,
 }) => {
   const [formData, setFormData] = useState({
+    company_id: '',
     company_name: '',
     position: '',
     status: 'bookmarked',
@@ -43,11 +44,19 @@ const JobApplicationFormModal: React.FC<JobApplicationFormModalProps> = ({
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [loadingCompanies, setLoadingCompanies] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
+      setLoadingCompanies(true);
+      jobsRepository.getCompanies().then(response => {
+        if (response.success) setCompanies(response.data || []);
+      }).finally(() => setLoadingCompanies(false));
+
       if (mode === 'edit' && application) {
         setFormData({
+          company_id: application.company_id != null ? String(application.company_id) : '',
           company_name: application.company_name,
           position: application.position,
           status: application.status,
@@ -57,6 +66,7 @@ const JobApplicationFormModal: React.FC<JobApplicationFormModalProps> = ({
         });
       } else {
         setFormData({
+          company_id: '',
           company_name: '',
           position: '',
           status: 'bookmarked',
@@ -71,8 +81,8 @@ const JobApplicationFormModal: React.FC<JobApplicationFormModalProps> = ({
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
-    if (!formData.company_name.trim()) {
-      newErrors.company_name = 'Company name is required';
+    if (!formData.company_id) {
+      newErrors.company_id = 'Please select a company';
     }
     if (!formData.position.trim()) {
       newErrors.position = 'Position is required';
@@ -91,7 +101,8 @@ const JobApplicationFormModal: React.FC<JobApplicationFormModalProps> = ({
     setSubmitting(true);
     try {
       const data = {
-        company_name: formData.company_name.trim(),
+        company_id: formData.company_id ? Number(formData.company_id) : undefined,
+        company_name: formData.company_name,
         position: formData.position.trim(),
         status: formData.status,
         job_url: formData.job_url.trim() || undefined,
@@ -120,13 +131,21 @@ const JobApplicationFormModal: React.FC<JobApplicationFormModalProps> = ({
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    if (errors[name]) {
-      setErrors(prev => {
-        const next = { ...prev };
-        delete next[name];
-        return next;
-      });
+    if (name === 'company_id') {
+      const selected = companies.find(c => String(c.id) === value);
+      setFormData(prev => ({
+        ...prev,
+        company_id: value,
+        company_name: selected ? selected.name : '',
+      }));
+      if (errors.company_id) {
+        setErrors(prev => { const next = { ...prev }; delete next.company_id; return next; });
+      }
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+      if (errors[name]) {
+        setErrors(prev => { const next = { ...prev }; delete next[name]; return next; });
+      }
     }
   };
 
@@ -151,24 +170,30 @@ const JobApplicationFormModal: React.FC<JobApplicationFormModalProps> = ({
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label htmlFor="company_name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Company Name <span className="text-red-500" aria-hidden="true">*</span>
+            <label htmlFor="company_id" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Company <span className="text-red-500" aria-hidden="true">*</span>
               <span className="sr-only">(required)</span>
             </label>
-            <input
-              type="text"
-              id="company_name"
-              name="company_name"
-              value={formData.company_name}
+            <select
+              id="company_id"
+              name="company_id"
+              value={formData.company_id}
               onChange={handleInputChange}
               aria-required="true"
-              aria-describedby={errors.company_name ? 'company-name-error' : undefined}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
-                errors.company_name ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+              aria-describedby={errors.company_id ? 'company-id-error' : undefined}
+              disabled={loadingCompanies}
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 disabled:opacity-50 ${
+                errors.company_id ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
               }`}
-              placeholder="Acme Corp"
-            />
-            {errors.company_name && <p id="company-name-error" role="alert" className="mt-1 text-sm text-red-600">{errors.company_name}</p>}
+            >
+              <option value="">
+                {loadingCompanies ? 'Loading companies…' : 'Select a company…'}
+              </option>
+              {companies.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+            {errors.company_id && <p id="company-id-error" role="alert" className="mt-1 text-sm text-red-600">{errors.company_id}</p>}
           </div>
 
           <div>
