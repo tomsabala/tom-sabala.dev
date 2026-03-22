@@ -95,7 +95,7 @@ const PdfHistoryList: React.FC<PdfHistoryListProps> = ({ onVersionChange }) => {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-8">
+      <div role="status" aria-label="Loading PDF history" className="flex justify-center py-8">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
       </div>
     );
@@ -103,7 +103,7 @@ const PdfHistoryList: React.FC<PdfHistoryListProps> = ({ onVersionChange }) => {
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+      <div role="alert" className="bg-red-50 border border-red-200 rounded-lg p-4">
         <p className="text-red-600">{error}</p>
       </div>
     );
@@ -166,12 +166,16 @@ const PdfHistoryList: React.FC<PdfHistoryListProps> = ({ onVersionChange }) => {
                   onClick={() => toggleMenu(version.id)}
                   disabled={actionLoading === version.id}
                   className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  aria-label="Actions"
+                  aria-label={`Actions for ${version.fileName}`}
+                  aria-haspopup="menu"
+                  aria-expanded={openMenuId === version.id}
+                  aria-controls={`menu-pdf-${version.id}`}
                 >
                   <svg
                     className="w-5 h-5"
                     fill="currentColor"
                     viewBox="0 0 20 20"
+                    aria-hidden="true"
                   >
                     <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
                   </svg>
@@ -180,15 +184,18 @@ const PdfHistoryList: React.FC<PdfHistoryListProps> = ({ onVersionChange }) => {
                 {/* Dropdown Menu */}
                 {openMenuId === version.id && (
                   <>
-                    {/* Backdrop to close menu when clicking outside */}
                     <div
                       className="fixed inset-0 z-10"
                       onClick={() => setOpenMenuId(null)}
                     />
-
-                    <div className="absolute right-0 mt-1 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
+                    <div
+                      role="menu"
+                      id={`menu-pdf-${version.id}`}
+                      className="absolute right-0 mt-1 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-20"
+                    >
                       {version.isActive ? (
                         <button
+                          role="menuitem"
                           onClick={() => handleDelete(version.id)}
                           className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                         >
@@ -196,6 +203,7 @@ const PdfHistoryList: React.FC<PdfHistoryListProps> = ({ onVersionChange }) => {
                         </button>
                       ) : (
                         <button
+                          role="menuitem"
                           onClick={() => handleActivate(version.id)}
                           className="w-full px-4 py-2 text-left text-sm text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
                         >

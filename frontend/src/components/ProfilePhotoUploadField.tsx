@@ -108,9 +108,10 @@ const ProfilePhotoUploadField: React.FC<ProfilePhotoUploadFieldProps> = ({
           <button
             onClick={handleRemove}
             type="button"
+            aria-label="Remove profile photo"
             className="absolute top-0 right-0 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors shadow-lg"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -125,6 +126,8 @@ const ProfilePhotoUploadField: React.FC<ProfilePhotoUploadFieldProps> = ({
           onDragOver={handleDrag}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
+          aria-label="Profile photo upload area. Click to browse or drag and drop a file."
+          aria-describedby="profile-photo-constraints"
         >
           <input
             ref={fileInputRef}
@@ -133,10 +136,10 @@ const ProfilePhotoUploadField: React.FC<ProfilePhotoUploadFieldProps> = ({
             onChange={handleFileChange}
             className="hidden"
           />
-          <svg className="h-10 w-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="h-10 w-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
           </svg>
-          <p className="text-xs text-gray-500 mt-2 text-center px-4">Click or drag to upload</p>
+          <p id="profile-photo-constraints" className="text-xs text-gray-500 mt-2 text-center px-4">Click or drag to upload</p>
         </div>
       )}
 
@@ -151,8 +154,8 @@ const ProfilePhotoUploadField: React.FC<ProfilePhotoUploadFieldProps> = ({
       )}
 
       {uploading && (
-        <div className="flex items-center gap-2 text-sm text-gray-600">
-          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-500"></div>
+        <div role="status" aria-label="Uploading photo" className="flex items-center gap-2 text-sm text-gray-600">
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-500" aria-hidden="true"></div>
           Uploading...
         </div>
       )}

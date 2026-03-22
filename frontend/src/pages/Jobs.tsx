@@ -155,21 +155,27 @@ function Jobs() {
 
         {/* Toast messages */}
         {successMsg && (
-          <div className="mb-6 p-3 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg text-green-700 dark:text-green-300 text-sm">
+          <div role="status" className="mb-6 p-3 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg text-green-700 dark:text-green-300 text-sm">
             {successMsg}
           </div>
         )}
         {errorMsg && (
-          <div className="mb-6 p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-300 text-sm">
+          <div role="alert" className="mb-6 p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-300 text-sm">
             {errorMsg}
           </div>
         )}
 
         {/* Tab bar + Add button */}
         <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 mb-6">
-          <div className="flex gap-4">
+          <div role="tablist" aria-label="Job tracker sections" className="flex gap-4">
             <button
+              role="tab"
+              id="tab-jobs-companies"
+              aria-selected={activeTab === 'companies'}
+              aria-controls="panel-jobs-companies"
+              tabIndex={activeTab === 'companies' ? 0 : -1}
               onClick={() => setActiveTab('companies')}
+              onKeyDown={e => { if (e.key === 'ArrowRight') { setActiveTab('applications'); (document.getElementById('tab-jobs-applications') as HTMLButtonElement)?.focus(); } }}
               className={`pb-3 text-sm font-medium transition-colors border-b-2 -mb-px ${
                 activeTab === 'companies'
                   ? 'border-[var(--accent)] text-[var(--accent)]'
@@ -182,7 +188,13 @@ function Jobs() {
               </span>
             </button>
             <button
+              role="tab"
+              id="tab-jobs-applications"
+              aria-selected={activeTab === 'applications'}
+              aria-controls="panel-jobs-applications"
+              tabIndex={activeTab === 'applications' ? 0 : -1}
               onClick={() => setActiveTab('applications')}
+              onKeyDown={e => { if (e.key === 'ArrowLeft') { setActiveTab('companies'); (document.getElementById('tab-jobs-companies') as HTMLButtonElement)?.focus(); } }}
               className={`pb-3 text-sm font-medium transition-colors border-b-2 -mb-px ${
                 activeTab === 'applications'
                   ? 'border-[var(--accent)] text-[var(--accent)]'
@@ -228,7 +240,12 @@ function Jobs() {
 
         {/* Companies tab */}
         {activeTab === 'companies' && (
-          <div>
+          <div
+            role="tabpanel"
+            id="panel-jobs-companies"
+            aria-labelledby="tab-jobs-companies"
+            tabIndex={0}
+          >
             {companies.length === 0 ? (
               <div className="text-center py-16 text-gray-400 dark:text-gray-500">
                 <svg className="w-12 h-12 mx-auto mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -251,7 +268,7 @@ function Jobs() {
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-gray-400 hover:text-[var(--accent)] transition-colors"
-                            title="Open website"
+                            aria-label={`Open ${company.name} website (opens in new tab)`}
                           >
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -267,23 +284,32 @@ function Jobs() {
                       <button
                         onClick={e => { e.stopPropagation(); setOpenMenuId(openMenuId === company.id ? null : company.id); }}
                         className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors sm:opacity-0 sm:group-hover:opacity-100"
-                        aria-label="Actions"
+                        aria-label={`Actions for ${company.name}`}
+                        aria-haspopup="menu"
+                        aria-expanded={openMenuId === company.id}
+                        aria-controls={`menu-company-${company.id}`}
                       >
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                           <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
                         </svg>
                       </button>
                       {openMenuId === company.id && (
                         <>
                           <div className="fixed inset-0 z-10" onClick={() => setOpenMenuId(null)} />
-                          <div className="absolute right-0 top-8 w-36 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-20 py-1">
+                          <div
+                            role="menu"
+                            id={`menu-company-${company.id}`}
+                            className="absolute right-0 top-8 w-36 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-20 py-1"
+                          >
                             <button
+                              role="menuitem"
                               onClick={() => { setModalMode('edit'); setEditingCompany(company); setIsCompanyModalOpen(true); setOpenMenuId(null); }}
                               className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                             >
                               Edit
                             </button>
                             <button
+                              role="menuitem"
                               onClick={() => handleDeleteCompany(company)}
                               className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950"
                             >
@@ -302,11 +328,17 @@ function Jobs() {
 
         {/* Applications tab */}
         {activeTab === 'applications' && (
-          <div>
+          <div
+            role="tabpanel"
+            id="panel-jobs-applications"
+            aria-labelledby="tab-jobs-applications"
+            tabIndex={0}
+          >
             {/* Status filter pills */}
             <div className="flex flex-wrap gap-2 mb-5">
               <button
                 onClick={() => setStatusFilter('all')}
+                aria-pressed={statusFilter === 'all'}
                 className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                   statusFilter === 'all'
                     ? 'text-white'
@@ -323,6 +355,7 @@ function Jobs() {
                   <button
                     key={s}
                     onClick={() => setStatusFilter(s)}
+                    aria-pressed={statusFilter === s}
                     className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                       statusFilter === s
                         ? 'text-white'
@@ -364,7 +397,7 @@ function Jobs() {
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-gray-400 hover:text-[var(--accent)] transition-colors"
-                            title="Open job posting"
+                            aria-label={`Open job posting for ${app.position} at ${app.company_name} (opens in new tab)`}
                           >
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -392,23 +425,32 @@ function Jobs() {
                       <button
                         onClick={e => { e.stopPropagation(); setOpenMenuId(openMenuId === app.id ? null : app.id); }}
                         className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors sm:opacity-0 sm:group-hover:opacity-100"
-                        aria-label="Actions"
+                        aria-label={`Actions for ${app.position} at ${app.company_name}`}
+                        aria-haspopup="menu"
+                        aria-expanded={openMenuId === app.id}
+                        aria-controls={`menu-app-${app.id}`}
                       >
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                           <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
                         </svg>
                       </button>
                       {openMenuId === app.id && (
                         <>
                           <div className="fixed inset-0 z-10" onClick={() => setOpenMenuId(null)} />
-                          <div className="absolute right-0 top-8 w-36 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-20 py-1">
+                          <div
+                            role="menu"
+                            id={`menu-app-${app.id}`}
+                            className="absolute right-0 top-8 w-36 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-20 py-1"
+                          >
                             <button
+                              role="menuitem"
                               onClick={() => { setModalMode('edit'); setEditingApplication(app); setIsApplicationModalOpen(true); setOpenMenuId(null); }}
                               className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                             >
                               Edit
                             </button>
                             <button
+                              role="menuitem"
                               onClick={() => handleDeleteApplication(app)}
                               className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950"
                             >

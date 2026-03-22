@@ -346,6 +346,7 @@ const RobotBackground: React.FC = () => {
   return (
     <div
       ref={containerRef}
+      aria-hidden="true"
       style={{
         position: 'fixed',
         inset: 0,

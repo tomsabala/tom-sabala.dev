@@ -102,6 +102,8 @@ const PdfUploadForm: React.FC<PdfUploadFormProps> = ({
         onDragLeave={handleDrag}
         onDragOver={handleDrag}
         onDrop={handleDrop}
+        aria-label="PDF upload area. Click to browse or drag and drop a file."
+        aria-describedby="pdf-upload-constraints"
       >
         <input
           ref={fileInputRef}
@@ -136,7 +138,7 @@ const PdfUploadForm: React.FC<PdfUploadFormProps> = ({
               </label>{' '}
               or drag and drop
             </p>
-            <p className="text-xs text-gray-500 mt-1">
+            <p id="pdf-upload-constraints" className="text-xs text-gray-500 mt-1">
               PDF file up to 10MB
             </p>
           </div>
@@ -184,8 +186,8 @@ const PdfUploadForm: React.FC<PdfUploadFormProps> = ({
           >
             {uploading ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                Uploading...
+                <div role="status" aria-label="Uploading PDF" className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <span aria-hidden="true">Uploading...</span>
               </>
             ) : (
               'Upload PDF'

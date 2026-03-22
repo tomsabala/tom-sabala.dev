@@ -112,9 +112,10 @@ const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
           <button
             onClick={handleRemove}
             type="button"
+            aria-label="Remove project image"
             className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors shadow-lg"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -128,6 +129,8 @@ const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
           onDragLeave={handleDrag}
           onDragOver={handleDrag}
           onDrop={handleDrop}
+          aria-label="Image upload area. Click to browse or drag and drop a file."
+          aria-describedby="image-upload-constraints"
         >
           <input
             ref={fileInputRef}
@@ -146,7 +149,7 @@ const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
             </label>{' '}
             or drag and drop
           </p>
-          <p className="text-xs text-gray-500 mt-1">JPG, PNG, WEBP, or GIF (max 5MB)</p>
+          <p id="image-upload-constraints" className="text-xs text-gray-500 mt-1">JPG, PNG, WEBP, or GIF (max 5MB)</p>
         </div>
       )}
 
@@ -162,8 +165,8 @@ const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
       )}
 
       {uploading && (
-        <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
-          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-500"></div>
+        <div role="status" aria-label="Uploading image" className="flex items-center justify-center gap-2 text-sm text-gray-600">
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-500" aria-hidden="true"></div>
           Uploading...
         </div>
       )}

@@ -2,9 +2,10 @@
  * LoginModal - Hidden login modal with Google OAuth
  * Activated by clicking header 7 times within 2 seconds
  */
-import React, { useEffect } from 'react';
+import React from 'react';
 import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../contexts/AuthContext.tsx';
+import Modal from './Modal.tsx';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -29,10 +30,8 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
     const result = await googleLogin(credentialResponse.credential);
 
     if (result.success) {
-      // Success - close modal and stay on current page
       onClose();
     } else {
-      // Show error
       setError(result.error || 'Login failed');
       setIsLoading(false);
     }
@@ -44,52 +43,27 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
     setIsLoading(false);
   };
 
-  // Close modal on ESC key
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('keydown', handleEscape);
-      // Prevent body scroll when modal is open
-      document.body.style.overflow = 'hidden';
-    }
-
-    return () => {
-      document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'unset';
-    };
-  }, [isOpen, onClose]);
-
   // Reset states when modal closes
-  useEffect(() => {
+  React.useEffect(() => {
     if (!isOpen) {
       setIsLoading(false);
       setError('');
     }
   }, [isOpen]);
 
-  if (!isOpen) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-lg"
-    >
-      <div
-        className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full mx-4"
-      >
+    <Modal isOpen={isOpen} onClose={onClose} titleId="login-modal-title" maxWidth="max-w-md">
+      <div className="p-8">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-semibold text-gray-900">Admin Login</h2>
+          <h2 id="login-modal-title" className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Admin Login</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            type="button"
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
             aria-label="Close modal"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -98,12 +72,12 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
         {/* Content */}
         <div className="flex flex-col items-center">
           {isLoading ? (
-            <div className="py-8">
+            <div className="py-8" role="status" aria-label="Signing in">
               <div className="w-12 h-12 border-4 border-orange-400 border-t-transparent rounded-full animate-spin"></div>
             </div>
           ) : (
             <>
-              <p className="text-gray-600 mb-6 text-center">
+              <p className="text-gray-600 dark:text-gray-400 mb-6 text-center">
                 Sign in with your authorized Google account to access the admin panel.
               </p>
 
@@ -122,7 +96,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
 
               {/* Error Message */}
               {error && (
-                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md w-full">
+                <div role="alert" className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md w-full">
                   <p className="text-sm text-red-600 text-center">{error}</p>
                 </div>
               )}
@@ -135,7 +109,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
           )}
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };
 

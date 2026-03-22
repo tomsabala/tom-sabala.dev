@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import * as portfolioRepository from '../repositories/portfolioRepository.ts';
 import ImageUploadField from './ImageUploadField.tsx';
+import Modal from './Modal.tsx';
 import type { PortfolioItem, ProjectFormData } from '../types/index.ts';
 
 interface ProjectFormModalProps {
@@ -50,7 +51,6 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
           is_in_progress: project.is_in_progress ?? false,
         });
       } else {
-        // Reset form for add mode
         setFormData({
           title: '',
           description: '',
@@ -68,29 +68,9 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
     }
   }, [isOpen, mode, project]);
 
-  // Close modal on ESC key
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'hidden';
-    }
-
-    return () => {
-      document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'unset';
-    };
-  }, [isOpen, onClose]);
-
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    // Title validation (3-200 chars)
     if (!formData.title.trim()) {
       newErrors.title = 'Title is required';
     } else if (formData.title.trim().length < 3) {
@@ -99,7 +79,6 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
       newErrors.title = 'Title must be less than 200 characters';
     }
 
-    // Description validation (10-2000 chars)
     if (!formData.description.trim()) {
       newErrors.description = 'Description is required';
     } else if (formData.description.trim().length < 10) {
@@ -108,12 +87,10 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
       newErrors.description = 'Description must be less than 2000 characters';
     }
 
-    // Technologies validation (required)
     if (!formData.technologies.trim()) {
       newErrors.technologies = 'Technologies are required';
     }
 
-    // Optional URL validation
     const urlPattern = /^https?:\/\/.+/;
     if (formData.github_url && !urlPattern.test(formData.github_url)) {
       newErrors.github_url = 'Please enter a valid URL (starting with http:// or https://)';
@@ -136,7 +113,6 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
     setSubmitting(true);
 
     try {
-      // Parse technologies from comma-separated string to array
       const technologiesArray = formData.technologies
         .split(',')
         .map(tech => tech.trim())
@@ -179,7 +155,6 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
   ) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    // Clear error for this field when user starts typing
     if (errors[name]) {
       setErrors(prev => {
         const newErrors = { ...prev };
@@ -203,31 +178,21 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
     setUploadError(error);
   };
 
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
-  };
-
-  if (!isOpen) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-lg"
-      onClick={handleBackdropClick}
-    >
-      <div className="bg-white dark:bg-[#252525] rounded-lg shadow-xl p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+    <Modal isOpen={isOpen} onClose={onClose} titleId="project-form-title">
+      <div className="p-6">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+          <h2 id="project-form-title" className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
             {mode === 'add' ? 'Add New Project' : 'Edit Project'}
           </h2>
           <button
             onClick={onClose}
+            type="button"
             className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
             aria-label="Close modal"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -238,7 +203,8 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
           {/* Title Field */}
           <div>
             <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Title <span className="text-red-500">*</span>
+              Title <span className="text-red-500" aria-hidden="true">*</span>
+              <span className="sr-only">(required)</span>
             </label>
             <input
               type="text"
@@ -246,18 +212,21 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
               name="title"
               value={formData.title}
               onChange={handleInputChange}
+              aria-required="true"
+              aria-describedby={errors.title ? 'title-error' : undefined}
               className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
                 errors.title ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
               }`}
               placeholder="Project title"
             />
-            {errors.title && <p className="mt-1 text-sm text-red-600">{errors.title}</p>}
+            {errors.title && <p id="title-error" role="alert" className="mt-1 text-sm text-red-600">{errors.title}</p>}
           </div>
 
           {/* Description Field */}
           <div>
             <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Description <span className="text-red-500">*</span>
+              Description <span className="text-red-500" aria-hidden="true">*</span>
+              <span className="sr-only">(required)</span>
             </label>
             <textarea
               id="description"
@@ -265,18 +234,21 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
               value={formData.description}
               onChange={handleInputChange}
               rows={4}
+              aria-required="true"
+              aria-describedby={errors.description ? 'description-error' : undefined}
               className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
                 errors.description ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
               }`}
               placeholder="Project description"
             />
-            {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description}</p>}
+            {errors.description && <p id="description-error" role="alert" className="mt-1 text-sm text-red-600">{errors.description}</p>}
           </div>
 
           {/* Technologies Field */}
           <div>
             <label htmlFor="technologies" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Technologies <span className="text-red-500">*</span>
+              Technologies <span className="text-red-500" aria-hidden="true">*</span>
+              <span className="sr-only">(required)</span>
             </label>
             <input
               type="text"
@@ -284,12 +256,14 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
               name="technologies"
               value={formData.technologies}
               onChange={handleInputChange}
+              aria-required="true"
+              aria-describedby={errors.technologies ? 'technologies-error' : undefined}
               className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
                 errors.technologies ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
               }`}
               placeholder="React, TypeScript, Node.js (comma-separated)"
             />
-            {errors.technologies && <p className="mt-1 text-sm text-red-600">{errors.technologies}</p>}
+            {errors.technologies && <p id="technologies-error" role="alert" className="mt-1 text-sm text-red-600">{errors.technologies}</p>}
           </div>
 
           {/* Image Upload Field */}
@@ -302,7 +276,7 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
               onImageUploaded={handleImageUploaded}
               onUploadError={handleUploadError}
             />
-            {uploadError && <p className="mt-1 text-sm text-red-600">{uploadError}</p>}
+            {uploadError && <p role="alert" className="mt-1 text-sm text-red-600">{uploadError}</p>}
           </div>
 
           {/* GitHub URL Field */}
@@ -316,12 +290,13 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
               name="github_url"
               value={formData.github_url}
               onChange={handleInputChange}
+              aria-describedby={errors.github_url ? 'github-url-error' : undefined}
               className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
                 errors.github_url ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
               }`}
               placeholder="https://github.com/username/repo"
             />
-            {errors.github_url && <p className="mt-1 text-sm text-red-600">{errors.github_url}</p>}
+            {errors.github_url && <p id="github-url-error" role="alert" className="mt-1 text-sm text-red-600">{errors.github_url}</p>}
           </div>
 
           {/* Live URL Field */}
@@ -335,12 +310,13 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
               name="live_url"
               value={formData.live_url}
               onChange={handleInputChange}
+              aria-describedby={errors.live_url ? 'live-url-error' : undefined}
               className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
                 errors.live_url ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
               }`}
               placeholder="https://example.com"
             />
-            {errors.live_url && <p className="mt-1 text-sm text-red-600">{errors.live_url}</p>}
+            {errors.live_url && <p id="live-url-error" role="alert" className="mt-1 text-sm text-red-600">{errors.live_url}</p>}
           </div>
 
           {/* In Progress Toggle */}
@@ -402,7 +378,7 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
 
           {/* Submit Error */}
           {errors.submit && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+            <div role="alert" className="p-3 bg-red-50 border border-red-200 rounded-md">
               <p className="text-sm text-red-600">{errors.submit}</p>
             </div>
           )}
@@ -420,6 +396,7 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
             <button
               type="submit"
               disabled={submitting}
+              aria-label={submitting ? 'Saving project' : (mode === 'add' ? 'Add Project' : 'Save Changes')}
               className="px-6 py-2 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
               style={{ background: 'var(--accent)' }}
               onMouseEnter={e => !e.currentTarget.disabled && (e.currentTarget.style.background = 'var(--accent-hover)')}
@@ -427,7 +404,7 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
             >
               {submitting ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <div role="status" aria-label="Saving" className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                   Saving...
                 </>
               ) : (
@@ -437,7 +414,7 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
           </div>
         </form>
       </div>
-    </div>
+    </Modal>
   );
 };
 

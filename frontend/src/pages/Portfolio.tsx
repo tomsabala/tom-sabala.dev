@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 import { Link } from 'react-router-dom';
 import {
   DndContext,
@@ -34,6 +35,8 @@ function Portfolio() {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [inProgressItem, setInProgressItem] = useState<PortfolioItem | null>(null);
+  const inProgressDialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(inProgressDialogRef, !!inProgressItem);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -178,12 +181,12 @@ function Portfolio() {
 
         {/* Success/Error Messages */}
         {successMsg && (
-          <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
+          <div role="status" className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
             <p className="text-green-600 font-medium">{successMsg}</p>
           </div>
         )}
         {errorMsg && (
-          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+          <div role="alert" className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
             <p className="text-red-600 font-medium">{errorMsg}</p>
           </div>
         )}
@@ -235,16 +238,21 @@ function Portfolio() {
       {inProgressItem && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-lg"
+          aria-hidden="true"
           onClick={() => setInProgressItem(null)}
         >
           <div
+            ref={inProgressDialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="in-progress-title"
             className="bg-white dark:bg-[#252525] rounded-xl shadow-2xl p-8 max-w-sm w-full mx-4 text-center"
             onClick={e => e.stopPropagation()}
           >
             <span className="inline-block bg-amber-400 text-amber-900 text-xs font-semibold px-3 py-1 rounded-full mb-4">
               In Progress
             </span>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+            <h2 id="in-progress-title" className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
               {inProgressItem.title}
             </h2>
             <p className="text-gray-500 dark:text-gray-400 mb-6">
@@ -352,9 +360,13 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
           <button
             onClick={() => setOpenMenuId?.(openMenuId === project.id ? null : project.id)}
             disabled={actionLoading === project.id}
+            aria-label={`Actions for ${project.title}`}
+            aria-haspopup="menu"
+            aria-expanded={openMenuId === project.id}
+            aria-controls={`menu-project-${project.id}`}
             className="bg-white dark:bg-gray-700 rounded-full p-1.5 shadow-md hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
           >
-            <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+            <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
               <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
             </svg>
           </button>
@@ -362,21 +374,27 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
           {openMenuId === project.id && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setOpenMenuId?.(null)} />
-              <div className="absolute right-0 mt-1 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-20">
+              <div
+                role="menu"
+                id={`menu-project-${project.id}`}
+                className="absolute right-0 mt-1 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-20"
+              >
                 <button
+                  role="menuitem"
                   onClick={onEdit}
                   className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-t-lg flex items-center gap-2"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
                   Edit
                 </button>
                 <button
+                  role="menuitem"
                   onClick={onToggleVisibility}
                   className="w-full px-4 py-2 text-left text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950 flex items-center gap-2"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     {project.isVisible ? (
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
                     ) : (
@@ -386,10 +404,11 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
                   {project.isVisible ? 'Hide' : 'Display'}
                 </button>
                 <button
+                  role="menuitem"
                   onClick={onDelete}
                   className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 rounded-b-lg flex items-center gap-2"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                   </svg>
                   Delete

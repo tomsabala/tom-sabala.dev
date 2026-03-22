@@ -68,16 +68,32 @@ function CV() {
         {/* Admin Tab Navigation */}
         {isAuthenticated && (
           <div className="flex justify-end mb-6">
-            <div className="inline-flex rounded-lg border border-gray-300 dark:border-gray-600 p-1 bg-white dark:bg-[#252525]">
+            <div
+              role="tablist"
+              aria-label="CV view options"
+              className="inline-flex rounded-lg border border-gray-300 dark:border-gray-600 p-1 bg-white dark:bg-[#252525]"
+            >
               <button
+                role="tab"
+                id="tab-cv-view"
+                aria-selected={activeTab === 'view'}
+                aria-controls="panel-cv-view"
+                tabIndex={activeTab === 'view' ? 0 : -1}
                 onClick={() => setActiveTab('view')}
+                onKeyDown={e => { if (e.key === 'ArrowRight') { setActiveTab('admin'); (document.getElementById('tab-cv-admin') as HTMLButtonElement)?.focus(); } }}
                 className="px-4 py-2 rounded-md text-sm font-medium transition-colors text-gray-700 dark:text-gray-300"
                 style={activeTab === 'view' ? { ...accentStyle, color: '#fff' } : {}}
               >
                 Web View
               </button>
               <button
+                role="tab"
+                id="tab-cv-admin"
+                aria-selected={activeTab === 'admin'}
+                aria-controls="panel-cv-admin"
+                tabIndex={activeTab === 'admin' ? 0 : -1}
                 onClick={() => setActiveTab('admin')}
+                onKeyDown={e => { if (e.key === 'ArrowLeft') { setActiveTab('view'); (document.getElementById('tab-cv-view') as HTMLButtonElement)?.focus(); } }}
                 className="px-4 py-2 rounded-md text-sm font-medium transition-colors text-gray-700 dark:text-gray-300"
                 style={activeTab === 'admin' ? { ...accentStyle, color: '#fff' } : {}}
               >
@@ -89,19 +105,25 @@ function CV() {
 
         {/* Success/Error Messages */}
         {uploadSuccess && (
-          <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
+          <div role="status" className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
             <p className="text-green-600 font-medium">{uploadSuccess}</p>
           </div>
         )}
         {uploadError && (
-          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+          <div role="alert" className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
             <p className="text-red-600 font-medium">{uploadError}</p>
           </div>
         )}
 
         {/* Admin Panel Tab */}
         {isAuthenticated && activeTab === 'admin' && (
-          <div className="bg-white dark:bg-[#252525] rounded-lg shadow-lg border border-transparent dark:border-gray-700 p-6 mb-8">
+          <div
+            role="tabpanel"
+            id="panel-cv-admin"
+            aria-labelledby="tab-cv-admin"
+            tabIndex={0}
+            className="bg-white dark:bg-[#252525] rounded-lg shadow-lg border border-transparent dark:border-gray-700 p-6 mb-8"
+          >
             <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">
               Admin: Manage Resume PDFs
             </h2>
@@ -127,9 +149,15 @@ function CV() {
 
         {/* Web View Tab */}
         {activeTab === 'view' && (
-          <div className="bg-white dark:bg-[#252525] rounded-lg shadow-lg border border-transparent dark:border-gray-700 p-8">
+          <div
+            role="tabpanel"
+            id="panel-cv-view"
+            aria-labelledby="tab-cv-view"
+            tabIndex={0}
+            className="bg-white dark:bg-[#252525] rounded-lg shadow-lg border border-transparent dark:border-gray-700 p-8"
+          >
             {loading && (
-              <div className="flex items-center justify-center min-h-[600px]">
+              <div role="status" aria-label="Loading CV" className="flex items-center justify-center min-h-[600px]">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: 'var(--accent)' }} />
               </div>
             )}

@@ -106,16 +106,32 @@ function Contact() {
         {/* Admin Tab Navigation */}
         {isAuthenticated && (
           <div className="flex justify-end mb-6">
-            <div className="inline-flex rounded-lg border border-gray-300 dark:border-gray-600 p-1 bg-white dark:bg-[#252525]">
+            <div
+              role="tablist"
+              aria-label="Contact view options"
+              className="inline-flex rounded-lg border border-gray-300 dark:border-gray-600 p-1 bg-white dark:bg-[#252525]"
+            >
               <button
+                role="tab"
+                id="tab-contact-form"
+                aria-selected={activeTab === 'form'}
+                aria-controls="panel-contact-form"
+                tabIndex={activeTab === 'form' ? 0 : -1}
                 onClick={() => setActiveTab('form')}
+                onKeyDown={e => { if (e.key === 'ArrowRight') { setActiveTab('inbox'); (document.getElementById('tab-contact-inbox') as HTMLButtonElement)?.focus(); } }}
                 className="px-4 py-2 rounded-md text-sm font-medium transition-colors text-gray-700 dark:text-gray-300"
                 style={activeTab === 'form' ? { ...accentStyle, color: '#fff' } : {}}
               >
                 Contact Form
               </button>
               <button
+                role="tab"
+                id="tab-contact-inbox"
+                aria-selected={activeTab === 'inbox'}
+                aria-controls="panel-contact-inbox"
+                tabIndex={activeTab === 'inbox' ? 0 : -1}
                 onClick={() => setActiveTab('inbox')}
+                onKeyDown={e => { if (e.key === 'ArrowLeft') { setActiveTab('form'); (document.getElementById('tab-contact-form') as HTMLButtonElement)?.focus(); } }}
                 className="px-4 py-2 rounded-md text-sm font-medium transition-colors text-gray-700 dark:text-gray-300"
                 style={activeTab === 'inbox' ? { ...accentStyle, color: '#fff' } : {}}
               >
@@ -127,10 +143,16 @@ function Contact() {
 
         {/* Contact Form Tab */}
         {activeTab === 'form' && (
-          <div className="bg-white dark:bg-[#252525] rounded-lg shadow-lg border border-transparent dark:border-gray-700 p-8 mb-8">
+          <div
+            role="tabpanel"
+            id="panel-contact-form"
+            aria-labelledby="tab-contact-form"
+            tabIndex={0}
+            className="bg-white dark:bg-[#252525] rounded-lg shadow-lg border border-transparent dark:border-gray-700 p-8 mb-8"
+          >
             {/* CSRF Token Loading Error */}
             {csrfTokenError && (
-              <div className="mb-6 bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
+              <div role="alert" className="mb-6 bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
                 <div className="flex items-center">
                   <svg className="w-5 h-5 text-yellow-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
@@ -142,7 +164,7 @@ function Contact() {
 
             {/* Success Message */}
             {submitSucceeded && (
-              <div className="mb-6 bg-green-50 border-l-4 border-green-500 p-4 rounded">
+              <div role="status" className="mb-6 bg-green-50 border-l-4 border-green-500 p-4 rounded">
                 <div className="flex items-center">
                   <svg className="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -156,7 +178,7 @@ function Contact() {
 
             {/* Error Message */}
             {errorMessage && (
-              <div className="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded">
+              <div role="alert" className="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded">
                 <div className="flex items-center">
                   <svg className="w-5 h-5 text-red-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
@@ -170,7 +192,8 @@ function Contact() {
               {/* Name Field */}
               <div>
                 <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Your Name
+                  Your Name <span className="text-red-500" aria-hidden="true">*</span>
+                  <span className="sr-only">(required)</span>
                 </label>
                 <input
                   type="text"
@@ -179,6 +202,7 @@ function Contact() {
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   required
+                  aria-required="true"
                   disabled={isSubmitting || !csrfToken}
                   className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:border-transparent transition-colors disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                   style={{ '--tw-ring-color': 'var(--accent)' } as React.CSSProperties}
@@ -204,7 +228,8 @@ function Contact() {
               {/* Email Field */}
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Email Address
+                  Email Address <span className="text-red-500" aria-hidden="true">*</span>
+                  <span className="sr-only">(required)</span>
                 </label>
                 <input
                   type="email"
@@ -213,6 +238,7 @@ function Contact() {
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   required
+                  aria-required="true"
                   disabled={isSubmitting || !csrfToken}
                   className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:border-transparent transition-colors disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                   placeholder="john@example.com"
@@ -237,7 +263,8 @@ function Contact() {
               {/* Message Field */}
               <div>
                 <label htmlFor="message" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Message
+                  Message <span className="text-red-500" aria-hidden="true">*</span>
+                  <span className="sr-only">(required)</span>
                 </label>
                 <textarea
                   id="message"
@@ -245,6 +272,7 @@ function Contact() {
                   value={formData.message}
                   onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                   required
+                  aria-required="true"
                   disabled={isSubmitting || !csrfToken}
                   rows={6}
                   className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:border-transparent transition-colors resize-none disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
@@ -284,11 +312,11 @@ function Contact() {
               {/* reCAPTCHA Disclosure (required by Google) */}
               <p className="text-xs text-gray-500 text-center">
                 This site is protected by reCAPTCHA and the Google{' '}
-                <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="hover:underline" style={{ color: 'var(--accent)' }}>
+                <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" aria-label="Google Privacy Policy (opens in new tab)" className="hover:underline" style={{ color: 'var(--accent)' }}>
                   Privacy Policy
                 </a>{' '}
                 and{' '}
-                <a href="https://policies.google.com/terms" target="_blank" rel="noopener noreferrer" className="hover:underline" style={{ color: 'var(--accent)' }}>
+                <a href="https://policies.google.com/terms" target="_blank" rel="noopener noreferrer" aria-label="Google Terms of Service (opens in new tab)" className="hover:underline" style={{ color: 'var(--accent)' }}>
                   Terms of Service
                 </a>{' '}
                 apply.
@@ -299,7 +327,13 @@ function Contact() {
 
         {/* Admin Inbox Tab */}
         {isAuthenticated && activeTab === 'inbox' && (
-          <div className="bg-white dark:bg-[#252525] rounded-lg shadow-lg border border-transparent dark:border-gray-700 p-6">
+          <div
+            role="tabpanel"
+            id="panel-contact-inbox"
+            aria-labelledby="tab-contact-inbox"
+            tabIndex={0}
+            className="bg-white dark:bg-[#252525] rounded-lg shadow-lg border border-transparent dark:border-gray-700 p-6"
+          >
             <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">
               Contact Submissions
             </h2>

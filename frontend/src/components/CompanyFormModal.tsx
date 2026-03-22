@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import * as jobsRepository from '../repositories/jobsRepository.ts';
+import Modal from './Modal.tsx';
 import type { Company } from '../types/index.ts';
 
 interface CompanyFormModalProps {
@@ -39,20 +40,6 @@ const CompanyFormModal: React.FC<CompanyFormModalProps> = ({
       setErrors({});
     }
   }, [isOpen, mode, company]);
-
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    if (isOpen) {
-      document.addEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'hidden';
-    }
-    return () => {
-      document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'unset';
-    };
-  }, [isOpen, onClose]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -109,28 +96,20 @@ const CompanyFormModal: React.FC<CompanyFormModalProps> = ({
     }
   };
 
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) onClose();
-  };
-
-  if (!isOpen) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-lg"
-      onClick={handleBackdropClick}
-    >
-      <div className="bg-white dark:bg-[#252525] rounded-lg shadow-xl p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+    <Modal isOpen={isOpen} onClose={onClose} titleId="company-form-title">
+      <div className="p-6">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+          <h2 id="company-form-title" className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
             {mode === 'add' ? 'Add Company' : 'Edit Company'}
           </h2>
           <button
             onClick={onClose}
+            type="button"
             className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
             aria-label="Close modal"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -139,7 +118,8 @@ const CompanyFormModal: React.FC<CompanyFormModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Company Name <span className="text-red-500">*</span>
+              Company Name <span className="text-red-500" aria-hidden="true">*</span>
+              <span className="sr-only">(required)</span>
             </label>
             <input
               type="text"
@@ -147,12 +127,14 @@ const CompanyFormModal: React.FC<CompanyFormModalProps> = ({
               name="name"
               value={formData.name}
               onChange={handleInputChange}
+              aria-required="true"
+              aria-describedby={errors.name ? 'company-name-error' : undefined}
               className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
                 errors.name ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
               }`}
               placeholder="Acme Corp"
             />
-            {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
+            {errors.name && <p id="company-name-error" role="alert" className="mt-1 text-sm text-red-600">{errors.name}</p>}
           </div>
 
           <div>
@@ -165,12 +147,13 @@ const CompanyFormModal: React.FC<CompanyFormModalProps> = ({
               name="url"
               value={formData.url}
               onChange={handleInputChange}
+              aria-describedby={errors.url ? 'company-url-error' : undefined}
               className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
                 errors.url ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
               }`}
               placeholder="https://acme.com"
             />
-            {errors.url && <p className="mt-1 text-sm text-red-600">{errors.url}</p>}
+            {errors.url && <p id="company-url-error" role="alert" className="mt-1 text-sm text-red-600">{errors.url}</p>}
           </div>
 
           <div>
@@ -189,7 +172,7 @@ const CompanyFormModal: React.FC<CompanyFormModalProps> = ({
           </div>
 
           {errors.submit && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+            <div role="alert" className="p-3 bg-red-50 border border-red-200 rounded-md">
               <p className="text-sm text-red-600">{errors.submit}</p>
             </div>
           )}
@@ -213,7 +196,7 @@ const CompanyFormModal: React.FC<CompanyFormModalProps> = ({
             >
               {submitting ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <div role="status" aria-label="Saving" className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                   Saving...
                 </>
               ) : (
@@ -223,7 +206,7 @@ const CompanyFormModal: React.FC<CompanyFormModalProps> = ({
           </div>
         </form>
       </div>
-    </div>
+    </Modal>
   );
 };
 

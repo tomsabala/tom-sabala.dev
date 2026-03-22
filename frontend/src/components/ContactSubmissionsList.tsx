@@ -123,15 +123,15 @@ const ContactSubmissionsList: React.FC<ContactSubmissionsListProps> = ({ onSubmi
 
   if (loading) {
     return (
-      <div className="flex justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+      <div role="status" aria-label="Loading submissions" className="flex justify-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" aria-hidden="true"></div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+      <div role="alert" className="bg-red-50 border border-red-200 rounded-lg p-4">
         <p className="text-red-600">{error}</p>
       </div>
     );
@@ -261,12 +261,16 @@ const ContactSubmissionsList: React.FC<ContactSubmissionsListProps> = ({ onSubmi
                       onClick={() => toggleMenu(submission.id)}
                       disabled={actionLoading === submission.id}
                       className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      aria-label="Actions"
+                      aria-label={`Actions for message from ${submission.name}`}
+                      aria-haspopup="menu"
+                      aria-expanded={openMenuId === submission.id}
+                      aria-controls={`menu-submission-${submission.id}`}
                     >
                       <svg
                         className="w-5 h-5"
                         fill="currentColor"
                         viewBox="0 0 20 20"
+                        aria-hidden="true"
                       >
                         <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
                       </svg>
@@ -281,8 +285,13 @@ const ContactSubmissionsList: React.FC<ContactSubmissionsListProps> = ({ onSubmi
                           onClick={() => setOpenMenuId(null)}
                         />
 
-                        <div className="absolute right-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
+                        <div
+                          role="menu"
+                          id={`menu-submission-${submission.id}`}
+                          className="absolute right-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-20"
+                        >
                           <button
+                            role="menuitem"
                             onClick={() => handleToggleRead(submission.id)}
                             className="w-full px-4 py-2 text-left text-sm text-orange-600 hover:bg-orange-50 rounded-t-lg transition-colors"
                           >
@@ -290,6 +299,7 @@ const ContactSubmissionsList: React.FC<ContactSubmissionsListProps> = ({ onSubmi
                           </button>
                           {!isArchived && (
                             <button
+                              role="menuitem"
                               onClick={() => handleArchive(submission.id)}
                               className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 rounded-b-lg transition-colors"
                             >

@@ -160,6 +160,12 @@ function Layout() {
 
   return (
     <div className="flex h-screen overflow-hidden">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:top-2 focus:left-2 focus:px-4 focus:py-2 focus:bg-white focus:text-gray-900 focus:rounded focus:shadow"
+      >
+        Skip to main content
+      </a>
       <TerminalBackground />
       <RobotBackground />
 
@@ -169,6 +175,8 @@ function Layout() {
         className="md:hidden fixed top-3 left-3 z-40 flex items-center justify-center w-9 h-9 rounded-md bg-white dark:bg-[#1a1a1a] shadow-md text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
         type="button"
         aria-label="Open navigation"
+        aria-expanded={mobileOpen}
+        aria-controls="mobile-nav"
       >
         <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
           <line x1="2" y1="4" x2="16" y2="4"/>
@@ -188,6 +196,7 @@ function Layout() {
 
       {/* Sidebar */}
       <aside
+        id="mobile-nav"
         className={`
           flex-shrink-0 bg-white dark:bg-[#1a1a1a] flex flex-col h-full overflow-hidden
           fixed inset-y-0 left-0 z-50
@@ -225,7 +234,7 @@ function Layout() {
             <button
               onClick={toggleTheme}
               className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-md text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-              title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+              aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
               type="button"
             >
               {theme === 'light' ? (
@@ -262,7 +271,9 @@ function Layout() {
               <div key={to}>
                 {isDisabled ? (
                   <span
-                    title={!expanded && !mobileOpen ? label : 'GitHub Stats not configured'}
+                    role="link"
+                    aria-disabled="true"
+                    aria-label="GitHub Stats — not configured"
                     className="relative flex items-center h-10 px-3 mx-1 rounded-md cursor-not-allowed opacity-35 text-gray-500 dark:text-gray-400 select-none"
                   >
                     <span className="flex-shrink-0">{icon}</span>
@@ -274,7 +285,8 @@ function Layout() {
                 <Link
                   to={to}
                   onClick={() => setMobileOpen(false)}
-                  title={!expanded && !mobileOpen ? label : undefined}
+                  aria-label={!expanded && !mobileOpen ? label : undefined}
+                  aria-current={active ? 'page' : undefined}
                   className={`relative flex items-center h-10 px-3 mx-1 rounded-md transition-colors ${
                     active
                       ? 'bg-blue-50 dark:bg-blue-950'
@@ -318,7 +330,8 @@ function Layout() {
             <Link
               to="/jobs"
               onClick={() => setMobileOpen(false)}
-              title={!expanded && !mobileOpen ? 'Jobs' : undefined}
+              aria-label={!expanded && !mobileOpen ? 'Jobs' : undefined}
+              aria-current={isActive('/jobs') ? 'page' : undefined}
               className={`relative flex items-center h-10 px-3 mx-1 rounded-md transition-colors ${
                 isActive('/jobs')
                   ? 'bg-blue-50 dark:bg-blue-950'
@@ -349,7 +362,7 @@ function Layout() {
             href="https://terminal.tom-sabala.dev"
             target="_blank"
             rel="noopener noreferrer"
-            title={!expanded && !mobileOpen ? 'Terminal' : undefined}
+            aria-label={!expanded && !mobileOpen ? 'Terminal (opens in new tab)' : 'Terminal (opens in new tab)'}
             className="flex items-center h-10 px-3 mx-1 rounded-md transition-colors text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
           >
             <span className="flex-shrink-0">
@@ -376,10 +389,10 @@ function Layout() {
         {/* Social + sign out */}
         <div className="py-3 overflow-hidden">
           <a
-            href="https://github.com/tomsabala"
+            href="https://github.com/tomsabalu"
             target="_blank"
             rel="noopener noreferrer"
-            title={!expanded && !mobileOpen ? 'GitHub' : undefined}
+            aria-label="GitHub profile (opens in new tab)"
             className="flex items-center h-10 px-3 mx-1 rounded-md transition-colors text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
           >
             <span className="flex-shrink-0">
@@ -396,7 +409,7 @@ function Layout() {
             href="https://www.linkedin.com/in/tom-sabala-a9513721a/"
             target="_blank"
             rel="noopener noreferrer"
-            title={!expanded && !mobileOpen ? 'LinkedIn' : undefined}
+            aria-label="LinkedIn profile (opens in new tab)"
             className="flex items-center h-10 px-3 mx-1 rounded-md transition-colors text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
           >
             <span className="flex-shrink-0">
@@ -413,7 +426,7 @@ function Layout() {
           {isAuthenticated && (
             <button
               onClick={logout}
-              title={!expanded && !mobileOpen ? 'Sign Out' : undefined}
+              aria-label="Sign out"
               className="flex items-center h-10 px-3 mx-1 w-[calc(100%-8px)] rounded-md transition-colors text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
               type="button"
             >
@@ -438,7 +451,8 @@ function Layout() {
           <button
             onClick={toggleSidebar}
             className="flex items-center justify-center w-8 h-8 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-            title={expanded ? 'Collapse sidebar' : 'Expand sidebar'}
+            aria-label={expanded ? 'Collapse sidebar' : 'Expand sidebar'}
+            aria-expanded={expanded}
             type="button"
           >
             {expanded ? (
@@ -455,7 +469,7 @@ function Layout() {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 overflow-y-auto">
+      <main id="main-content" tabIndex={-1} className="flex-1 overflow-y-auto">
         <Outlet />
       </main>
 

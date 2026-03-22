@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import * as jobsRepository from '../repositories/jobsRepository.ts';
+import Modal from './Modal.tsx';
 import type { JobApplication } from '../types/index.ts';
 
 const VALID_STATUSES = [
@@ -68,20 +69,6 @@ const JobApplicationFormModal: React.FC<JobApplicationFormModalProps> = ({
     }
   }, [isOpen, mode, application]);
 
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    if (isOpen) {
-      document.addEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'hidden';
-    }
-    return () => {
-      document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'unset';
-    };
-  }, [isOpen, onClose]);
-
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
     if (!formData.company_name.trim()) {
@@ -143,28 +130,20 @@ const JobApplicationFormModal: React.FC<JobApplicationFormModalProps> = ({
     }
   };
 
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) onClose();
-  };
-
-  if (!isOpen) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-lg"
-      onClick={handleBackdropClick}
-    >
-      <div className="bg-white dark:bg-[#252525] rounded-lg shadow-xl p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+    <Modal isOpen={isOpen} onClose={onClose} titleId="job-application-form-title">
+      <div className="p-6">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+          <h2 id="job-application-form-title" className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
             {mode === 'add' ? 'Add Application' : 'Edit Application'}
           </h2>
           <button
             onClick={onClose}
+            type="button"
             className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
             aria-label="Close modal"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -173,7 +152,8 @@ const JobApplicationFormModal: React.FC<JobApplicationFormModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label htmlFor="company_name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Company Name <span className="text-red-500">*</span>
+              Company Name <span className="text-red-500" aria-hidden="true">*</span>
+              <span className="sr-only">(required)</span>
             </label>
             <input
               type="text"
@@ -181,17 +161,20 @@ const JobApplicationFormModal: React.FC<JobApplicationFormModalProps> = ({
               name="company_name"
               value={formData.company_name}
               onChange={handleInputChange}
+              aria-required="true"
+              aria-describedby={errors.company_name ? 'company-name-error' : undefined}
               className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
                 errors.company_name ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
               }`}
               placeholder="Acme Corp"
             />
-            {errors.company_name && <p className="mt-1 text-sm text-red-600">{errors.company_name}</p>}
+            {errors.company_name && <p id="company-name-error" role="alert" className="mt-1 text-sm text-red-600">{errors.company_name}</p>}
           </div>
 
           <div>
             <label htmlFor="position" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Position <span className="text-red-500">*</span>
+              Position <span className="text-red-500" aria-hidden="true">*</span>
+              <span className="sr-only">(required)</span>
             </label>
             <input
               type="text"
@@ -199,23 +182,27 @@ const JobApplicationFormModal: React.FC<JobApplicationFormModalProps> = ({
               name="position"
               value={formData.position}
               onChange={handleInputChange}
+              aria-required="true"
+              aria-describedby={errors.position ? 'position-error' : undefined}
               className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
                 errors.position ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
               }`}
               placeholder="Software Engineer"
             />
-            {errors.position && <p className="mt-1 text-sm text-red-600">{errors.position}</p>}
+            {errors.position && <p id="position-error" role="alert" className="mt-1 text-sm text-red-600">{errors.position}</p>}
           </div>
 
           <div>
             <label htmlFor="status" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Status <span className="text-red-500">*</span>
+              Status <span className="text-red-500" aria-hidden="true">*</span>
+              <span className="sr-only">(required)</span>
             </label>
             <select
               id="status"
               name="status"
               value={formData.status}
               onChange={handleInputChange}
+              aria-required="true"
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
             >
               {VALID_STATUSES.map(s => (
@@ -234,12 +221,13 @@ const JobApplicationFormModal: React.FC<JobApplicationFormModalProps> = ({
               name="job_url"
               value={formData.job_url}
               onChange={handleInputChange}
+              aria-describedby={errors.job_url ? 'job-url-error' : undefined}
               className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
                 errors.job_url ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
               }`}
               placeholder="https://jobs.acme.com/..."
             />
-            {errors.job_url && <p className="mt-1 text-sm text-red-600">{errors.job_url}</p>}
+            {errors.job_url && <p id="job-url-error" role="alert" className="mt-1 text-sm text-red-600">{errors.job_url}</p>}
           </div>
 
           <div>
@@ -272,7 +260,7 @@ const JobApplicationFormModal: React.FC<JobApplicationFormModalProps> = ({
           </div>
 
           {errors.submit && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+            <div role="alert" className="p-3 bg-red-50 border border-red-200 rounded-md">
               <p className="text-sm text-red-600">{errors.submit}</p>
             </div>
           )}
@@ -296,7 +284,7 @@ const JobApplicationFormModal: React.FC<JobApplicationFormModalProps> = ({
             >
               {submitting ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <div role="status" aria-label="Saving" className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                   Saving...
                 </>
               ) : (
@@ -306,7 +294,7 @@ const JobApplicationFormModal: React.FC<JobApplicationFormModalProps> = ({
           </div>
         </form>
       </div>
-    </div>
+    </Modal>
   );
 };
 

@@ -54,13 +54,13 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ pdfUrl, fileName }) => {
       {/* PDF Document */}
       <div ref={containerRef} className="border border-gray-300 rounded-lg shadow-lg overflow-hidden bg-gray-100 w-full">
         {loading && (
-          <div className="flex items-center justify-center h-96">
+          <div role="status" aria-label="Loading PDF" className="flex items-center justify-center h-96">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
           </div>
         )}
 
         {error && (
-          <div className="flex flex-col items-center justify-center h-96 p-8">
+          <div role="alert" className="flex flex-col items-center justify-center h-96 p-8">
             <svg
               className="w-16 h-16 text-red-500 mb-4"
               fill="none"
@@ -100,18 +100,20 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ pdfUrl, fileName }) => {
           <button
             onClick={goToPrevPage}
             disabled={pageNumber <= 1}
+            aria-label="Go to previous page"
             className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
           >
             Previous
           </button>
 
-          <span className="text-gray-700 font-medium">
+          <span className="text-gray-700 font-medium" aria-live="polite" aria-atomic="true">
             Page {pageNumber} of {numPages}
           </span>
 
           <button
             onClick={goToNextPage}
             disabled={pageNumber >= numPages}
+            aria-label="Go to next page"
             className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
           >
             Next

@@ -42,13 +42,13 @@ function Home() {
         <p className="text-gray-500 dark:text-gray-400 text-sm mb-8">Software Engineer</p>
 
         {loading ? (
-          <div className="animate-pulse space-y-2">
+          <div role="status" aria-label="Loading content" className="animate-pulse space-y-2">
             <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full" />
             <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4" />
             <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-5/6" />
           </div>
         ) : error ? (
-          <p className="text-red-500">{error}</p>
+          <p role="alert" className="text-red-500">{error}</p>
         ) : (
           <p className="text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-line">
             {aboutData?.content || 'No content yet.'}
@@ -60,8 +60,9 @@ function Home() {
             onClick={() => setIsModalOpen(true)}
             className="mt-8 inline-flex items-center gap-2 text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
             type="button"
+            aria-label="Edit about content"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
             </svg>
             Edit
