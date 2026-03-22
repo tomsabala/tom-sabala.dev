@@ -78,7 +78,7 @@ const AboutFormModal: React.FC<AboutFormModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black bg-opacity-30"
+      className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-lg"
       onClick={handleBackdropClick}
     >
       <div className="bg-white dark:bg-[#252525] rounded-lg shadow-xl p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
