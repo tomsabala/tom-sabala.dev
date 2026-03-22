@@ -171,3 +171,41 @@ export interface AboutData {
 export interface AboutFormData {
   content: string;
 }
+
+// Job Tracking Types
+export interface Company {
+  id: number;
+  name: string;
+  url: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CompanyFormData {
+  name: string;
+  url: string;
+  notes: string;
+}
+
+export interface JobApplication {
+  id: number;
+  company_id: number | null;
+  company_name: string;
+  position: string;
+  status: string;
+  job_url: string | null;
+  date_applied: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface JobApplicationFormData {
+  company_name: string;
+  position: string;
+  status: string;
+  job_url: string;
+  date_applied: string;
+  notes: string;
+}

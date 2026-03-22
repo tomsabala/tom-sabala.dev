@@ -313,6 +313,37 @@ function Layout() {
             );
           })}
 
+          {/* Jobs — admin only */}
+          {isAuthenticated && (
+            <Link
+              to="/jobs"
+              onClick={() => setMobileOpen(false)}
+              title={!expanded && !mobileOpen ? 'Jobs' : undefined}
+              className={`relative flex items-center h-10 px-3 mx-1 rounded-md transition-colors ${
+                isActive('/jobs')
+                  ? 'bg-blue-50 dark:bg-blue-950'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800'
+              }`}
+              style={isActive('/jobs') ? { color: 'var(--accent)' } : undefined}
+            >
+              {isActive('/jobs') && (
+                <span
+                  className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r-full"
+                  style={{ background: 'var(--accent)' }}
+                />
+              )}
+              <span className="flex-shrink-0">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2" y="7" width="20" height="14" rx="2"/>
+                  <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/>
+                </svg>
+              </span>
+              {(expanded || mobileOpen) && (
+                <span className="ml-3 text-sm font-medium whitespace-nowrap">Jobs</span>
+              )}
+            </Link>
+          )}
+
           {/* Terminal — external link */}
           <a
             href="https://terminal.tom-sabala.dev"
