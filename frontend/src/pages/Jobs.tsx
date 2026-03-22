@@ -147,6 +147,7 @@ function Jobs() {
   return (
     <div className="py-12">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="bg-white dark:bg-[#252525] rounded-lg shadow-md border border-transparent dark:border-gray-700 p-4 sm:p-8">
         {/* Page header */}
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-8">
           Job Tracking
@@ -423,6 +424,7 @@ function Jobs() {
             )}
           </div>
         )}
+        </div>
       </div>
 
       <CompanyFormModal

@@ -455,7 +455,7 @@ function Layout() {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 overflow-y-auto bg-[#f8f8f7] dark:bg-[#111111]">
+      <main className="flex-1 overflow-y-auto">
         <Outlet />
       </main>
 
