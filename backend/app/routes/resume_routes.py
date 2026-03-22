@@ -9,8 +9,8 @@ import requests
 from flask import Blueprint, request, jsonify, send_file, Response
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
-from app.dao import ResumeDAO
-from app.dao.resume_pdf_dao import ResumePdfDAO
+from app import db
+from app.dao import ResumeDAO, ResumePdfDAO
 from app.services.storage_factory import getStorageService
 
 resume_bp = Blueprint('resume', __name__)
@@ -27,7 +27,7 @@ def getCv():
         500: Server error
     """
     try:
-        resume = ResumeDAO.getResume()
+        resume = ResumeDAO(db.session).getResume()
 
         if not resume:
             return jsonify({
@@ -75,11 +75,12 @@ def updateCv():
         return jsonify({'success': False, 'error': 'No data provided'}), 400
 
     try:
-        resume = ResumeDAO.getResume()
+        resumeDAO = ResumeDAO(db.session)
+        resume = resumeDAO.getResume()
         if not resume:
             return jsonify({'success': False, 'error': 'Resume not found'}), 404
 
-        updated = ResumeDAO.updateResume(
+        updated = resumeDAO.updateResume(
             resume.id,
             personalInfo=data.get('personalInfo'),
             experience=data.get('experience'),
@@ -106,7 +107,7 @@ def getActivePdf():
         500: Server error
     """
     try:
-        activePdf = ResumePdfDAO.getActivePdf()
+        activePdf = ResumePdfDAO(db.session).getActivePdf()
 
         if not activePdf:
             return jsonify({
@@ -143,7 +144,7 @@ def getPdfFile():
         500: Server error
     """
     try:
-        activePdf = ResumePdfDAO.getActivePdf()
+        activePdf = ResumePdfDAO(db.session).getActivePdf()
         if not activePdf:
             return jsonify({'success': False, 'error': 'No resume PDF available'}), 404
 
@@ -238,7 +239,7 @@ def uploadPdf():
         originalFilename, relativePath, fileSize = StorageService.saveFile(file)
 
         # Create database record (auto-activates, deactivates others)
-        newVersion = ResumePdfDAO.createVersion(
+        newVersion = ResumePdfDAO(db.session).createVersion(
             fileName=originalFilename,
             filePath=relativePath,
             fileSize=fileSize,
@@ -274,7 +275,7 @@ def getPdfHistory():
     """
     try:
         includeDeleted = request.args.get('includeDeleted', 'false').lower() == 'true'
-        versions = ResumePdfDAO.getAllVersions(includeDeleted=includeDeleted)
+        versions = ResumePdfDAO(db.session).getAllVersions(includeDeleted=includeDeleted)
 
         return jsonify({
             'success': True,
@@ -305,7 +306,7 @@ def activatePdfVersion(versionId):
         500: Server error
     """
     try:
-        version = ResumePdfDAO.setActiveVersion(versionId)
+        version = ResumePdfDAO(db.session).setActiveVersion(versionId)
 
         if not version:
             return jsonify({
@@ -343,7 +344,7 @@ def deletePdfVersion(versionId):
         500: Server error
     """
     try:
-        success = ResumePdfDAO.softDelete(versionId)
+        success = ResumePdfDAO(db.session).softDelete(versionId)
 
         if not success:
             return jsonify({

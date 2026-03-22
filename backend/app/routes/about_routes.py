@@ -6,7 +6,8 @@ import sys
 from flask import Blueprint, request, jsonify, send_file, Response
 from flask_jwt_extended import jwt_required
 from werkzeug.utils import secure_filename
-from app.dao.about_dao import AboutDAO
+from app import db
+from app.dao import AboutDAO
 from app.services.storage_factory import getStorageService
 
 about_bp = Blueprint('about', __name__)
@@ -22,7 +23,7 @@ def getAbout():
         500: Server error
     """
     try:
-        about = AboutDAO.getAbout()
+        about = AboutDAO(db.session).getAbout()
 
         if not about:
             return jsonify({
@@ -70,14 +71,15 @@ def updateAbout():
         return jsonify({'success': False, 'error': 'No data provided'}), 400
 
     try:
-        currentPhotoUrl = AboutDAO.getProfilePhotoUrl()
+        aboutDAO = AboutDAO(db.session)
+        currentPhotoUrl = aboutDAO.getProfilePhotoUrl()
         newPhotoUrl = data.get('profilePhotoUrl')
 
         # If profile photo is being changed/removed, delete the old one
         if currentPhotoUrl and newPhotoUrl != currentPhotoUrl:
             _deleteProfilePhotoFromStorage(currentPhotoUrl)
 
-        about = AboutDAO.updateAbout(
+        about = aboutDAO.updateAbout(
             content=data.get('content'),
             profilePhotoUrl=newPhotoUrl
         )

@@ -9,6 +9,7 @@ import yaml
 from flask import Blueprint, request, jsonify, send_file, Response
 from flask_jwt_extended import jwt_required, verify_jwt_in_request
 from werkzeug.utils import secure_filename
+from app import db
 from app.dao import ProjectDAO
 from app.services.storage_factory import getStorageService
 
@@ -29,18 +30,19 @@ def getPortfolio():
     """
     try:
         includeHidden = request.args.get('includeHidden', 'false').lower() == 'true'
+        projectDAO = ProjectDAO(db.session)
 
         if includeHidden:
             # Try to verify JWT - if valid, return all; if not, return only visible
             try:
                 verify_jwt_in_request()
-                projects = ProjectDAO.getAllProjects(includeHidden=True)
+                projects = projectDAO.getAllProjects(includeHidden=True)
             except:
                 # No valid JWT - return only visible
-                projects = ProjectDAO.getVisibleProjects()
+                projects = projectDAO.getVisibleProjects()
         else:
             # Public view - only visible projects
-            projects = ProjectDAO.getVisibleProjects()
+            projects = projectDAO.getVisibleProjects()
 
         portfolioItems = [project.toDict() for project in projects]
 
@@ -87,7 +89,8 @@ def createProject():
         return jsonify({'success': False, 'error': 'Missing required fields'}), 400
 
     try:
-        project = ProjectDAO.createProject(
+        projectDAO = ProjectDAO(db.session)
+        project = projectDAO.createProject(
             title=data['title'],
             description=data['description'],
             technologies=data['technologies'],
@@ -117,7 +120,8 @@ def getProjectById(projectId):
         500: Server error
     """
     try:
-        project = ProjectDAO.getProjectById(projectId)
+        projectDAO = ProjectDAO(db.session)
+        project = projectDAO.getProjectById(projectId)
         if not project:
             return jsonify({'success': False, 'error': 'Project not found'}), 404
         return jsonify({'success': True, 'data': project.toDict()}), 200
@@ -150,8 +154,9 @@ def updateProject(projectId):
         return jsonify({'success': False, 'error': 'No data provided'}), 400
 
     try:
+        projectDAO = ProjectDAO(db.session)
         # Get current project to check if image is being replaced
-        currentProject = ProjectDAO.getProjectById(projectId)
+        currentProject = projectDAO.getProjectById(projectId)
         if not currentProject:
             return jsonify({'success': False, 'error': 'Project not found'}), 404
 
@@ -166,7 +171,7 @@ def updateProject(projectId):
             'is_in_progress': 'isInProgress',
         }
         updateData = {fieldMap.get(k, k): v for k, v in data.items()}
-        project = ProjectDAO.updateProject(projectId, **updateData)
+        project = projectDAO.updateProject(projectId, **updateData)
         if not project:
             return jsonify({'success': False, 'error': 'Project not found'}), 404
 
@@ -197,15 +202,16 @@ def deleteProject(projectId):
         500: Server error
     """
     try:
+        projectDAO = ProjectDAO(db.session)
         # Get project first to retrieve image URL for deletion
-        project = ProjectDAO.getProjectById(projectId)
+        project = projectDAO.getProjectById(projectId)
         if not project:
             return jsonify({'success': False, 'error': 'Project not found'}), 404
 
         imageUrl = project.imageUrl
 
         # Delete from database
-        success = ProjectDAO.deleteProject(projectId)
+        success = projectDAO.deleteProject(projectId)
         if not success:
             return jsonify({'success': False, 'error': 'Project not found'}), 404
 
@@ -235,7 +241,8 @@ def toggleProjectVisibility(projectId):
         500: Server error
     """
     try:
-        project = ProjectDAO.toggleVisibility(projectId)
+        projectDAO = ProjectDAO(db.session)
+        project = projectDAO.toggleVisibility(projectId)
         if not project:
             return jsonify({'success': False, 'error': 'Project not found'}), 404
         return jsonify({'success': True, 'data': project.toDict()}), 200
@@ -272,7 +279,7 @@ def reorderProjects():
         if not orderUpdates:
             return jsonify({'success': False, 'error': 'No order updates provided'}), 400
 
-        ProjectDAO.updateDisplayOrder(orderUpdates)
+        ProjectDAO(db.session).updateDisplayOrder(orderUpdates)
         return jsonify({'success': True, 'message': 'Order updated'}), 200
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -393,7 +400,7 @@ def getProjectDeepDive(projectId):
         500: Server error
     """
     try:
-        project = ProjectDAO.getProjectById(projectId)
+        project = ProjectDAO(db.session).getProjectById(projectId)
         if not project:
             return jsonify({'success': False, 'error': 'Project not found'}), 404
 

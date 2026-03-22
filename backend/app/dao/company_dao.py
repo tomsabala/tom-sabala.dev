@@ -3,58 +3,53 @@ from app.models import Company
 
 class CompanyDAO:
 
-    @staticmethod
-    def getAll():
+    def __init__(self, session):
+        self.session = session
+
+    def getAll(self):
         try:
-            return Company.query.order_by(Company.name.asc()).all()
+            return self.session.query(Company).order_by(Company.name.asc()).all()
         except Exception as e:
             raise Exception(f"Failed to fetch companies: {str(e)}")
 
-    @staticmethod
-    def getById(companyId):
+    def getById(self, companyId):
         try:
-            return Company.query.get(companyId)
+            return self.session.get(Company, companyId)
         except Exception as e:
             raise Exception(f"Failed to fetch company: {str(e)}")
 
-    @staticmethod
-    def create(name, url=None, notes=None):
-        from app import db
+    def create(self, name, url=None, notes=None):
         try:
             company = Company(name=name, url=url, notes=notes)
-            db.session.add(company)
-            db.session.commit()
+            self.session.add(company)
+            self.session.commit()
             return company
         except Exception as e:
-            db.session.rollback()
+            self.session.rollback()
             raise Exception(f"Failed to create company: {str(e)}")
 
-    @staticmethod
-    def update(companyId, **kwargs):
-        from app import db
+    def update(self, companyId, **kwargs):
         try:
-            company = Company.query.get(companyId)
+            company = self.session.get(Company, companyId)
             if not company:
                 return None
             for key, value in kwargs.items():
                 if hasattr(company, key):
                     setattr(company, key, value)
-            db.session.commit()
+            self.session.commit()
             return company
         except Exception as e:
-            db.session.rollback()
+            self.session.rollback()
             raise Exception(f"Failed to update company: {str(e)}")
 
-    @staticmethod
-    def delete(companyId):
-        from app import db
+    def delete(self, companyId):
         try:
-            company = Company.query.get(companyId)
+            company = self.session.get(Company, companyId)
             if not company:
                 return False
-            db.session.delete(company)
-            db.session.commit()
+            self.session.delete(company)
+            self.session.commit()
             return True
         except Exception as e:
-            db.session.rollback()
+            self.session.rollback()
             raise Exception(f"Failed to delete company: {str(e)}")

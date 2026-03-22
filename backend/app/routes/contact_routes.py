@@ -5,7 +5,7 @@ from flask import Blueprint, request, jsonify, make_response
 from flask_jwt_extended import jwt_required
 from app.services import EmailService, RecaptchaVerificationService
 from app.dao import ContactSubmissionDAO
-from app import limiter
+from app import db, limiter
 from app.utils.csrf_protection import generateCsrfToken, attachCsrfCookieToResponse, validateCsrfToken
 import sys
 import threading
@@ -229,7 +229,7 @@ def submitContactForm():
 
         # Save submission to database
         try:
-            submission = ContactSubmissionDAO.createSubmission(
+            submission = ContactSubmissionDAO(db.session).createSubmission(
                 name=name,
                 email=email,
                 message=message,
@@ -281,7 +281,7 @@ def getSubmissions():
         includeArchived = request.args.get('includeArchived', 'false').lower() == 'true'
 
         # Fetch submissions from database
-        submissions, total = ContactSubmissionDAO.getAllSubmissions(
+        submissions, total = ContactSubmissionDAO(db.session).getAllSubmissions(
             limit=limit,
             offset=offset,
             readFilter=readFilter,
@@ -316,7 +316,7 @@ def getSubmission(submissionId):
         500: Server error
     """
     try:
-        submission = ContactSubmissionDAO.getSubmissionById(submissionId)
+        submission = ContactSubmissionDAO(db.session).getSubmissionById(submissionId)
         if not submission:
             return jsonify({'success': False, 'error': 'Submission not found'}), 404
 
@@ -340,7 +340,7 @@ def toggleSubmissionRead(submissionId):
         500: Server error
     """
     try:
-        submission = ContactSubmissionDAO.toggleReadStatus(submissionId)
+        submission = ContactSubmissionDAO(db.session).toggleReadStatus(submissionId)
         if not submission:
             return jsonify({'success': False, 'error': 'Submission not found'}), 404
 
@@ -364,7 +364,7 @@ def deleteSubmission(submissionId):
         500: Server error
     """
     try:
-        success = ContactSubmissionDAO.softDelete(submissionId)
+        success = ContactSubmissionDAO(db.session).softDelete(submissionId)
         if not success:
             return jsonify({'success': False, 'error': 'Submission not found'}), 404
 

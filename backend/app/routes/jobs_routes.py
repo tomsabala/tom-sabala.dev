@@ -3,6 +3,7 @@ import traceback
 from datetime import datetime
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
+from app import db
 from app.dao import CompanyDAO, JobApplicationDAO
 from app.models.job_application import VALID_STATUSES
 
@@ -15,7 +16,7 @@ jobs_bp = Blueprint('jobs', __name__)
 @jwt_required()
 def getCompanies():
     try:
-        companies = CompanyDAO.getAll()
+        companies = CompanyDAO(db.session).getAll()
         return jsonify({'success': True, 'data': [c.toDict() for c in companies]}), 200
     except Exception as e:
         print(traceback.format_exc(), file=sys.stderr)
@@ -29,7 +30,7 @@ def createCompany():
     if not data or not data.get('name', '').strip():
         return jsonify({'success': False, 'error': 'name is required'}), 400
     try:
-        company = CompanyDAO.create(
+        company = CompanyDAO(db.session).create(
             name=data['name'].strip(),
             url=data.get('url', '').strip() or None,
             notes=data.get('notes', '').strip() or None,
@@ -47,7 +48,7 @@ def updateCompany(companyId):
     if not data:
         return jsonify({'success': False, 'error': 'No data provided'}), 400
     try:
-        company = CompanyDAO.update(
+        company = CompanyDAO(db.session).update(
             companyId,
             name=data.get('name', '').strip() or None,
             url=data.get('url', '').strip() or None,
@@ -65,7 +66,7 @@ def updateCompany(companyId):
 @jwt_required()
 def deleteCompany(companyId):
     try:
-        deleted = CompanyDAO.delete(companyId)
+        deleted = CompanyDAO(db.session).delete(companyId)
         if not deleted:
             return jsonify({'success': False, 'error': 'Company not found'}), 404
         return jsonify({'success': True, 'message': 'Company deleted'}), 200
@@ -83,7 +84,7 @@ def getApplications():
         status = request.args.get('status')
         if status and status not in VALID_STATUSES:
             return jsonify({'success': False, 'error': f'Invalid status. Must be one of: {VALID_STATUSES}'}), 400
-        applications = JobApplicationDAO.getAll(status=status)
+        applications = JobApplicationDAO(db.session).getAll(status=status)
         return jsonify({'success': True, 'data': [a.toDict() for a in applications]}), 200
     except Exception as e:
         print(traceback.format_exc(), file=sys.stderr)
@@ -117,7 +118,7 @@ def createApplication():
             return jsonify({'success': False, 'error': 'date_applied must be YYYY-MM-DD'}), 400
 
     try:
-        application = JobApplicationDAO.create(
+        application = JobApplicationDAO(db.session).create(
             companyName=companyName,
             position=position,
             status=status,
@@ -159,7 +160,7 @@ def updateApplication(applicationId):
             return jsonify({'success': False, 'error': 'date_applied must be YYYY-MM-DD'}), 400
 
     try:
-        application = JobApplicationDAO.update(
+        application = JobApplicationDAO(db.session).update(
             applicationId,
             companyName=companyName,
             position=position,
@@ -187,7 +188,7 @@ def updateApplicationStatus(applicationId):
     if status not in VALID_STATUSES:
         return jsonify({'success': False, 'error': f'Invalid status. Must be one of: {VALID_STATUSES}'}), 400
     try:
-        application = JobApplicationDAO.update(applicationId, status=status)
+        application = JobApplicationDAO(db.session).update(applicationId, status=status)
         if not application:
             return jsonify({'success': False, 'error': 'Application not found'}), 404
         return jsonify({'success': True, 'data': application.toDict()}), 200
@@ -200,7 +201,7 @@ def updateApplicationStatus(applicationId):
 @jwt_required()
 def deleteApplication(applicationId):
     try:
-        deleted = JobApplicationDAO.delete(applicationId)
+        deleted = JobApplicationDAO(db.session).delete(applicationId)
         if not deleted:
             return jsonify({'success': False, 'error': 'Application not found'}), 404
         return jsonify({'success': True, 'message': 'Application deleted'}), 200

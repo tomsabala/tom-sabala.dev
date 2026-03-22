@@ -3,6 +3,7 @@ Dashboard routes - admin dashboard statistics and overview
 """
 from flask import Blueprint, jsonify
 from flask_jwt_extended import jwt_required
+from app import db
 from app.dao import ProjectDAO, ResumeDAO
 from app.services import AuthService
 
@@ -22,8 +23,8 @@ def getAdminStats():
         500: Server error
     """
     try:
-        projects = ProjectDAO.getAllProjects()
-        resume = ResumeDAO.getResume()
+        projects = ProjectDAO(db.session).getAllProjects()
+        resume = ResumeDAO(db.session).getResume()
         user, _ = AuthService.getCurrentUser()
 
         stats = {

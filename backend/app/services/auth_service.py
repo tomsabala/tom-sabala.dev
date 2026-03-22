@@ -2,6 +2,7 @@
 Authentication service for handling user authentication operations
 """
 from app.dao import UserDAO
+from app import db
 from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity
 
 
@@ -21,7 +22,7 @@ class AuthService:
             tuple: (user: User or None, error: str or None)
         """
         try:
-            user = UserDAO.getUserByEmail(email)
+            user = UserDAO(db.session).getUserByEmail(email)
             if not user or not user.checkPassword(password):
                 return (None, "Invalid email or password")
             return (user, None)
@@ -57,7 +58,7 @@ class AuthService:
             if not userId:
                 return (None, "User not authenticated")
             # Convert string identity back to int for database query
-            user = UserDAO.getUserById(int(userId))
+            user = UserDAO(db.session).getUserById(int(userId))
             return (user, None) if user else (None, "User not found")
         except Exception as e:
             return (None, str(e))
@@ -74,7 +75,7 @@ class AuthService:
             tuple: (success: bool, error: str or None)
         """
         try:
-            UserDAO.updateLastLogin(userId)
+            UserDAO(db.session).updateLastLogin(userId)
             return (True, None)
         except Exception as e:
             return (False, str(e))

@@ -3,26 +3,25 @@ from app.models import JobApplication
 
 class JobApplicationDAO:
 
-    @staticmethod
-    def getAll(status=None):
+    def __init__(self, session):
+        self.session = session
+
+    def getAll(self, status=None):
         try:
-            query = JobApplication.query
+            query = self.session.query(JobApplication)
             if status:
                 query = query.filter_by(status=status)
             return query.order_by(JobApplication.createdAt.desc()).all()
         except Exception as e:
             raise Exception(f"Failed to fetch job applications: {str(e)}")
 
-    @staticmethod
-    def getById(applicationId):
+    def getById(self, applicationId):
         try:
-            return JobApplication.query.get(applicationId)
+            return self.session.get(JobApplication, applicationId)
         except Exception as e:
             raise Exception(f"Failed to fetch job application: {str(e)}")
 
-    @staticmethod
-    def create(companyName, position, status='bookmarked', companyId=None, jobUrl=None, dateApplied=None, notes=None):
-        from app import db
+    def create(self, companyName, position, status='bookmarked', companyId=None, jobUrl=None, dateApplied=None, notes=None):
         try:
             application = JobApplication(
                 companyName=companyName,
@@ -33,39 +32,35 @@ class JobApplicationDAO:
                 dateApplied=dateApplied,
                 notes=notes,
             )
-            db.session.add(application)
-            db.session.commit()
+            self.session.add(application)
+            self.session.commit()
             return application
         except Exception as e:
-            db.session.rollback()
+            self.session.rollback()
             raise Exception(f"Failed to create job application: {str(e)}")
 
-    @staticmethod
-    def update(applicationId, **kwargs):
-        from app import db
+    def update(self, applicationId, **kwargs):
         try:
-            application = JobApplication.query.get(applicationId)
+            application = self.session.get(JobApplication, applicationId)
             if not application:
                 return None
             for key, value in kwargs.items():
                 if hasattr(application, key):
                     setattr(application, key, value)
-            db.session.commit()
+            self.session.commit()
             return application
         except Exception as e:
-            db.session.rollback()
+            self.session.rollback()
             raise Exception(f"Failed to update job application: {str(e)}")
 
-    @staticmethod
-    def delete(applicationId):
-        from app import db
+    def delete(self, applicationId):
         try:
-            application = JobApplication.query.get(applicationId)
+            application = self.session.get(JobApplication, applicationId)
             if not application:
                 return False
-            db.session.delete(application)
-            db.session.commit()
+            self.session.delete(application)
+            self.session.commit()
             return True
         except Exception as e:
-            db.session.rollback()
+            self.session.rollback()
             raise Exception(f"Failed to delete job application: {str(e)}")

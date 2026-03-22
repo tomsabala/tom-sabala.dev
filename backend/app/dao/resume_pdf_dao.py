@@ -2,79 +2,35 @@
 Resume PDF DAO - Database access object for resume PDF operations
 """
 from app.models.resume_pdf import ResumePdfVersion
-from app import db
 from datetime import datetime
 
 
 class ResumePdfDAO:
-    """DAO class for ResumePdfVersion database operations"""
 
-    @staticmethod
-    def getActivePdf():
-        """
-        Get the currently active PDF version
+    def __init__(self, session):
+        self.session = session
 
-        Returns:
-            ResumePdfVersion: Active PDF or None if no active PDF exists
-
-        Raises:
-            Exception: If database query fails
-        """
+    def getActivePdf(self):
         try:
-            return ResumePdfVersion.query.filter_by(
+            return self.session.query(ResumePdfVersion).filter_by(
                 isActive=True,
                 deletedAt=None
             ).first()
         except Exception as e:
             raise Exception(f"Failed to fetch active PDF: {str(e)}")
 
-    @staticmethod
-    def getAllVersions(includeDeleted=False):
-        """
-        Get all PDF versions ordered by creation date (newest first)
-
-        Args:
-            includeDeleted (bool): Include soft-deleted versions (default: False)
-
-        Returns:
-            list[ResumePdfVersion]: List of all versions
-
-        Raises:
-            Exception: If database query fails
-        """
+    def getAllVersions(self, includeDeleted=False):
         try:
-            query = ResumePdfVersion.query
-
+            query = self.session.query(ResumePdfVersion)
             if not includeDeleted:
                 query = query.filter_by(deletedAt=None)
-
             return query.order_by(ResumePdfVersion.createdAt.desc()).all()
         except Exception as e:
             raise Exception(f"Failed to fetch PDF versions: {str(e)}")
 
-    @staticmethod
-    def createVersion(fileName, filePath, fileSize, userId):
-        """
-        Create a new PDF version and set it as active
-        Automatically deactivates all other versions
-
-        Args:
-            fileName (str): Original filename
-            filePath (str): Relative storage path
-            fileSize (int): File size in bytes
-            userId (int): ID of uploading user
-
-        Returns:
-            ResumePdfVersion: Created version object
-
-        Raises:
-            Exception: If database operation fails
-        """
+    def createVersion(self, fileName, filePath, fileSize, userId):
         try:
-            # Deactivate all existing versions
-            ResumePdfVersion.query.filter_by(isActive=True).update({'isActive': False})
-
-            # Create new version as active
+            self.session.query(ResumePdfVersion).filter_by(isActive=True).update({'isActive': False})
             newVersion = ResumePdfVersion(
                 fileName=fileName,
                 filePath=filePath,
@@ -82,42 +38,19 @@ class ResumePdfDAO:
                 isActive=True,
                 uploadedByUserId=userId
             )
-
-            db.session.add(newVersion)
-            db.session.commit()
-
+            self.session.add(newVersion)
+            self.session.commit()
             return newVersion
         except Exception as e:
-            db.session.rollback()
+            self.session.rollback()
             raise Exception(f"Failed to create PDF version: {str(e)}")
 
-    @staticmethod
-    def setActiveVersion(versionId):
-        """
-        Set a specific version as active by creating a new history entry
-        Creates a new database record that references the same file
-        Deactivates all other versions
-
-        Args:
-            versionId (int): Version ID to activate
-
-        Returns:
-            ResumePdfVersion: New activated version or None if source not found
-
-        Raises:
-            Exception: If database operation fails
-        """
+    def setActiveVersion(self, versionId):
         try:
-            # Get the source version to copy from
-            sourceVersion = ResumePdfVersion.query.get(versionId)
-
+            sourceVersion = self.session.get(ResumePdfVersion, versionId)
             if not sourceVersion:
                 return None
-
-            # Deactivate all existing versions
-            ResumePdfVersion.query.filter_by(isActive=True).update({'isActive': False})
-
-            # Create new version with same file data (references same file on disk)
+            self.session.query(ResumePdfVersion).filter_by(isActive=True).update({'isActive': False})
             newVersion = ResumePdfVersion(
                 fileName=sourceVersion.fileName,
                 filePath=sourceVersion.filePath,
@@ -125,66 +58,31 @@ class ResumePdfDAO:
                 mimeType=sourceVersion.mimeType,
                 isActive=True,
                 uploadedByUserId=sourceVersion.uploadedByUserId,
-                createdAt=datetime.utcnow()  # New timestamp for reactivation
+                createdAt=datetime.utcnow()
             )
-
-            db.session.add(newVersion)
-            db.session.commit()
-
+            self.session.add(newVersion)
+            self.session.commit()
             return newVersion
         except Exception as e:
-            db.session.rollback()
+            self.session.rollback()
             raise Exception(f"Failed to set active version: {str(e)}")
 
-    @staticmethod
-    def softDelete(versionId):
-        """
-        Soft delete a PDF version (mark as deleted but keep in database)
-        If deleting active version, no version will be active
-
-        Args:
-            versionId (int): Version ID to delete
-
-        Returns:
-            bool: True if deleted, False if not found
-
-        Raises:
-            Exception: If database operation fails
-        """
+    def softDelete(self, versionId):
         try:
-            version = ResumePdfVersion.query.get(versionId)
-
+            version = self.session.get(ResumePdfVersion, versionId)
             if not version:
                 return False
-
-            # Mark as deleted
             version.deletedAt = datetime.utcnow()
-
-            # If deleting active version, deactivate it
             if version.isActive:
                 version.isActive = False
-
-            db.session.commit()
+            self.session.commit()
             return True
         except Exception as e:
-            db.session.rollback()
+            self.session.rollback()
             raise Exception(f"Failed to delete PDF version: {str(e)}")
 
-    @staticmethod
-    def getVersionById(versionId):
-        """
-        Get a specific version by ID
-
-        Args:
-            versionId (int): Version ID
-
-        Returns:
-            ResumePdfVersion: Version object or None if not found
-
-        Raises:
-            Exception: If database query fails
-        """
+    def getVersionById(self, versionId):
         try:
-            return ResumePdfVersion.query.get(versionId)
+            return self.session.get(ResumePdfVersion, versionId)
         except Exception as e:
             raise Exception(f"Failed to fetch PDF version: {str(e)}")

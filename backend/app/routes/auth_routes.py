@@ -6,6 +6,7 @@ from flask_jwt_extended import (
     jwt_required, get_jwt_identity, set_access_cookies,
     set_refresh_cookies, unset_jwt_cookies, create_access_token
 )
+from app import db
 from app.services import AuthService
 from app.services.google_oauth_service import GoogleOAuthService
 from app.dao import UserDAO
@@ -51,8 +52,9 @@ def googleLogin():
         }), 403
 
     try:
+        userDAO = UserDAO(db.session)
         # Create or update user in database
-        user = UserDAO.createOrUpdateGoogleUser(
+        user = userDAO.createOrUpdateGoogleUser(
             googleId=userInfo['googleId'],
             email=userInfo['email'],
             name=userInfo['name'],
@@ -61,7 +63,7 @@ def googleLogin():
 
         # Generate JWT tokens
         tokens = AuthService.generateTokens(user.id)
-        UserDAO.updateLastLogin(user.id)
+        userDAO.updateLastLogin(user.id)
 
         # Set cookies and return response
         response = make_response(jsonify({

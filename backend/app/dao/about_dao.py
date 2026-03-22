@@ -5,72 +5,39 @@ from app.models import About
 
 
 class AboutDAO:
-    """DAO class for About database operations"""
 
-    @staticmethod
-    def getAbout():
-        """
-        Fetch the about content (there should only be one)
+    def __init__(self, session):
+        self.session = session
 
-        Returns:
-            About: About object or None if not found
-
-        Raises:
-            Exception: If database query fails
-        """
+    def getAbout(self):
         try:
-            about = About.query.first()
-            return about
+            return self.session.query(About).first()
         except Exception as e:
             raise Exception(f"Failed to fetch about: {str(e)}")
 
-    @staticmethod
-    def updateAbout(content=None, profilePhotoUrl=None):
-        """
-        Update or create the about content
-
-        Args:
-            content (str, optional): About text content (plain text)
-            profilePhotoUrl (str, optional): URL/path to profile photo
-
-        Returns:
-            About: Updated or created about object
-
-        Raises:
-            Exception: If update fails
-        """
-        from app import db
+    def updateAbout(self, content=None, profilePhotoUrl=None):
         try:
-            about = About.query.first()
-
+            about = self.session.query(About).first()
             if not about:
                 about = About(
                     content=content or '',
                     profilePhotoUrl=profilePhotoUrl
                 )
-                db.session.add(about)
+                self.session.add(about)
             else:
                 if content is not None:
                     about.content = content
                 if profilePhotoUrl is not None:
                     about.profilePhotoUrl = profilePhotoUrl
-
-            db.session.commit()
+            self.session.commit()
             return about
         except Exception as e:
-            db.session.rollback()
+            self.session.rollback()
             raise Exception(f"Failed to update about: {str(e)}")
 
-    @staticmethod
-    def getProfilePhotoUrl():
-        """
-        Get just the profile photo URL (for deletion checks)
-
-        Returns:
-            str: Profile photo URL or None
-        """
+    def getProfilePhotoUrl(self):
         try:
-            about = About.query.first()
+            about = self.session.query(About).first()
             return about.profilePhotoUrl if about else None
         except Exception:
             return None
