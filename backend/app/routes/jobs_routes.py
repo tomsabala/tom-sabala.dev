@@ -1,9 +1,11 @@
 import sys
+import json
+import os
 import traceback
 from datetime import datetime
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
-from app import db
+from app import db, limiter
 from app.dao import CompanyDAO, JobApplicationDAO
 from app.models.job_application import VALID_STATUSES
 
@@ -11,6 +13,55 @@ jobs_bp = Blueprint('jobs', __name__)
 
 
 # ── Companies ─────────────────────────────────────────────────────────────────
+
+@jobs_bp.route('/jobs/companies/suggest-categories', methods=['POST'])
+@jwt_required()
+@limiter.limit("20 per hour")
+def suggestCategories():
+    apiKey = os.getenv('ANTHROPIC_API_KEY')
+    if not apiKey:
+        return jsonify({'success': False, 'error': 'AI suggestions unavailable'}), 503
+
+    data = request.get_json() or {}
+    name = data.get('name', '').strip()
+    url = data.get('url', '').strip()
+    notes = data.get('notes', '').strip()
+
+    userMsg = f"Company: {name}"
+    if url:
+        userMsg += f"\nURL: {url}"
+    if notes:
+        userMsg += f"\nNotes: {notes}"
+
+    try:
+        import anthropic
+        client = anthropic.Anthropic(api_key=apiKey)
+        message = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=100,
+            temperature=0,
+            system=(
+                "You are a job tracker assistant. Given a company name, website URL, and optional notes, "
+                "return ONLY a valid JSON array of 2 to 5 lowercase tags (single words or hyphenated) that "
+                "describe the company's industry or technology domain. Tags should be short and reusable "
+                "(e.g. 'robotics', 'fintech', 'cloud-infrastructure'). "
+                "Return nothing else — no explanation, no markdown, just the raw JSON array."
+            ),
+            messages=[{"role": "user", "content": userMsg}],
+        )
+        raw = message.content[0].text.strip()
+        categories = json.loads(raw)
+        if not isinstance(categories, list):
+            categories = []
+    except json.JSONDecodeError:
+        print(f"suggestCategories: JSON parse error on response", file=sys.stderr)
+        return jsonify({'success': True, 'categories': [], 'warning': 'AI suggestion failed, try again'}), 200
+    except Exception as e:
+        print(f"suggestCategories error: {str(e)}", file=sys.stderr)
+        return jsonify({'success': True, 'categories': [], 'warning': 'AI suggestion failed, try again'}), 200
+
+    return jsonify({'success': True, 'categories': categories}), 200
+
 
 @jobs_bp.route('/jobs/companies', methods=['GET'])
 @jwt_required()
@@ -30,10 +81,12 @@ def createCompany():
     if not data or not data.get('name', '').strip():
         return jsonify({'success': False, 'error': 'name is required'}), 400
     try:
+        rawCategories = data.get('categories')
         company = CompanyDAO(db.session).create(
             name=data['name'].strip(),
             url=data.get('url', '').strip() or None,
             notes=data.get('notes', '').strip() or None,
+            categories=rawCategories if isinstance(rawCategories, list) else [],
         )
         return jsonify({'success': True, 'data': company.toDict()}), 201
     except Exception as e:
@@ -48,11 +101,13 @@ def updateCompany(companyId):
     if not data:
         return jsonify({'success': False, 'error': 'No data provided'}), 400
     try:
+        rawCategories = data.get('categories')
         company = CompanyDAO(db.session).update(
             companyId,
             name=data.get('name', '').strip() or None,
             url=data.get('url', '').strip() or None,
             notes=data.get('notes', '').strip() or None,
+            categories=rawCategories if isinstance(rawCategories, list) else [],
         )
         if not company:
             return jsonify({'success': False, 'error': 'Company not found'}), 404

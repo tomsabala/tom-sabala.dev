@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import * as jobsRepository from '../repositories/jobsRepository.ts';
 import CompanyFormModal from '../components/CompanyFormModal.tsx';
 import JobApplicationFormModal from '../components/JobApplicationFormModal.tsx';
@@ -49,6 +49,7 @@ function Jobs() {
 
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [categoryFilters, setCategoryFilters] = useState<Set<string>>(new Set());
 
   const showSuccess = (msg: string) => {
     setSuccessMsg(msg);
@@ -120,6 +121,19 @@ function Jobs() {
       showError('Failed to delete application');
     }
   };
+
+  const allCategories = useMemo(
+    () => [...new Set(companies.flatMap(c => c.categories || []))].sort(),
+    [companies]
+  );
+
+  const filteredCompanies = useMemo(
+    () =>
+      categoryFilters.size === 0
+        ? companies
+        : companies.filter(c => (c.categories || []).some(cat => categoryFilters.has(cat))),
+    [companies, categoryFilters]
+  );
 
   const filteredApplications =
     statusFilter === 'all'
@@ -246,6 +260,47 @@ function Jobs() {
             aria-labelledby="tab-jobs-companies"
             tabIndex={0}
           >
+            {/* Category filter bar — only shown when at least one company has categories */}
+            {allCategories.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-5">
+                <button
+                  onClick={() => setCategoryFilters(new Set())}
+                  aria-pressed={categoryFilters.size === 0}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                    categoryFilters.size === 0
+                      ? 'text-white'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                  style={categoryFilters.size === 0 ? { background: 'var(--accent)' } : undefined}
+                >
+                  All ({companies.length})
+                </button>
+                {allCategories.map(cat => {
+                  const count = companies.filter(c => c.categories?.includes(cat)).length;
+                  const active = categoryFilters.has(cat);
+                  return (
+                    <button
+                      key={cat}
+                      onClick={() => setCategoryFilters(prev => {
+                        const next = new Set(prev);
+                        next.has(cat) ? next.delete(cat) : next.add(cat);
+                        return next;
+                      })}
+                      aria-pressed={active}
+                      className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                        active
+                          ? 'text-white'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                      }`}
+                      style={active ? { background: 'var(--accent)' } : undefined}
+                    >
+                      {cat} ({count})
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
             {companies.length === 0 ? (
               <div className="text-center py-16 text-gray-400 dark:text-gray-500">
                 <svg className="w-12 h-12 mx-auto mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -253,9 +308,19 @@ function Jobs() {
                 </svg>
                 <p className="text-sm">No companies yet. Add one to get started.</p>
               </div>
+            ) : filteredCompanies.length === 0 ? (
+              <div className="text-center py-16 text-gray-400 dark:text-gray-500">
+                <p className="text-sm">No companies match the selected filters.</p>
+                <button
+                  onClick={() => setCategoryFilters(new Set())}
+                  className="mt-2 text-xs underline hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                >
+                  Clear filters
+                </button>
+              </div>
             ) : (
               <div className="divide-y divide-gray-100 dark:divide-gray-700">
-                {companies.map(company => (
+                {filteredCompanies.map(company => (
                   <div key={company.id} className="flex items-center gap-4 py-3 group">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
@@ -278,6 +343,18 @@ function Jobs() {
                       </div>
                       {company.notes && (
                         <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">{company.notes}</p>
+                      )}
+                      {company.categories && company.categories.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {company.categories.map(cat => (
+                            <span
+                              key={cat}
+                              className="px-1.5 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
+                            >
+                              {cat}
+                            </span>
+                          ))}
+                        </div>
                       )}
                     </div>
                     <div className="relative flex-shrink-0">

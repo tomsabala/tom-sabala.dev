@@ -9,6 +9,7 @@ class Company(db.Model):
     name = db.Column(db.String(200), nullable=False)
     url = db.Column(db.String(500), nullable=True)
     notes = db.Column(db.Text, nullable=True)
+    categories = db.Column(db.JSON, nullable=True, default=list)
     createdAt = db.Column('created_at', db.DateTime, nullable=False, default=datetime.utcnow)
     updatedAt = db.Column('updated_at', db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -20,6 +21,7 @@ class Company(db.Model):
             'name': self.name,
             'url': self.url,
             'notes': self.notes,
+            'categories': self.categories or [],
             'created_at': self.createdAt.isoformat() if self.createdAt else None,
             'updated_at': self.updatedAt.isoformat() if self.updatedAt else None,
         }

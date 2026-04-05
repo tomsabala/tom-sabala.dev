@@ -5,13 +5,18 @@ export async function getCompanies() {
   return response.data;
 }
 
-export async function createCompany(data: { name: string; url?: string; notes?: string }) {
+export async function createCompany(data: { name: string; url?: string; notes?: string; categories?: string[] }) {
   const response = await apiClient.post('/jobs/companies', data);
   return response.data;
 }
 
-export async function updateCompany(id: number, data: { name?: string; url?: string; notes?: string }) {
+export async function updateCompany(id: number, data: { name?: string; url?: string; notes?: string; categories?: string[] }) {
   const response = await apiClient.put(`/jobs/companies/${id}`, data);
+  return response.data;
+}
+
+export async function suggestCategories(data: { name: string; url?: string; notes?: string }) {
+  const response = await apiClient.post('/jobs/companies/suggest-categories', data);
   return response.data;
 }
 
