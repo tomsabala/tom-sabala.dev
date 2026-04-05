@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import * as jobsRepository from '../repositories/jobsRepository.ts';
 import CompanyFormModal from '../components/CompanyFormModal.tsx';
-adimport JobApplicationFormModal from '../components/JobApplicationFormModal.tsx';
+import JobApplicationFormModal from '../components/JobApplicationFormModal.tsx';
 import type { Company, JobApplication } from '../types/index.ts';
 import { useTheme } from '../contexts/ThemeContext.tsx';
 
