@@ -7,17 +7,23 @@ interface TabConfigContextValue {
   visibleTabs: Set<string> | null;
   /** Tab keys that are hidden from public visitors. Only populated for admin. */
   hiddenFromPublic: Set<string>;
+  /** Re-fetch tab configs — call after saving changes in Settings. */
+  refreshTabConfigs: () => void;
 }
 
 const TabConfigContext = createContext<TabConfigContextValue>({
   visibleTabs: null,
   hiddenFromPublic: new Set(),
+  refreshTabConfigs: () => {},
 });
 
 export function TabConfigProvider({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
   const [visibleTabs, setVisibleTabs] = useState<Set<string> | null>(null);
   const [hiddenFromPublic, setHiddenFromPublic] = useState<Set<string>>(new Set());
+  const [refreshTick, setRefreshTick] = useState(0);
+
+  const refreshTabConfigs = () => setRefreshTick(t => t + 1);
 
   useEffect(() => {
     // Wait for auth to resolve before doing anything
@@ -46,10 +52,10 @@ export function TabConfigProvider({ children }: { children: React.ReactNode }) {
       if (!cancelled) setVisibleTabs(tabs);
     });
     return () => { cancelled = true; };
-  }, [isAuthenticated, isLoading]);
+  }, [isAuthenticated, isLoading, refreshTick]);
 
   return (
-    <TabConfigContext.Provider value={{ visibleTabs, hiddenFromPublic }}>
+    <TabConfigContext.Provider value={{ visibleTabs, hiddenFromPublic, refreshTabConfigs }}>
       {children}
     </TabConfigContext.Provider>
   );

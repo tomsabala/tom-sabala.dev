@@ -3,6 +3,7 @@ import LogoMark from '../components/LogoMark.tsx';
 import { getAdminTabConfigs, updateTabConfigs } from '../repositories/settingsRepository.ts';
 import type { TabConfigs } from '../types/index.ts';
 import { useToc } from '../contexts/TocContext.tsx';
+import { useTabConfig } from '../contexts/TabConfigContext.tsx';
 
 const TAB_META: Array<{ key: string; label: string; path: string; description: string; icon: React.ReactNode }> = [
   {
@@ -84,6 +85,7 @@ const TAB_META: Array<{ key: string; label: string; path: string; description: s
 
 function Settings() {
   const { setToc, setTocTitle } = useToc();
+  const { refreshTabConfigs } = useTabConfig();
   const [saved, setSaved] = useState<TabConfigs>({});
   const [draft, setDraft] = useState<TabConfigs>({});
   const [loading, setLoading] = useState(true);
@@ -125,6 +127,7 @@ function Settings() {
       const res = await updateTabConfigs(draft);
       if (res.success) {
         setSaved(draft);
+        refreshTabConfigs();
         setSuccessMsg('Settings saved. Changes will apply to visitors on their next page load.');
         setTimeout(() => setSuccessMsg(null), 5000);
       } else {
