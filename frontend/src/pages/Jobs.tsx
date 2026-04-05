@@ -1,10 +1,11 @@
 import { useEffect, useState, useMemo } from 'react';
 import * as jobsRepository from '../repositories/jobsRepository.ts';
 import CompanyFormModal from '../components/CompanyFormModal.tsx';
-import JobApplicationFormModal from '../components/JobApplicationFormModal.tsx';
+adimport JobApplicationFormModal from '../components/JobApplicationFormModal.tsx';
 import type { Company, JobApplication } from '../types/index.ts';
+import { useTheme } from '../contexts/ThemeContext.tsx';
 
-const CAT_COLORS: { bg: string; text: string }[] = [
+const CAT_COLORS_DARK: { bg: string; text: string }[] = [
   { bg: '#312e81', text: '#a5b4fc' },
   { bg: '#064e3b', text: '#6ee7b7' },
   { bg: '#7c2d12', text: '#fdba74' },
@@ -17,6 +18,21 @@ const CAT_COLORS: { bg: string; text: string }[] = [
   { bg: '#292524', text: '#d6d3d1' },
   { bg: '#1e1b4b', text: '#818cf8' },
   { bg: '#365314', text: '#bef264' },
+];
+
+const CAT_COLORS_LIGHT: { bg: string; text: string }[] = [
+  { bg: '#e0e7ff', text: '#3730a3' },
+  { bg: '#d1fae5', text: '#065f46' },
+  { bg: '#ffedd5', text: '#9a3412' },
+  { bg: '#ede9fe', text: '#5b21b6' },
+  { bg: '#dbeafe', text: '#1d4ed8' },
+  { bg: '#fae8ff', text: '#7e22ce' },
+  { bg: '#dcfce7', text: '#15803d' },
+  { bg: '#fee2e2', text: '#b91c1c' },
+  { bg: '#ccfbf1', text: '#0f766e' },
+  { bg: '#f5f5f4', text: '#44403c' },
+  { bg: '#e0e7ff', text: '#4338ca' },
+  { bg: '#ecfccb', text: '#3f6212' },
 ];
 
 const VALID_STATUSES = [
@@ -46,6 +62,9 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 function Jobs() {
+  const { theme } = useTheme();
+  const CAT_COLORS = theme === 'dark' ? CAT_COLORS_DARK : CAT_COLORS_LIGHT;
+
   const [activeTab, setActiveTab] = useState<'companies' | 'applications'>('companies');
 
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -146,7 +165,7 @@ function Jobs() {
     const map: Record<string, { bg: string; text: string }> = {};
     allCategories.forEach((cat, i) => { map[cat] = CAT_COLORS[i % CAT_COLORS.length]; });
     return map;
-  }, [allCategories]);
+  }, [allCategories, CAT_COLORS]);
 
   const filteredCompanies = useMemo(
     () =>
@@ -299,14 +318,16 @@ function Jobs() {
                     <button
                       onClick={() => setCategoryFilters(new Set())}
                       aria-pressed={categoryFilters.size === 0}
-                      className={`w-full text-left flex items-center justify-between px-2 py-1.5 rounded-md text-xs font-medium mb-0.5 transition-colors border-l-2 ${
-                        categoryFilters.size === 0
-                          ? 'border-[var(--accent)] text-[var(--accent)] bg-[var(--accent)]/10'
-                          : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
-                      }`}
+                      className="w-full text-left flex items-center justify-between px-2 py-1.5 rounded-md text-xs font-medium mb-0.5 transition-colors border-l-2"
+                      style={categoryFilters.size === 0
+                        ? { borderLeftColor: 'var(--accent)', color: 'var(--accent)', background: 'color-mix(in srgb, var(--accent) 12%, transparent)' }
+                        : { borderLeftColor: 'transparent', color: theme === 'dark' ? '#6b7280' : '#9ca3af' }
+                      }
+                      onMouseEnter={e => { if (categoryFilters.size > 0) (e.currentTarget as HTMLButtonElement).style.background = theme === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)'; }}
+                      onMouseLeave={e => { if (categoryFilters.size > 0) (e.currentTarget as HTMLButtonElement).style.background = ''; }}
                     >
                       <span>All</span>
-                      <span className="text-gray-400 dark:text-gray-500">{companies.length}</span>
+                      <span style={{ color: theme === 'dark' ? '#6b7280' : '#9ca3af' }}>{companies.length}</span>
                     </button>
                     {allCategories.map(cat => {
                       const count = companies.filter(c => c.categories?.includes(cat)).length;
@@ -321,16 +342,17 @@ function Jobs() {
                             return next;
                           })}
                           aria-pressed={active}
+                          title={cat}
                           className="w-full text-left flex items-center justify-between px-2 py-1.5 rounded-md text-xs font-medium mb-0.5 transition-colors border-l-2"
                           style={active
-                            ? { borderLeftColor: color.text, color: color.text, background: color.bg + '40' }
-                            : { borderLeftColor: 'transparent', color: '#6b7280' }
+                            ? { borderLeftColor: color.text, color: color.text, background: color.bg }
+                            : { borderLeftColor: 'transparent', color: theme === 'dark' ? '#6b7280' : '#9ca3af' }
                           }
-                          onMouseEnter={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.04)'; }}
+                          onMouseEnter={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.background = theme === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)'; }}
                           onMouseLeave={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.background = ''; }}
                         >
                           <span className="truncate">{cat}</span>
-                          <span className="ml-1 flex-shrink-0" style={{ color: active ? color.text : '#4b5563' }}>{count}</span>
+                          <span className="ml-1 flex-shrink-0" style={{ color: active ? color.text : (theme === 'dark' ? '#4b5563' : '#d1d5db') }}>{count}</span>
                         </button>
                       );
                     })}
@@ -382,6 +404,7 @@ function Jobs() {
                                   return (
                                     <span
                                       key={cat}
+                                      title={cat}
                                       className="px-1.5 py-0.5 text-xs rounded-full font-medium"
                                       style={color ? { background: color.bg, color: color.text } : undefined}
                                     >
