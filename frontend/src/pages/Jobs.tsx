@@ -4,6 +4,21 @@ import CompanyFormModal from '../components/CompanyFormModal.tsx';
 import JobApplicationFormModal from '../components/JobApplicationFormModal.tsx';
 import type { Company, JobApplication } from '../types/index.ts';
 
+const CAT_COLORS: { bg: string; text: string }[] = [
+  { bg: '#312e81', text: '#a5b4fc' },
+  { bg: '#064e3b', text: '#6ee7b7' },
+  { bg: '#7c2d12', text: '#fdba74' },
+  { bg: '#4c1d95', text: '#c4b5fd' },
+  { bg: '#1e3a5f', text: '#93c5fd' },
+  { bg: '#3b0764', text: '#e879f9' },
+  { bg: '#14532d', text: '#86efac' },
+  { bg: '#7f1d1d', text: '#fca5a5' },
+  { bg: '#1c3a2e', text: '#5eead4' },
+  { bg: '#292524', text: '#d6d3d1' },
+  { bg: '#1e1b4b', text: '#818cf8' },
+  { bg: '#365314', text: '#bef264' },
+];
+
 const VALID_STATUSES = [
   'bookmarked', 'applied', 'in_review', 'interview', 'offer', 'rejected', 'withdrawn', 'closed',
 ];
@@ -126,6 +141,12 @@ function Jobs() {
     () => [...new Set(companies.flatMap(c => c.categories || []))].sort(),
     [companies]
   );
+
+  const catColorMap = useMemo(() => {
+    const map: Record<string, { bg: string; text: string }> = {};
+    allCategories.forEach((cat, i) => { map[cat] = CAT_COLORS[i % CAT_COLORS.length]; });
+    return map;
+  }, [allCategories]);
 
   const filteredCompanies = useMemo(
     () =>
@@ -260,47 +281,6 @@ function Jobs() {
             aria-labelledby="tab-jobs-companies"
             tabIndex={0}
           >
-            {/* Category filter bar — only shown when at least one company has categories */}
-            {allCategories.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-5">
-                <button
-                  onClick={() => setCategoryFilters(new Set())}
-                  aria-pressed={categoryFilters.size === 0}
-                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                    categoryFilters.size === 0
-                      ? 'text-white'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
-                  }`}
-                  style={categoryFilters.size === 0 ? { background: 'var(--accent)' } : undefined}
-                >
-                  All ({companies.length})
-                </button>
-                {allCategories.map(cat => {
-                  const count = companies.filter(c => c.categories?.includes(cat)).length;
-                  const active = categoryFilters.has(cat);
-                  return (
-                    <button
-                      key={cat}
-                      onClick={() => setCategoryFilters(prev => {
-                        const next = new Set(prev);
-                        next.has(cat) ? next.delete(cat) : next.add(cat);
-                        return next;
-                      })}
-                      aria-pressed={active}
-                      className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                        active
-                          ? 'text-white'
-                          : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
-                      }`}
-                      style={active ? { background: 'var(--accent)' } : undefined}
-                    >
-                      {cat} ({count})
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
             {companies.length === 0 ? (
               <div className="text-center py-16 text-gray-400 dark:text-gray-500">
                 <svg className="w-12 h-12 mx-auto mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -308,96 +288,154 @@ function Jobs() {
                 </svg>
                 <p className="text-sm">No companies yet. Add one to get started.</p>
               </div>
-            ) : filteredCompanies.length === 0 ? (
-              <div className="text-center py-16 text-gray-400 dark:text-gray-500">
-                <p className="text-sm">No companies match the selected filters.</p>
-                <button
-                  onClick={() => setCategoryFilters(new Set())}
-                  className="mt-2 text-xs underline hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                >
-                  Clear filters
-                </button>
-              </div>
             ) : (
-              <div className="divide-y divide-gray-100 dark:divide-gray-700">
-                {filteredCompanies.map(company => (
-                  <div key={company.id} className="flex items-center gap-4 py-3 group">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-gray-900 dark:text-gray-100 text-sm">
-                          {company.name}
-                        </span>
-                        {company.url && (
-                          <a
-                            href={company.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-gray-400 hover:text-[var(--accent)] transition-colors"
-                            aria-label={`Open ${company.name} website (opens in new tab)`}
-                          >
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                            </svg>
-                          </a>
-                        )}
-                      </div>
-                      {company.notes && (
-                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">{company.notes}</p>
-                      )}
-                      {company.categories && company.categories.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {company.categories.map(cat => (
-                            <span
-                              key={cat}
-                              className="px-1.5 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
-                            >
-                              {cat}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <div className="relative flex-shrink-0">
-                      <button
-                        onClick={e => { e.stopPropagation(); setOpenMenuId(openMenuId === company.id ? null : company.id); }}
-                        className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors sm:opacity-0 sm:group-hover:opacity-100"
-                        aria-label={`Actions for ${company.name}`}
-                        aria-haspopup="menu"
-                        aria-expanded={openMenuId === company.id}
-                        aria-controls={`menu-company-${company.id}`}
-                      >
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                          <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
-                        </svg>
-                      </button>
-                      {openMenuId === company.id && (
-                        <>
-                          <div className="fixed inset-0 z-10" onClick={() => setOpenMenuId(null)} />
-                          <div
-                            role="menu"
-                            id={`menu-company-${company.id}`}
-                            className="absolute right-0 top-8 w-36 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-20 py-1"
-                          >
-                            <button
-                              role="menuitem"
-                              onClick={() => { setModalMode('edit'); setEditingCompany(company); setIsCompanyModalOpen(true); setOpenMenuId(null); }}
-                              className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              role="menuitem"
-                              onClick={() => handleDeleteCompany(company)}
-                              className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950"
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </div>
+              <div className="flex gap-5">
+                {/* Category sidebar */}
+                {allCategories.length > 0 && (
+                  <div className="flex-shrink-0 w-36 border-r border-gray-100 dark:border-gray-700 pr-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">
+                      Category
+                    </p>
+                    <button
+                      onClick={() => setCategoryFilters(new Set())}
+                      aria-pressed={categoryFilters.size === 0}
+                      className={`w-full text-left flex items-center justify-between px-2 py-1.5 rounded-md text-xs font-medium mb-0.5 transition-colors border-l-2 ${
+                        categoryFilters.size === 0
+                          ? 'border-[var(--accent)] text-[var(--accent)] bg-[var(--accent)]/10'
+                          : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+                      }`}
+                    >
+                      <span>All</span>
+                      <span className="text-gray-400 dark:text-gray-500">{companies.length}</span>
+                    </button>
+                    {allCategories.map(cat => {
+                      const count = companies.filter(c => c.categories?.includes(cat)).length;
+                      const active = categoryFilters.has(cat);
+                      const color = catColorMap[cat];
+                      return (
+                        <button
+                          key={cat}
+                          onClick={() => setCategoryFilters(prev => {
+                            const next = new Set(prev);
+                            next.has(cat) ? next.delete(cat) : next.add(cat);
+                            return next;
+                          })}
+                          aria-pressed={active}
+                          className="w-full text-left flex items-center justify-between px-2 py-1.5 rounded-md text-xs font-medium mb-0.5 transition-colors border-l-2"
+                          style={active
+                            ? { borderLeftColor: color.text, color: color.text, background: color.bg + '40' }
+                            : { borderLeftColor: 'transparent', color: '#6b7280' }
+                          }
+                          onMouseEnter={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.04)'; }}
+                          onMouseLeave={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.background = ''; }}
+                        >
+                          <span className="truncate">{cat}</span>
+                          <span className="ml-1 flex-shrink-0" style={{ color: active ? color.text : '#4b5563' }}>{count}</span>
+                        </button>
+                      );
+                    })}
                   </div>
-                ))}
+                )}
+
+                {/* Company list */}
+                <div className="flex-1 min-w-0">
+                  {filteredCompanies.length === 0 ? (
+                    <div className="text-center py-16 text-gray-400 dark:text-gray-500">
+                      <p className="text-sm">No companies match the selected filters.</p>
+                      <button
+                        onClick={() => setCategoryFilters(new Set())}
+                        className="mt-2 text-xs underline hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                      >
+                        Clear filters
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                      {filteredCompanies.map(company => (
+                        <div key={company.id} className="flex items-start gap-3 py-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-gray-900 dark:text-gray-100 text-sm">
+                                {company.name}
+                              </span>
+                              {company.url && (
+                                <a
+                                  href={company.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-gray-400 hover:text-[var(--accent)] transition-colors"
+                                  aria-label={`Open ${company.name} website (opens in new tab)`}
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                  </svg>
+                                </a>
+                              )}
+                            </div>
+                            {company.notes && (
+                              <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">{company.notes}</p>
+                            )}
+                            {company.categories && company.categories.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-1.5">
+                                {company.categories.map(cat => {
+                                  const color = catColorMap[cat];
+                                  return (
+                                    <span
+                                      key={cat}
+                                      className="px-1.5 py-0.5 text-xs rounded-full font-medium"
+                                      style={color ? { background: color.bg, color: color.text } : undefined}
+                                    >
+                                      {cat}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                          <div className="relative flex-shrink-0">
+                            <button
+                              onClick={e => { e.stopPropagation(); setOpenMenuId(openMenuId === company.id ? null : company.id); }}
+                              className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                              aria-label={`Actions for ${company.name}`}
+                              aria-haspopup="menu"
+                              aria-expanded={openMenuId === company.id}
+                              aria-controls={`menu-company-${company.id}`}
+                            >
+                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
+                              </svg>
+                            </button>
+                            {openMenuId === company.id && (
+                              <>
+                                <div className="fixed inset-0 z-10" onClick={() => setOpenMenuId(null)} />
+                                <div
+                                  role="menu"
+                                  id={`menu-company-${company.id}`}
+                                  className="absolute right-0 top-8 w-36 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-20 py-1"
+                                >
+                                  <button
+                                    role="menuitem"
+                                    onClick={() => { setModalMode('edit'); setEditingCompany(company); setIsCompanyModalOpen(true); setOpenMenuId(null); }}
+                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    role="menuitem"
+                                    onClick={() => handleDeleteCompany(company)}
+                                    className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
