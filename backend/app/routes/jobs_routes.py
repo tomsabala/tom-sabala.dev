@@ -41,20 +41,32 @@ def suggestCategories():
             max_tokens=100,
             temperature=0,
             system=(
-                "You are a job tracker assistant. Given a company name, website URL, and optional notes, "
-                "return ONLY a valid JSON array of 2 to 5 lowercase tags (single words or hyphenated) that "
-                "describe the company's industry or technology domain. Tags should be short and reusable "
-                "(e.g. 'robotics', 'fintech', 'cloud-infrastructure'). "
-                "Return nothing else — no explanation, no markdown, just the raw JSON array."
+                "You are a job tracker assistant that classifies companies for a job seeker. "
+                "Given a company name, website URL, and optional notes, return ONLY a JSON array "
+                "of exactly 2 to 3 concise lowercase tags that best describe the company's core industry "
+                "or technology domain. Prioritise specificity over breadth — pick the most identifying tags. "
+                "Use single words or hyphenated phrases (e.g. 'robotics', 'fintech', 'cloud-infrastructure', "
+                "'autonomous-vehicles', 'defense', 'saas', 'biotech'). "
+                "Do NOT include generic tags like 'technology', 'software', 'company', 'startup'. "
+                "Output ONLY the raw JSON array with no explanation, no markdown, no code fences."
             ),
-            messages=[{"role": "user", "content": userMsg}],
+            messages=[
+                {"role": "user", "content": userMsg},
+                {"role": "assistant", "content": "["},
+            ],
         )
-        raw = message.content[0].text.strip()
+        raw = "[" + message.content[0].text.strip()
+        # Strip markdown code fences if model wraps anyway
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+            raw = raw.strip()
         categories = json.loads(raw)
         if not isinstance(categories, list):
             categories = []
-    except json.JSONDecodeError:
-        print(f"suggestCategories: JSON parse error on response", file=sys.stderr)
+    except json.JSONDecodeError as e:
+        print(f"suggestCategories: JSON parse error on response: {str(e)}", file=sys.stderr)
         return jsonify({'success': True, 'categories': [], 'warning': 'AI suggestion failed, try again'}), 200
     except Exception as e:
         print(f"suggestCategories error: {str(e)}", file=sys.stderr)
