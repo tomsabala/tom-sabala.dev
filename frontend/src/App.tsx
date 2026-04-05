@@ -11,6 +11,7 @@ import Contact from './pages/Contact.tsx';
 import ProjectDetail from './pages/ProjectDetail.tsx';
 import GitHubStatsPage from './pages/GitHubStatsPage.tsx';
 import Jobs from './pages/Jobs.tsx';
+import Settings from './pages/Settings.tsx';
 import ProtectedRoute from './components/ProtectedRoute.tsx';
 
 const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_V3_SITE_KEY || '';
@@ -37,6 +38,7 @@ function App() {
               <Route path="contact" element={<Contact />} />
               <Route path="github-stats" element={<GitHubStatsPage />} />
               <Route path="jobs" element={<ProtectedRoute><Jobs /></ProtectedRoute>} />
+              <Route path="settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             </Route>
           </Routes>
         </Router>

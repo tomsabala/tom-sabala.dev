@@ -178,6 +178,7 @@ export interface Company {
   name: string;
   url: string | null;
   notes: string | null;
+  categories: string[];
   created_at: string;
   updated_at: string;
 }
@@ -187,6 +188,8 @@ export interface CompanyFormData {
   url: string;
   notes: string;
 }
+
+export type TabConfigs = Record<string, boolean>;
 
 export interface JobApplication {
   id: number;
