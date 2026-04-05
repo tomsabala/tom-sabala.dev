@@ -17,6 +17,13 @@ class TabConfigDAO:
             result[row.tabKey] = row.isVisible
         return result
 
+    def getVisible(self):
+        """Returns list of tab keys that are visible to the public.
+        Hidden tabs are omitted entirely — callers receive no signal that they exist."""
+        rows = self.session.query(TabConfig).all()
+        hidden = {row.tabKey for row in rows if not row.isVisible}
+        return [k for k in TAB_KEYS if k not in hidden]
+
     def bulkUpsert(self, configs: dict):
         """Upsert tab visibility. Ignores unknown keys. configs: {tab_key: bool}"""
         for key, visible in configs.items():

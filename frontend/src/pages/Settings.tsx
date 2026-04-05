@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getTabConfigs, updateTabConfigs } from '../repositories/settingsRepository.ts';
+import { getAdminTabConfigs, updateTabConfigs } from '../repositories/settingsRepository.ts';
 import type { TabConfigs } from '../types/index.ts';
 import { useToc } from '../contexts/TocContext.tsx';
 
@@ -85,7 +85,7 @@ function Settings() {
   }, [setToc, setTocTitle]);
 
   useEffect(() => {
-    getTabConfigs()
+    getAdminTabConfigs()
       .then(configs => {
         setSaved(configs);
         setDraft(configs);

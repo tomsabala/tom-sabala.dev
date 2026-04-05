@@ -7,8 +7,7 @@ import TerminalBackground from './TerminalBackground.tsx';
 import RobotBackground from './RobotBackground.tsx';
 import { useTheme } from '../contexts/ThemeContext.tsx';
 import { useToc } from '../contexts/TocContext.tsx';
-import { getTabConfigs } from '../repositories/settingsRepository.ts';
-import type { TabConfigs } from '../types/index.ts';
+import { getVisibleTabs } from '../repositories/settingsRepository.ts';
 
 import type { TocItem } from '../contexts/TocContext.tsx';
 
@@ -111,7 +110,8 @@ function Layout() {
   );
   const [mobileOpen, setMobileOpen] = useState(false);
   const [githubStatsEnabled, setGithubStatsEnabled] = useState<boolean | null>(null);
-  const [tabConfigs, setTabConfigs] = useState<TabConfigs | null>(null);
+  // null = still loading (show all tabs optimistically); Set = resolved
+  const [visibleTabs, setVisibleTabs] = useState<Set<string> | null>(null);
 
   useEffect(() => {
     fetch(`${API_BASE}/github-stats/status`)
@@ -121,9 +121,7 @@ function Layout() {
   }, []);
 
   useEffect(() => {
-    getTabConfigs()
-      .then(configs => setTabConfigs(configs))
-      .catch(() => setTabConfigs({}));
+    getVisibleTabs().then(tabs => setVisibleTabs(tabs));
   }, []);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -277,9 +275,9 @@ function Layout() {
         {/* Nav items */}
         <nav className="flex-1 py-3 overflow-y-auto overflow-x-hidden">
           {navItems.filter(({ tabKey }) => {
-            if (isAuthenticated) return true;       // admin always sees all
-            if (tabConfigs === null) return true;   // still loading: show all optimistically
-            return tabConfigs[tabKey] !== false;    // hide only if explicitly false
+            if (isAuthenticated) return true;           // admin always sees all
+            if (visibleTabs === null) return true;      // still loading: show all optimistically
+            return visibleTabs.has(tabKey);             // show only explicitly listed keys
           }).map(({ to, tabKey: _tabKey, label, icon }) => {
             const active = isActive(to);
             const isPortfolio = to === '/portfolio';

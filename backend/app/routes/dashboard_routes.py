@@ -45,8 +45,25 @@ def getAdminStats():
 @dashboard_bp.route('/dashboard/tabs', methods=['GET'])
 def getTabConfigs():
     """
-    Get navigation tab visibility config (public — no auth required).
-    Returns visibility state for all tabs; missing keys default to True (visible).
+    Get visible navigation tabs (public — no auth required).
+    Returns ONLY the list of tab keys that are visible to the public.
+    Hidden tabs are omitted entirely — no signal that they exist.
+    """
+    try:
+        visible = TabConfigDAO(db.session).getVisible()
+        return jsonify({'success': True, 'data': visible}), 200
+    except Exception as e:
+        print(traceback.format_exc(), file=sys.stderr)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@dashboard_bp.route('/dashboard/tabs/admin', methods=['GET'])
+@jwt_required()
+def getAdminTabConfigs():
+    """
+    Get full tab config including hidden tabs (admin only).
+    Returns the complete {tab_key: bool} map so the Settings page can render
+    the current state of all tabs regardless of visibility.
     """
     try:
         configs = TabConfigDAO(db.session).getAll()
