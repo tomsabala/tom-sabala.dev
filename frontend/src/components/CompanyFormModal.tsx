@@ -61,6 +61,9 @@ const CompanyFormModal: React.FC<CompanyFormModalProps> = ({
     if (formData.url && !urlPattern.test(formData.url)) {
       newErrors.url = 'Please enter a valid URL (starting with http:// or https://)';
     }
+    if (categories.length === 0) {
+      newErrors.categories = 'At least one category is required';
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -116,6 +119,9 @@ const CompanyFormModal: React.FC<CompanyFormModalProps> = ({
     if (tag && !categories.includes(tag) && categories.length < 10) {
       setCategories(prev => [...prev, tag]);
       setAiSuggestions(prev => prev.filter(s => s !== tag));
+      if (errors.categories) {
+        setErrors(prev => { const next = { ...prev }; delete next.categories; return next; });
+      }
     }
   };
 
@@ -232,7 +238,8 @@ const CompanyFormModal: React.FC<CompanyFormModalProps> = ({
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Categories
+                Categories <span className="text-red-500" aria-hidden="true">*</span>
+                <span className="sr-only">(required)</span>
               </label>
               <span className="text-xs text-gray-400 dark:text-gray-500">{categories.length}/10</span>
             </div>
@@ -291,6 +298,11 @@ const CompanyFormModal: React.FC<CompanyFormModalProps> = ({
                 </>
               )}
             </button>
+
+            {/* Validation error */}
+            {errors.categories && (
+              <p role="alert" className="mt-1.5 text-xs text-red-600 dark:text-red-400">{errors.categories}</p>
+            )}
 
             {/* AI warning */}
             {aiWarning && (
