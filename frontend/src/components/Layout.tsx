@@ -110,7 +110,7 @@ function Layout() {
   );
   const [mobileOpen, setMobileOpen] = useState(false);
   const [githubStatsEnabled, setGithubStatsEnabled] = useState<boolean | null>(null);
-  const { visibleTabs } = useTabConfig();
+  const { visibleTabs, hiddenFromPublic } = useTabConfig();
 
   useEffect(() => {
     fetch(`${API_BASE}/github-stats/status`)
@@ -273,11 +273,12 @@ function Layout() {
             if (isAuthenticated) return true;           // admin always sees all
             if (visibleTabs === null) return true;      // still loading: show all optimistically
             return visibleTabs.has(tabKey);             // show only explicitly listed keys
-          }).map(({ to, tabKey: _tabKey, label, icon }) => {
+          }).map(({ to, tabKey, label, icon }) => {
             const active = isActive(to);
             const isPortfolio = to === '/portfolio';
             const showToc = isPortfolio && toc.length > 0 && (expanded || mobileOpen);
             const isDisabled = to === '/github-stats' && githubStatsEnabled === false;
+            const isHiddenFromPublic = isAuthenticated && hiddenFromPublic.has(tabKey);
             return (
               <div key={to}>
                 {isDisabled ? (
@@ -311,9 +312,21 @@ function Layout() {
                       style={{ background: 'var(--accent)' }}
                     />
                   )}
-                  <span className="flex-shrink-0">{icon}</span>
+                  <span className="relative flex-shrink-0">
+                    {icon}
+                    {isHiddenFromPublic && !(expanded || mobileOpen) && (
+                      <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-amber-400 dark:bg-amber-500 ring-1 ring-white dark:ring-[#1a1a1a]" />
+                    )}
+                  </span>
                   {(expanded || mobileOpen) && (
-                    <span className="ml-3 text-sm font-medium whitespace-nowrap">{label}</span>
+                    <>
+                      <span className="ml-3 text-sm font-medium whitespace-nowrap">{label}</span>
+                      {isHiddenFromPublic && (
+                        <span className="ml-auto text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400 whitespace-nowrap">
+                          hidden
+                        </span>
+                      )}
+                    </>
                   )}
                 </Link>
                 )}

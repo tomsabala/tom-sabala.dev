@@ -80,11 +80,7 @@ def suggestCategories():
 def getCompanies():
     try:
         companies = CompanyDAO(db.session).getAll()
-        dicts = [c.toDict() for c in companies]
-        print(f"[getCompanies] returning {len(dicts)} companies", file=sys.stderr)
-        for d in dicts:
-            print(f"  [{d['id']}] {d['name']} → categories={d['categories']}", file=sys.stderr)
-        return jsonify({'success': True, 'data': dicts}), 200
+        return jsonify({'success': True, 'data': [c.toDict() for c in companies]}), 200
     except Exception as e:
         print(traceback.format_exc(), file=sys.stderr)
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -94,21 +90,17 @@ def getCompanies():
 @jwt_required()
 def createCompany():
     data = request.get_json()
-    print(f"[createCompany] raw body: {data}", file=sys.stderr)
     if not data or not data.get('name', '').strip():
         return jsonify({'success': False, 'error': 'name is required'}), 400
     try:
         rawCategories = data.get('categories')
-        print(f"[createCompany] rawCategories={rawCategories}, islist={isinstance(rawCategories, list)}", file=sys.stderr)
         company = CompanyDAO(db.session).create(
             name=data['name'].strip(),
             url=data.get('url', '').strip() or None,
             notes=data.get('notes', '').strip() or None,
             categories=rawCategories if isinstance(rawCategories, list) else [],
         )
-        result = company.toDict()
-        print(f"[createCompany] saved id={company.id} categories={result['categories']}", file=sys.stderr)
-        return jsonify({'success': True, 'data': result}), 201
+        return jsonify({'success': True, 'data': company.toDict()}), 201
     except Exception as e:
         print(traceback.format_exc(), file=sys.stderr)
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -118,12 +110,10 @@ def createCompany():
 @jwt_required()
 def updateCompany(companyId):
     data = request.get_json()
-    print(f"[updateCompany] id={companyId} raw body: {data}", file=sys.stderr)
     if not data:
         return jsonify({'success': False, 'error': 'No data provided'}), 400
     try:
         rawCategories = data.get('categories')
-        print(f"[updateCompany] rawCategories={rawCategories}, islist={isinstance(rawCategories, list)}", file=sys.stderr)
         company = CompanyDAO(db.session).update(
             companyId,
             name=data.get('name', '').strip() or None,
@@ -133,9 +123,7 @@ def updateCompany(companyId):
         )
         if not company:
             return jsonify({'success': False, 'error': 'Company not found'}), 404
-        result = company.toDict()
-        print(f"[updateCompany] saved id={companyId} categories={result['categories']}", file=sys.stderr)
-        return jsonify({'success': True, 'data': result}), 200
+        return jsonify({'success': True, 'data': company.toDict()}), 200
     except Exception as e:
         print(traceback.format_exc(), file=sys.stderr)
         return jsonify({'success': False, 'error': str(e)}), 500
