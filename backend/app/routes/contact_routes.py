@@ -7,6 +7,7 @@ from app.services import EmailService, RecaptchaVerificationService
 from app.dao import ContactSubmissionDAO
 from app import db, limiter
 from app.utils.csrf_protection import generateCsrfToken, attachCsrfCookieToResponse, validateCsrfToken
+from app.utils.tab_guard import require_tab_visible
 import sys
 import threading
 
@@ -33,6 +34,7 @@ def _sendEmailInBackground(fromEmail, name, email, message):
 
 @contact_bp.route('/contact/csrf-token', methods=['GET'])
 @limiter.limit("20 per minute")
+@require_tab_visible('contact')
 def getCsrfTokenForContactForm():
     """
     Generate and return CSRF token for contact form protection.
@@ -60,6 +62,7 @@ def getCsrfTokenForContactForm():
 @contact_bp.route('/contact', methods=['POST'])
 @limiter.limit("5 per minute")  # Keep existing rate limits
 @limiter.limit("20 per hour")
+@require_tab_visible('contact')
 def submitContactForm():
     """
     Handle contact form submissions with multi-layer security.

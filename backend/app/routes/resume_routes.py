@@ -12,11 +12,13 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from app import db
 from app.dao import ResumeDAO, ResumePdfDAO
 from app.services.storage_factory import getStorageService
+from app.utils.tab_guard import require_tab_visible
 
 resume_bp = Blueprint('resume', __name__)
 
 
 @resume_bp.route('/cv', methods=['GET'])
+@require_tab_visible('cv')
 def getCv():
     """
     Get CV/Resume data (public endpoint)
@@ -97,6 +99,7 @@ def updateCv():
 # ========================================
 
 @resume_bp.route('/cv/pdf', methods=['GET'])
+@require_tab_visible('cv')
 def getActivePdf():
     """
     Get currently active PDF resume metadata (public endpoint)
@@ -130,6 +133,7 @@ def getActivePdf():
 
 
 @resume_bp.route('/cv/pdf/file', methods=['GET'])
+@require_tab_visible('cv')
 def getPdfFile():
     """
     Serve the active PDF resume file (public endpoint)

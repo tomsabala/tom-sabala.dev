@@ -7,7 +7,7 @@ import TerminalBackground from './TerminalBackground.tsx';
 import RobotBackground from './RobotBackground.tsx';
 import { useTheme } from '../contexts/ThemeContext.tsx';
 import { useToc } from '../contexts/TocContext.tsx';
-import { getVisibleTabs } from '../repositories/settingsRepository.ts';
+import { useTabConfig } from '../contexts/TabConfigContext.tsx';
 
 import type { TocItem } from '../contexts/TocContext.tsx';
 
@@ -110,18 +110,13 @@ function Layout() {
   );
   const [mobileOpen, setMobileOpen] = useState(false);
   const [githubStatsEnabled, setGithubStatsEnabled] = useState<boolean | null>(null);
-  // null = still loading (show all tabs optimistically); Set = resolved
-  const [visibleTabs, setVisibleTabs] = useState<Set<string> | null>(null);
+  const { visibleTabs } = useTabConfig();
 
   useEffect(() => {
     fetch(`${API_BASE}/github-stats/status`)
       .then(r => r.json())
       .then(data => setGithubStatsEnabled(data.enabled ?? false))
       .catch(() => setGithubStatsEnabled(false));
-  }, []);
-
-  useEffect(() => {
-    getVisibleTabs().then(tabs => setVisibleTabs(tabs));
   }, []);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect

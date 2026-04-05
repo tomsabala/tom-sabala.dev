@@ -12,11 +12,13 @@ from werkzeug.utils import secure_filename
 from app import db
 from app.dao import ProjectDAO
 from app.services.storage_factory import getStorageService
+from app.utils.tab_guard import require_tab_visible
 
 portfolio_bp = Blueprint('portfolio', __name__)
 
 
 @portfolio_bp.route('/portfolio', methods=['GET'])
+@require_tab_visible('portfolio')
 def getPortfolio():
     """
     Get portfolio projects
@@ -107,6 +109,7 @@ def createProject():
 
 
 @portfolio_bp.route('/portfolio/<int:projectId>', methods=['GET'])
+@require_tab_visible('portfolio')
 def getProjectById(projectId):
     """
     Get a single portfolio project by ID (public endpoint)

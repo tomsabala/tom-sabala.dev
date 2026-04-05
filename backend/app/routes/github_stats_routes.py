@@ -10,6 +10,7 @@ import traceback
 import requests
 from flask import Blueprint, jsonify
 from datetime import datetime, timedelta
+from app.utils.tab_guard import require_tab_visible
 
 logger = logging.getLogger(__name__)
 
@@ -261,6 +262,7 @@ def getGithubStatsStatus():
 
 
 @github_stats_bp.route('/github-stats', methods=['GET'])
+@require_tab_visible('github')
 def getGithubStats():
     if not GITHUB_USERNAME:
         return jsonify({'success': False, 'disabled': True}), 503
