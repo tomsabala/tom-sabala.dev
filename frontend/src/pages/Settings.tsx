@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import LogoMark from '../components/LogoMark.tsx';
 import { getAdminTabConfigs, updateTabConfigs } from '../repositories/settingsRepository.ts';
 import type { TabConfigs } from '../types/index.ts';
 import { useToc } from '../contexts/TocContext.tsx';
@@ -64,6 +65,18 @@ const TAB_META: Array<{ key: string; label: string; path: string; description: s
         <rect x="2" y="3" width="4" height="18" rx="1"/>
         <rect x="9" y="8" width="4" height="13" rx="1"/>
         <rect x="16" y="13" width="4" height="8" rx="1"/>
+      </svg>
+    ),
+  },
+  {
+    key: 'terminal',
+    label: 'Terminal',
+    path: 'https://terminal.tom-sabala.dev',
+    description: 'Interactive terminal (external link)',
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="4 17 10 11 4 5"/>
+        <line x1="12" y1="19" x2="20" y2="19"/>
       </svg>
     ),
   },
@@ -174,21 +187,25 @@ function Settings() {
               </h2>
               <div className="space-y-2">
                 {TAB_META.map(tab => {
-                  const visible = isVisible(tab.key);
-                  const isHomeHidden = tab.key === 'home' && !visible;
+                  const isHome = tab.key === 'home';
+                  const visible = isHome ? true : isVisible(tab.key);
                   return (
                     <div key={tab.key}>
                       <label
-                        className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                        className={`flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors ${
+                          isHome ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800'
+                        }`}
                         htmlFor={`tab-toggle-${tab.key}`}
+                        title={isHome ? 'The home tab cannot be hidden' : undefined}
                       >
                         <input
                           id={`tab-toggle-${tab.key}`}
                           type="checkbox"
                           checked={visible}
-                          onChange={() => toggleTab(tab.key)}
-                          className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 cursor-pointer"
-                          style={{ accentColor: 'var(--accent)' }}
+                          onChange={() => !isHome && toggleTab(tab.key)}
+                          disabled={isHome}
+                          className="w-4 h-4 rounded border-gray-300 dark:border-gray-600"
+                          style={{ accentColor: 'var(--accent)', cursor: isHome ? 'not-allowed' : 'pointer' }}
                         />
                         <span className="text-gray-500 dark:text-gray-400 flex-shrink-0">
                           {tab.icon}
@@ -198,7 +215,7 @@ function Settings() {
                             {tab.label}
                           </span>
                           <span className="block text-xs text-gray-500 dark:text-gray-400">
-                            {tab.description}
+                            {isHome ? 'Always visible — cannot be hidden' : tab.description}
                           </span>
                         </span>
                         <span
@@ -211,11 +228,6 @@ function Settings() {
                           {visible ? 'Visible' : 'Hidden'}
                         </span>
                       </label>
-                      {isHomeHidden && (
-                        <p className="mt-1 ml-3 text-xs text-amber-600 dark:text-amber-400">
-                          Visitors who navigate to / directly will still reach this page.
-                        </p>
-                      )}
                     </div>
                   );
                 })}
@@ -282,7 +294,7 @@ function Settings() {
               <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-[#1a1a1a]">
                 {/* Mini logo row */}
                 <div className="flex items-center gap-2 px-3 h-10 border-b border-gray-100 dark:border-gray-700">
-                  <div className="w-5 h-5 rounded bg-gray-200 dark:bg-gray-700 flex-shrink-0" />
+                  <LogoMark />
                   <span className="text-xs font-semibold text-gray-600 dark:text-gray-300 truncate">Tom Sabała</span>
                 </div>
 
