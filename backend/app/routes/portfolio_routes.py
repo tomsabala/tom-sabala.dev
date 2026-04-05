@@ -390,6 +390,7 @@ def serveProjectImage(filename):
 
 
 @portfolio_bp.route('/portfolio/<int:projectId>/deep-dive', methods=['GET'])
+@require_tab_visible('portfolio')
 def getProjectDeepDive(projectId):
     """
     Return the deep-dive markdown and TOC for a project.

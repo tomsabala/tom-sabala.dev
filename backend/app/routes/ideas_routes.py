@@ -9,6 +9,7 @@ ideas_bp = Blueprint('ideas', __name__)
 
 
 @ideas_bp.route('/ideas', methods=['GET'])
+@jwt_required()
 def getIdeas():
     try:
         ideas = IdeaDAO(db.session).getAll()

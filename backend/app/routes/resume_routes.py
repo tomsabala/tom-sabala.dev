@@ -133,7 +133,6 @@ def getActivePdf():
 
 
 @resume_bp.route('/cv/pdf/file', methods=['GET'])
-@require_tab_visible('cv')
 def getPdfFile():
     """
     Serve the active PDF resume file (public endpoint)
