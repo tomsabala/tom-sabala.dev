@@ -1,22 +1,37 @@
 import re
+import sys
 from app.models import Company
 
 
 def _normalizeCategories(categories):
     """Deduplicate, lowercase, validate, and cap category tags."""
+    print(f"[_normalizeCategories] input={categories}", file=sys.stderr)
     if not categories or not isinstance(categories, list):
+        print(f"[_normalizeCategories] empty or non-list input → returning []", file=sys.stderr)
         return []
     seen = set()
     result = []
     pattern = re.compile(r'^[a-z0-9][a-z0-9-]*$')
     for tag in categories:
         if not isinstance(tag, str):
+            print(f"[_normalizeCategories] skipping non-string tag: {tag!r}", file=sys.stderr)
             continue
+        original = tag
         tag = tag.strip().lower()
-        if tag and len(tag) <= 50 and pattern.match(tag) and tag not in seen:
+        if not tag:
+            print(f"[_normalizeCategories] skipping empty tag after strip", file=sys.stderr)
+        elif len(tag) > 50:
+            print(f"[_normalizeCategories] skipping tag too long ({len(tag)} chars): {tag!r}", file=sys.stderr)
+        elif not pattern.match(tag):
+            print(f"[_normalizeCategories] skipping tag fails pattern: {tag!r}", file=sys.stderr)
+        elif tag in seen:
+            print(f"[_normalizeCategories] skipping duplicate: {tag!r}", file=sys.stderr)
+        else:
             seen.add(tag)
             result.append(tag)
-    return result[:10]
+    result = result[:10]
+    print(f"[_normalizeCategories] output={result}", file=sys.stderr)
+    return result
 
 
 class CompanyDAO:
