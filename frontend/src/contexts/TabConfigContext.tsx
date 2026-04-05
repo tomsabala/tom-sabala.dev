@@ -19,7 +19,11 @@ export function TabConfigProvider({ children }: { children: React.ReactNode }) {
       setVisibleTabs(null); // null = "show all" when admin
       return;
     }
-    getVisibleTabs().then(tabs => setVisibleTabs(tabs));
+    let cancelled = false;
+    getVisibleTabs().then(tabs => {
+      if (!cancelled) setVisibleTabs(tabs);
+    });
+    return () => { cancelled = true; };
   }, [isAuthenticated]);
 
   return (
