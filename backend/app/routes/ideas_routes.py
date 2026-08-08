@@ -4,12 +4,13 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
 from app import db
 from app.dao import IdeaDAO
+from app.utils.tab_guard import require_tab_visible
 
 ideas_bp = Blueprint('ideas', __name__)
 
 
 @ideas_bp.route('/ideas', methods=['GET'])
-@jwt_required()
+@require_tab_visible('portfolio')
 def getIdeas():
     try:
         ideas = IdeaDAO(db.session).getAll()
