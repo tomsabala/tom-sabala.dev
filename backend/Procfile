@@ -1,1 +1,1 @@
-web: python scripts/setup_docs.py && flask db upgrade && gunicorn -c gunicorn_config.py "app:create_app()"
+web: python scripts/setup_docs.py; flask db upgrade && gunicorn -c gunicorn_config.py "app:create_app()"
