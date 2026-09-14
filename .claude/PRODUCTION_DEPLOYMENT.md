@@ -145,7 +145,10 @@ python3 -c "import secrets; print(secrets.token_hex(32))"
 Railway auto-detects Python via `requirements.txt` and uses `Procfile` for the start command. Builds use Nixpacks.
 
 **Key files:**
-- `backend/Procfile` — start command: `web: gunicorn -c gunicorn_config.py "app:create_app()"`
+- `backend/Procfile` — start command:
+  `web: python scripts/setup_docs.py; flask db upgrade && gunicorn -c gunicorn_config.py "app:create_app()"`
+- `backend/nixpacks.toml` — holds an identical start command; Railway may use
+  either, so the two must be kept in sync or a deploy could skip migrations
 - `backend/runtime.txt` — pins Python version: `python-3.12.x`
 - `backend/gunicorn_config.py` — gunicorn config (reads `PORT` from env)
 
@@ -153,7 +156,8 @@ Railway auto-detects Python via `requirements.txt` and uses `Procfile` for the s
 
 Gunicorn is already in `requirements.txt` and configured via `gunicorn_config.py`:
 - Binds to `0.0.0.0:$PORT` (Railway sets `PORT` automatically)
-- Workers: `cpu_count * 2 + 1`
+- Workers: `WEB_CONCURRENCY` if set, otherwise 2 — deliberately not
+  `cpu_count()`, which over-provisions on shared hosts and causes OOM
 - Timeout: 120s
 - Logs to stdout/stderr
 
@@ -166,14 +170,14 @@ Gunicorn is already in `requirements.txt` and configured via `gunicorn_config.py
    - `FLASK_ENV=production`
    - `SECRET_KEY`, `JWT_SECRET_KEY`
    - `CORS_ORIGINS=https://tom-sabala.dev,https://www.tom-sabala.dev`
-   - `GOOGLE_CLIENT_ID`, `ADMIN_EMAILS`
+   - `GOOGLE_CLIENT_ID`, `GOOGLE_OAUTH_WHITELIST` (comma-separated admin emails)
    - `SENDGRID_API_KEY`, `SENDGRID_FROM_EMAIL`, `CONTACT_EMAIL`
    - `STORAGE_TYPE`, `AWS_*` (if using S3)
    - `SENTRY_DSN`
    - `JWT_COOKIE_SECURE=True`, `JWT_COOKIE_SAMESITE=None`
    - (`PORT` and `DATABASE_URL` are auto-set by Railway)
 6. [ ] Deploy (auto-builds from `requirements.txt`, runs `Procfile`)
-7. [ ] Run database migrations
+7. [ ] Confirm migrations ran (the start command applies them on every deploy)
 8. [ ] Test all API endpoints
 
 ---
