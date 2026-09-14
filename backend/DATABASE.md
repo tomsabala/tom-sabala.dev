@@ -6,7 +6,7 @@
 ```bash
 # From backend directory
 cd backend
-docker-compose up -d
+docker compose up -d
 
 # Or if already running the manual container, it will continue to work
 docker start portfolio-postgres
@@ -16,24 +16,28 @@ docker start portfolio-postgres
 ```bash
 # From backend directory
 cd backend
-docker-compose down  # Stops but keeps data
-docker-compose down -v  # ⚠️ Stops AND deletes all data!
+docker compose down  # Stops but keeps data
+docker compose down -v  # ⚠️ Stops AND deletes all data!
 ```
 
 ## Data Persistence
 
 ✅ **Your data is automatically saved!**
-- Docker stores data in a named volume: `postgres_data`
+- Docker stores data in a named volume: `backend_postgres_data`
+- That name is pinned in `docker-compose.yml`, so it stays the same even though
+  the compose project is named `tom-sabala-dev` — do not remove the pin, or
+  compose will look for a new empty volume and the existing data will appear lost
 - Data persists even when you stop/restart the container
 - Data survives computer restarts
 
 ## Database Credentials
 
 - **Host**: localhost
-- **Port**: 5432
-- **Database**: portfolio_dev
-- **User**: portfolio_user
-- **Password**: dev123
+- **Port**: 5432 — published on `127.0.0.1` only, so the database is not
+  reachable from other machines on the LAN or over Tailscale
+- **Database**: dev_db
+- **User**: admin_dev
+- **Password**: admin
 
 ## Admin Login (Seeded Data)
 
@@ -56,7 +60,7 @@ The backend will automatically connect to the database if it's running.
 ### Access Database Directly
 ```bash
 # Using psql in the Docker container
-docker exec -it portfolio-postgres psql -U portfolio_user -d portfolio_dev
+docker exec -it portfolio-postgres psql -U admin_dev -d dev_db
 
 # Common psql commands:
 \dt              # List all tables
@@ -125,7 +129,7 @@ Your existing data is preserved. New fields get default values.
 docker ps | grep portfolio-postgres
 
 # If not running, start it
-docker-compose up -d
+docker compose up -d
 ```
 
 ### Port 5432 already in use
@@ -133,10 +137,10 @@ docker-compose up -d
 # Another PostgreSQL instance is running
 # Either stop it, or change the port in docker-compose.yml
 ports:
-  - "5433:5432"  # Use port 5433 instead
+  - "127.0.0.1:5433:5432"  # Use port 5433 instead
 
 # Then update .env DATABASE_URL to:
-DATABASE_URL=postgresql://portfolio_user:dev123@localhost:5433/portfolio_dev
+DATABASE_URL=postgresql://admin_dev:admin@localhost:5433/dev_db
 ```
 
 ### Lost admin password
@@ -146,12 +150,12 @@ Run the seed script again - it will reset everything including the admin user.
 
 ### Backup
 ```bash
-docker exec portfolio-postgres pg_dump -U portfolio_user portfolio_dev > backup.sql
+docker exec portfolio-postgres pg_dump -U admin_dev dev_db > backup.sql
 ```
 
 ### Restore
 ```bash
-cat backup.sql | docker exec -i portfolio-postgres psql -U portfolio_user -d portfolio_dev
+cat backup.sql | docker exec -i portfolio-postgres psql -U admin_dev -d dev_db
 ```
 
 ## Production Notes

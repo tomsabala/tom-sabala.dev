@@ -24,7 +24,7 @@ pip install -r requirements.txt
 cp .env.example .env
 
 # Start PostgreSQL and run server
-docker-compose up -d
+docker compose up -d
 python run.py
 
 # Database migrations
