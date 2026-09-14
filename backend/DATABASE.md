@@ -39,12 +39,21 @@ docker compose down -v  # ⚠️ Stops AND deletes all data!
 - **User**: admin_dev
 - **Password**: admin
 
-## Admin Login (Seeded Data)
+## Admin Access
 
-- **Username**: admin
-- **Email**: sabala144@gmail.com
-- **Password**: admin123
-- ⚠️ **Change this password in production!**
+There is no password login. `app/routes/auth_routes.py` exposes only `/google`,
+`/logout`, `/refresh`, `/me` and `/check` — admin access is granted by email
+whitelist, not by a seeded password.
+
+- Set `GOOGLE_OAUTH_WHITELIST` in `.env` to a comma-separated list of Google
+  account emails, e.g. `GOOGLE_OAUTH_WHITELIST=sabala144@gmail.com`
+- To sign in, click the site header 7 times within 2 seconds to reveal the hidden
+  login modal, then use Sign in with Google
+- The `admin_users` row is created automatically on first successful login, so
+  nothing needs to be seeded
+
+The `password_hash` column still exists on `admin_users` for legacy rows, but no
+route checks it.
 
 ## Common Tasks
 
@@ -70,18 +79,27 @@ SELECT * FROM projects;  # Query projects
 ```
 
 ### Reset Database (Clear All Data)
+
+There is no seed script. To start from an empty schema, destroy the volume and
+re-run the migrations:
+
 ```bash
 cd backend
+docker compose down -v  # ⚠️ destroys backend_postgres_data and all data in it
+docker compose up -d
 source venv/bin/activate
-python seed.py
+flask db upgrade        # recreates every table at the current migration head
 ```
 
-This will:
-1. Delete all existing data
-2. Create fresh admin user
-3. Add sample projects
-4. Add sample resume data
-5. Add about me content
+This leaves you with empty tables:
+1. No admin user — one is recreated on your next Google login
+2. No projects, resume, about content or ideas — re-enter them through the admin UI
+
+To wipe the data but keep the schema, truncate instead:
+```bash
+docker exec -it portfolio-postgres psql -U admin_dev -d dev_db \
+  -c 'TRUNCATE projects, ideas, companies, job_applications, contact_submissions RESTART IDENTITY CASCADE;'
+```
 
 ## Making Schema Changes
 
@@ -115,11 +133,16 @@ Your existing data is preserved. New fields get default values.
 ## Database Tables
 
 1. **projects** - Portfolio projects (CRUD for admin)
-2. **resume** - Resume data (single row, admin can update)
-3. **about_me** - About section (single row, admin can update)
-4. **contact_submissions** - Contact form submissions
-5. **admin_users** - Admin authentication
-6. **alembic_version** - Migration tracking (auto-managed)
+2. **ideas** - Ideas list (shown on the Portfolio page)
+3. **resume** - Resume data (single row, admin can update)
+4. **resume_pdf_versions** - Uploaded CV PDFs (soft delete, activation history)
+5. **about_me** - About section (single row, admin can update)
+6. **contact_submissions** - Contact form submissions
+7. **companies** - Job tracker companies (incl. AI-generated `categories`)
+8. **job_applications** - Job tracker applications (8 statuses)
+9. **tab_configs** - Nav tab visibility config
+10. **admin_users** - Admin authentication (Google OAuth)
+11. **alembic_version** - Migration tracking (auto-managed)
 
 ## Troubleshooting
 
@@ -143,8 +166,11 @@ ports:
 DATABASE_URL=postgresql://admin_dev:admin@localhost:5433/dev_db
 ```
 
-### Lost admin password
-Run the seed script again - it will reset everything including the admin user.
+### Locked out of admin
+There is no password to reset. Check that the Google account you are signing in
+with is listed in `GOOGLE_OAUTH_WHITELIST` in `.env`, and that the backend was
+restarted after you changed it. A non-whitelisted email gets a 403 from
+`POST /api/auth/google`.
 
 ## Backup & Restore
 

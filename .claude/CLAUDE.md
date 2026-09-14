@@ -145,7 +145,7 @@ frontend/src/
 
 **JWT Auth Flow**: Google OAuth token → backend verifies → issues access + refresh tokens as HttpOnly cookies → frontend interceptor auto-refreshes on 401.
 
-**Admin Access**: Email whitelist in `ADMIN_EMAILS` env var. Hidden login: click site header 7 times within 2 seconds.
+**Admin Access**: Email whitelist in `GOOGLE_OAUTH_WHITELIST` env var. Hidden login: click site header 7 times within 2 seconds.
 
 **Tab Visibility Guard**: `require_tab_visible(tabKey)` decorator on public backend routes. Checks JWT optionally — admin always passes through; non-admin gets 404 if tab is hidden. Frontend mirrors this with `VisibleTabRoute` component backed by `TabConfigContext`.
 
@@ -212,7 +212,7 @@ frontend/src/
 - `DATABASE_URL` - PostgreSQL connection string
 - `SECRET_KEY` - Flask secret (generate with `python -c "import secrets; print(secrets.token_hex(32))"`)
 - `CORS_ORIGINS` - Comma-separated allowed origins
-- `ADMIN_EMAILS` - Comma-separated admin email whitelist
+- `GOOGLE_OAUTH_WHITELIST` - Comma-separated admin email whitelist
 - `GOOGLE_CLIENT_ID` - Google OAuth client ID
 - `SENDGRID_API_KEY`, `SENDGRID_FROM_EMAIL`, `CONTACT_EMAIL` - Email config
 - `STORAGE_TYPE` - `local` or `s3`
