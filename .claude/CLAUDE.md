@@ -222,7 +222,7 @@ frontend/src/
 - `GITHUB_USERNAME` - For GitHub stats feature
 
 **Frontend:**
-- `VITE_API_URL` - Backend API URL (default: `http://localhost:5000/api`)
+- `VITE_API_URL` - Backend API URL (default: `http://localhost:5001/api`)
 - `VITE_GOOGLE_CLIENT_ID` - Google OAuth client ID
 
 ## Security Features

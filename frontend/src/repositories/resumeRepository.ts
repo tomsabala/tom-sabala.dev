@@ -37,7 +37,7 @@ export async function getActivePdf() {
  * Get PDF file URL for inline viewing (public)
  */
 export function getPdfFileUrl(): string {
-  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
   return `${baseUrl}/cv/pdf/file`;
 }
 
@@ -46,7 +46,7 @@ export function getPdfFileUrl(): string {
  * Uses download query parameter to force browser download
  */
 export function getPdfDownloadUrl(): string {
-  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
   return `${baseUrl}/cv/pdf/file?download=true`;
 }
 

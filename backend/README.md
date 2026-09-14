@@ -23,7 +23,7 @@ cp .env.example .env
 python run.py
 ```
 
-The API will be available at `http://localhost:5000`
+The API will be available at `http://localhost:5001`
 
 ## API Endpoints
 
@@ -34,6 +34,6 @@ The API will be available at `http://localhost:5000`
 
 ## Development
 
-- API runs on port 5000 by default
+- API runs on port 5001 by default
 - CORS is configured to accept requests from frontend (localhost:5173)
 - Update `.env` file for configuration changes

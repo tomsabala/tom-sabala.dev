@@ -1,7 +1,7 @@
 import { apiClient } from './apiClient.ts';
 import type { TabConfigs } from '../types/index.ts';
 
-const API_BASE = (import.meta.env.VITE_API_URL as string) || 'http://localhost:5000/api';
+const API_BASE = (import.meta.env.VITE_API_URL as string) || 'http://localhost:5001/api';
 
 /**
  * Fetch visible tab keys (public, no auth).

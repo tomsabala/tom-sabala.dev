@@ -70,7 +70,7 @@ cp .env.example .env
 python run.py
 ```
 
-Backend will run on `http://localhost:5000`
+Backend will run on `http://localhost:5001`
 
 ### Frontend Setup
 

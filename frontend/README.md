@@ -69,7 +69,7 @@ frontend/
 
 ## API Integration
 
-The frontend connects to the Flask backend API. Make sure the backend is running on `http://localhost:5000` or update the `VITE_API_URL` in your `.env` file.
+The frontend connects to the Flask backend API. Make sure the backend is running on `http://localhost:5001` or update the `VITE_API_URL` in your `.env` file.
 
 ## Deployment
 
