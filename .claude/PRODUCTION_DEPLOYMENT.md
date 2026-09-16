@@ -175,6 +175,8 @@ Gunicorn is already in `requirements.txt` and configured via `gunicorn_config.py
    - `STORAGE_TYPE`, `AWS_*` (if using S3)
    - `SENTRY_DSN`
    - `JWT_COOKIE_SECURE=True`, `JWT_COOKIE_SAMESITE=None`
+   - `ANTHROPIC_API_KEY` (company category "Suggest with AI"; endpoint returns 503 without it)
+   - `GITHUB_USERNAME` (GitHub stats page)
    - (`PORT` and `DATABASE_URL` are auto-set by Railway)
 6. [ ] Deploy (auto-builds from `requirements.txt`, runs `Procfile`)
 7. [ ] Confirm migrations ran (the start command applies them on every deploy)

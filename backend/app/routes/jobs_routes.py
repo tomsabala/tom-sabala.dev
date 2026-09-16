@@ -23,9 +23,12 @@ def suggestCategories():
         return jsonify({'success': False, 'error': 'AI suggestions unavailable'}), 503
 
     data = request.get_json() or {}
-    name = data.get('name', '').strip()
-    url = data.get('url', '').strip()
-    notes = data.get('notes', '').strip()
+    name = (data.get('name') or '').strip()
+    url = (data.get('url') or '').strip()
+    notes = (data.get('notes') or '').strip()
+
+    if not name:
+        return jsonify({'success': False, 'error': 'Company name is required'}), 400
 
     userMsg = f"Company: {name}"
     if url:
@@ -39,7 +42,6 @@ def suggestCategories():
         message = client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=100,
-            temperature=0,
             system=(
                 "You are a job tracker assistant that classifies companies for a job seeker. "
                 "Given a company name, website URL, and optional notes, return ONLY a JSON array "
@@ -55,22 +57,23 @@ def suggestCategories():
                 {"role": "assistant", "content": "["},
             ],
         )
-        raw = "[" + message.content[0].text.strip()
-        # Strip markdown code fences if model wraps anyway
-        if raw.startswith("```"):
-            raw = raw.split("```")[1]
-            if raw.startswith("json"):
-                raw = raw[4:]
-            raw = raw.strip()
-        categories = json.loads(raw)
-        if not isinstance(categories, list):
-            categories = []
-    except json.JSONDecodeError as e:
-        print(f"suggestCategories: JSON parse error on response: {str(e)}", file=sys.stderr)
-        return jsonify({'success': True, 'categories': [], 'warning': 'AI suggestion failed, try again'}), 200
     except Exception as e:
-        print(f"suggestCategories error: {str(e)}", file=sys.stderr)
-        return jsonify({'success': True, 'categories': [], 'warning': 'AI suggestion failed, try again'}), 200
+        # Never report an upstream failure as a successful suggestion: the caller
+        # cannot tell "no tags apply" apart from "the API call never happened".
+        print(traceback.format_exc(), file=sys.stderr)
+        return jsonify({'success': False, 'error': f'AI suggestion failed: {str(e)}'}), 502
+
+    # The assistant turn is prefilled with "[" so the model continues inside a JSON array.
+    raw = "[" + message.content[0].text.strip()
+    try:
+        categories = json.loads(raw)
+    except json.JSONDecodeError:
+        print(f"suggestCategories: unparseable model output: {raw!r}", file=sys.stderr)
+        return jsonify({'success': False, 'error': 'AI returned an unreadable response'}), 502
+
+    if not isinstance(categories, list):
+        print(f"suggestCategories: expected a JSON array, got {type(categories).__name__}", file=sys.stderr)
+        return jsonify({'success': False, 'error': 'AI returned an unreadable response'}), 502
 
     return jsonify({'success': True, 'categories': categories}), 200
 

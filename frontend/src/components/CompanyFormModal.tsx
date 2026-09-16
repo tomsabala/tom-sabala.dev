@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import axios from 'axios';
 import * as jobsRepository from '../repositories/jobsRepository.ts';
 import Modal from './Modal.tsx';
 import type { Company } from '../types/index.ts';
@@ -90,8 +91,11 @@ const CompanyFormModal: React.FC<CompanyFormModalProps> = ({
       } else {
         setErrors({ submit: response.error || 'Failed to save company' });
       }
-    } catch (error: any) {
-      setErrors({ submit: error.response?.data?.error || 'Failed to save company' });
+    } catch (error: unknown) {
+      const serverError = axios.isAxiosError<{ error?: string }>(error)
+        ? error.response?.data?.error
+        : undefined;
+      setErrors({ submit: serverError || 'Failed to save company' });
     } finally {
       setSubmitting(false);
     }
@@ -141,19 +145,31 @@ const CompanyFormModal: React.FC<CompanyFormModalProps> = ({
     if (!formData.name.trim()) return;
     setSuggestLoading(true);
     setAiWarning(null);
+    setAiSuggestions([]);
     try {
       const res = await jobsRepository.suggestCategories({
         name: formData.name,
         url: formData.url || undefined,
         notes: formData.notes || undefined,
       });
-      if (res.success) {
-        const fresh = (res.categories as string[]).filter(c => !categories.includes(c));
-        setAiSuggestions(fresh);
-        if (res.warning) setAiWarning(res.warning);
+      if (!res.success) {
+        setAiWarning(res.error || 'AI suggestions unavailable. Add tags manually.');
+        return;
       }
-    } catch {
-      setAiWarning('AI suggestions unavailable. Add tags manually.');
+      // Normalize before comparing: the model returns spaced phrases ("cloud security")
+      // while stored tags are hyphenated, so raw strings would never match.
+      const fresh = (res.categories as string[])
+        .map(normalizeTag)
+        .filter((tag, i, all) => tag && all.indexOf(tag) === i && !categories.includes(tag));
+      setAiSuggestions(fresh);
+      if (fresh.length === 0) {
+        setAiWarning('No new suggestions — every tag it picked is already added.');
+      }
+    } catch (error: unknown) {
+      const serverError = axios.isAxiosError<{ error?: string }>(error)
+        ? error.response?.data?.error
+        : undefined;
+      setAiWarning(serverError || 'AI suggestions unavailable. Add tags manually.');
     } finally {
       setSuggestLoading(false);
     }
