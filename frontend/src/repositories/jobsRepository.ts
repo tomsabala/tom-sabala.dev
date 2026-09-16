@@ -5,12 +5,22 @@ export async function getCompanies() {
   return response.data;
 }
 
-export async function createCompany(data: { name: string; url?: string; notes?: string; categories?: string[] }) {
+export interface CompanyPayload {
+  name?: string;
+  url?: string;
+  notes?: string;
+  careers_url?: string;
+  categories?: string[];
+  /** Edit only: clear the stored board so the agent re-detects it. */
+  redetect_board?: boolean;
+}
+
+export async function createCompany(data: CompanyPayload & { name: string }) {
   const response = await apiClient.post('/jobs/companies', data);
   return response.data;
 }
 
-export async function updateCompany(id: number, data: { name?: string; url?: string; notes?: string; categories?: string[] }) {
+export async function updateCompany(id: number, data: CompanyPayload) {
   const response = await apiClient.put(`/jobs/companies/${id}`, data);
   return response.data;
 }

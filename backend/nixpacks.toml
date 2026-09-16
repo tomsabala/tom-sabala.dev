@@ -2,9 +2,16 @@
 nixPkgs = ["python312"]
 
 [phases.install]
-cmds = ["pip install -r requirements.txt"]
+cmds = [
+  "pip install -r requirements.txt",
+  "playwright install --with-deps chromium || echo 'playwright chromium unavailable; set BROWSER_FALLBACK_ENABLED=false'",
+]
+
+[variables]
+PLAYWRIGHT_BROWSERS_PATH = "/app/.playwright"
 
 # Keep this identical to the Procfile: Railway may use either, and only a
 # command that runs `flask db upgrade` will migrate the database on deploy.
+# start.sh branches on SERVICE_ROLE so the worker service skips the migration.
 [start]
-cmd = "python scripts/setup_docs.py; flask db upgrade && gunicorn -c gunicorn_config.py 'app:create_app()'"
+cmd = "./start.sh"

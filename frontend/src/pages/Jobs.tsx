@@ -1,8 +1,12 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import * as jobsRepository from '../repositories/jobsRepository.ts';
+import * as agentRepository from '../repositories/agentRepository.ts';
 import CompanyFormModal from '../components/CompanyFormModal.tsx';
 import JobApplicationFormModal from '../components/JobApplicationFormModal.tsx';
-import type { Company, JobApplication } from '../types/index.ts';
+import AgentRunModal from '../components/AgentRunModal.tsx';
+import AgentFindingsList from '../components/AgentFindingsList.tsx';
+import AgentRunsHistory from '../components/AgentRunsHistory.tsx';
+import type { AgentFinding, AgentRun, Company, JobApplication } from '../types/index.ts';
 import { useTheme } from '../contexts/ThemeContext.tsx';
 
 const CAT_COLORS_DARK: { bg: string; text: string }[] = [
@@ -65,7 +69,7 @@ function Jobs() {
   const { theme } = useTheme();
   const CAT_COLORS = theme === 'dark' ? CAT_COLORS_DARK : CAT_COLORS_LIGHT;
 
-  const [activeTab, setActiveTab] = useState<'companies' | 'applications'>('companies');
+  const [activeTab, setActiveTab] = useState<'companies' | 'applications' | 'agent'>('companies');
 
   const [companies, setCompanies] = useState<Company[]>([]);
   const [applications, setApplications] = useState<JobApplication[]>([]);
@@ -84,6 +88,15 @@ function Jobs() {
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [categoryFilters, setCategoryFilters] = useState<Set<string>>(new Set());
+
+  const [runs, setRuns] = useState<AgentRun[]>([]);
+  const [latestRun, setLatestRun] = useState<AgentRun | null>(null);
+  const [findings, setFindings] = useState<AgentFinding[]>([]);
+  const [isAgentModalOpen, setIsAgentModalOpen] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const pollRef = useRef<number | null>(null);
+  const runInFlight = latestRun?.status === 'queued' || latestRun?.status === 'running';
+  const activeRunId = runInFlight && latestRun ? latestRun.id : null;
 
   const showSuccess = (msg: string) => {
     setSuccessMsg(msg);
@@ -115,6 +128,86 @@ function Jobs() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  const fetchAgentData = async () => {
+    try {
+      const runsRes = await agentRepository.getRuns();
+      if (!runsRes.success) return;
+      const list = runsRes.data as AgentRun[];
+      setRuns(list);
+      const newest = list[0] ?? null;
+      setLatestRun(newest);
+      if (newest) {
+        const findingsRes = await agentRepository.getFindings(newest.id);
+        if (findingsRes.success) setFindings(findingsRes.data as AgentFinding[]);
+      } else {
+        setFindings([]);
+      }
+    } catch (err) {
+      console.error('Error fetching agent data:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchAgentData();
+  }, []);
+
+  // Poll only while a run is in flight; stop as soon as it goes terminal.
+  useEffect(() => {
+    if (activeRunId === null) return;
+
+    const runId = activeRunId;
+    pollRef.current = window.setInterval(async () => {
+      try {
+        const res = await agentRepository.getRun(runId);
+        if (!res.success) return;
+        const fresh = res.data as AgentRun;
+        setLatestRun(fresh);
+        setRuns(prev => prev.map(r => (r.id === fresh.id ? { ...r, ...fresh } : r)));
+        if (fresh.status !== 'queued' && fresh.status !== 'running') {
+          if (pollRef.current !== null) {
+            window.clearInterval(pollRef.current);
+            pollRef.current = null;
+          }
+          const findingsRes = await agentRepository.getFindings(fresh.id);
+          if (findingsRes.success) setFindings(findingsRes.data as AgentFinding[]);
+          await fetchData();
+          showSuccess(
+            fresh.status === 'succeeded'
+              ? `Agent run finished — ${fresh.findings_count} findings`
+              : `Agent run ${fresh.status}`
+          );
+        }
+      } catch (err) {
+        console.error('Error polling agent run:', err);
+      }
+    }, 3000);
+
+    return () => {
+      if (pollRef.current !== null) {
+        window.clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
+    };
+  }, [activeRunId]);
+
+  const handleCancelRun = async () => {
+    if (!latestRun) return;
+    setCancelling(true);
+    try {
+      const res = await agentRepository.cancelRun(latestRun.id);
+      if (res.success) {
+        setLatestRun(res.data as AgentRun);
+        showSuccess('Cancellation requested');
+      } else {
+        showError(res.error || 'Could not cancel the run');
+      }
+    } catch {
+      showError('Could not cancel the run');
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   // Close three-dot menu on outside click
   useEffect(() => {
@@ -248,7 +341,10 @@ function Jobs() {
               aria-controls="panel-jobs-applications"
               tabIndex={activeTab === 'applications' ? 0 : -1}
               onClick={() => setActiveTab('applications')}
-              onKeyDown={e => { if (e.key === 'ArrowLeft') { setActiveTab('companies'); (document.getElementById('tab-jobs-companies') as HTMLButtonElement)?.focus(); } }}
+              onKeyDown={e => {
+                if (e.key === 'ArrowLeft') { setActiveTab('companies'); (document.getElementById('tab-jobs-companies') as HTMLButtonElement)?.focus(); }
+                if (e.key === 'ArrowRight') { setActiveTab('agent'); (document.getElementById('tab-jobs-agent') as HTMLButtonElement)?.focus(); }
+              }}
               className={`pb-3 text-sm font-medium transition-colors border-b-2 -mb-px ${
                 activeTab === 'applications'
                   ? 'border-[var(--accent)] text-[var(--accent)]'
@@ -260,9 +356,28 @@ function Jobs() {
                 {applications.length}
               </span>
             </button>
+            <button
+              role="tab"
+              id="tab-jobs-agent"
+              aria-selected={activeTab === 'agent'}
+              aria-controls="panel-jobs-agent"
+              tabIndex={activeTab === 'agent' ? 0 : -1}
+              onClick={() => setActiveTab('agent')}
+              onKeyDown={e => { if (e.key === 'ArrowLeft') { setActiveTab('applications'); (document.getElementById('tab-jobs-applications') as HTMLButtonElement)?.focus(); } }}
+              className={`pb-3 text-sm font-medium transition-colors border-b-2 -mb-px ${
+                activeTab === 'agent'
+                  ? 'border-[var(--accent)] text-[var(--accent)]'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+            >
+              Agent
+              <span className="ml-1.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-1.5 py-0.5 rounded-full">
+                {findings.length}
+              </span>
+            </button>
           </div>
           <div className="pb-3">
-            {activeTab === 'companies' ? (
+            {activeTab === 'companies' && (
               <button
                 onClick={() => { setModalMode('add'); setEditingCompany(null); setIsCompanyModalOpen(true); }}
                 className="text-white font-medium px-3 py-1.5 rounded-lg transition-colors shadow-sm flex items-center gap-1.5 text-sm"
@@ -275,7 +390,8 @@ function Jobs() {
                 </svg>
                 <span className="hidden sm:inline">Add Company</span>
               </button>
-            ) : (
+            )}
+            {activeTab === 'applications' && (
               <button
                 onClick={() => { setModalMode('add'); setEditingApplication(null); setIsApplicationModalOpen(true); }}
                 className="text-white font-medium px-3 py-1.5 rounded-lg transition-colors shadow-sm flex items-center gap-1.5 text-sm"
@@ -287,6 +403,31 @@ function Jobs() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
                 <span className="hidden sm:inline">Add Application</span>
+              </button>
+            )}
+            {activeTab === 'agent' && (
+              <button
+                onClick={() => setIsAgentModalOpen(true)}
+                disabled={runInFlight}
+                className="text-white font-medium px-3 py-1.5 rounded-lg transition-colors shadow-sm flex items-center gap-1.5 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                style={{ background: 'var(--accent)' }}
+                onMouseEnter={e => !e.currentTarget.disabled && (e.currentTarget.style.background = 'var(--accent-hover)')}
+                onMouseLeave={e => !e.currentTarget.disabled && (e.currentTarget.style.background = 'var(--accent)')}
+              >
+                {runInFlight ? (
+                  <>
+                    <div role="status" aria-label="Agent running" className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white" />
+                    <span>Running…</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="hidden sm:inline">Run Agent</span>
+                  </>
+                )}
               </button>
             )}
           </div>
@@ -604,6 +745,72 @@ function Jobs() {
             )}
           </div>
         )}
+
+        {/* Agent tab */}
+        {activeTab === 'agent' && (
+          <div
+            role="tabpanel"
+            id="panel-jobs-agent"
+            aria-labelledby="tab-jobs-agent"
+            tabIndex={0}
+          >
+            {latestRun ? (
+              <div className="mb-6 p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40">
+                <div className="flex items-center gap-3 flex-wrap text-xs text-gray-600 dark:text-gray-400">
+                  <span className={`inline-block px-2 py-0.5 rounded-full font-medium ${
+                    latestRun.status === 'succeeded' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+                      : latestRun.status === 'failed' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
+                      : latestRun.status === 'cancelled' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300'
+                      : 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                  }`}>
+                    {latestRun.status}
+                  </span>
+                  <span>{latestRun.companies_processed}/{latestRun.companies_total} companies</span>
+                  <span>{latestRun.postings_new} new postings</span>
+                  <span>{latestRun.postings_applied_skipped} already applied</span>
+                  <span>{latestRun.findings_count} findings</span>
+                  <span>{latestRun.input_tokens + latestRun.output_tokens} tokens</span>
+                  {latestRun.companies_failed > 0 && (
+                    <span className="text-red-600 dark:text-red-400">{latestRun.companies_failed} failed</span>
+                  )}
+                  {runInFlight && (
+                    <button
+                      type="button"
+                      onClick={handleCancelRun}
+                      disabled={cancelling}
+                      className="ml-auto px-2.5 py-1 rounded-md border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-950 hover:text-red-600 dark:hover:text-red-400 disabled:opacity-50 transition-colors"
+                    >
+                      Cancel run
+                    </button>
+                  )}
+                </div>
+                {latestRun.error && (
+                  <div role="alert" className="mt-2 p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-300 text-xs whitespace-pre-line">
+                    {latestRun.error}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="mb-6 text-sm text-gray-500 dark:text-gray-400">
+                No runs yet. Run the agent to sweep every tracked company's job board.
+              </p>
+            )}
+
+            <AgentFindingsList
+              findings={findings}
+              onRemoved={findingId => setFindings(prev => prev.filter(f => f.id !== findingId))}
+              onSuccess={async msg => { showSuccess(msg); await fetchData(); }}
+              onError={showError}
+            />
+
+            <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-700">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">
+                Run history
+              </h2>
+              <AgentRunsHistory runs={runs} onError={showError} />
+            </div>
+          </div>
+        )}
         </div>
       </div>
 
@@ -628,6 +835,17 @@ function Jobs() {
           setIsApplicationModalOpen(false);
           showSuccess(modalMode === 'add' ? 'Application added' : 'Application updated');
           await fetchData();
+        }}
+      />
+
+      <AgentRunModal
+        isOpen={isAgentModalOpen}
+        onClose={() => setIsAgentModalOpen(false)}
+        onStarted={run => {
+          setLatestRun(run);
+          setRuns(prev => [run, ...prev.filter(r => r.id !== run.id)]);
+          setFindings([]);
+          showSuccess('Agent run started');
         }}
       />
     </div>

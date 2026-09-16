@@ -102,6 +102,7 @@ def createCompany():
             url=data.get('url', '').strip() or None,
             notes=data.get('notes', '').strip() or None,
             categories=rawCategories if isinstance(rawCategories, list) else [],
+            careersUrl=data.get('careers_url', '').strip() or None,
         )
         return jsonify({'success': True, 'data': company.toDict()}), 201
     except Exception as e:
@@ -117,13 +118,18 @@ def updateCompany(companyId):
         return jsonify({'success': False, 'error': 'No data provided'}), 400
     try:
         rawCategories = data.get('categories')
-        company = CompanyDAO(db.session).update(
-            companyId,
+        fields = dict(
             name=data.get('name', '').strip() or None,
             url=data.get('url', '').strip() or None,
             notes=data.get('notes', '').strip() or None,
             categories=rawCategories if isinstance(rawCategories, list) else [],
+            careersUrl=data.get('careers_url', '').strip() or None,
         )
+        if data.get('redetect_board') is True:
+            # Clear the stored board so the next run discovers it again.
+            # ats_provider / ats_token are never settable from the request body.
+            fields.update(atsProvider=None, atsToken=None, boardDetectedAt=None, syncError=None)
+        company = CompanyDAO(db.session).update(companyId, **fields)
         if not company:
             return jsonify({'success': False, 'error': 'Company not found'}), 404
         return jsonify({'success': True, 'data': company.toDict()}), 200

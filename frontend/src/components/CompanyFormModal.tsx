@@ -23,6 +23,7 @@ const CompanyFormModal: React.FC<CompanyFormModalProps> = ({
     name: '',
     url: '',
     notes: '',
+    careers_url: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -32,6 +33,7 @@ const CompanyFormModal: React.FC<CompanyFormModalProps> = ({
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
   const [suggestLoading, setSuggestLoading] = useState(false);
   const [aiWarning, setAiWarning] = useState<string | null>(null);
+  const [redetectBoard, setRedetectBoard] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -40,12 +42,14 @@ const CompanyFormModal: React.FC<CompanyFormModalProps> = ({
           name: company.name,
           url: company.url || '',
           notes: company.notes || '',
+          careers_url: company.careers_url || '',
         });
         setCategories(company.categories || []);
       } else {
-        setFormData({ name: '', url: '', notes: '' });
+        setFormData({ name: '', url: '', notes: '', careers_url: '' });
         setCategories([]);
       }
+      setRedetectBoard(false);
       setErrors({});
       setTagInput('');
       setAiSuggestions([]);
@@ -62,6 +66,9 @@ const CompanyFormModal: React.FC<CompanyFormModalProps> = ({
     if (formData.url && !urlPattern.test(formData.url)) {
       newErrors.url = 'Please enter a valid URL (starting with http:// or https://)';
     }
+    if (formData.careers_url && !urlPattern.test(formData.careers_url)) {
+      newErrors.careers_url = 'Please enter a valid URL (starting with http:// or https://)';
+    }
     if (categories.length === 0) {
       newErrors.categories = 'At least one category is required';
     }
@@ -74,14 +81,16 @@ const CompanyFormModal: React.FC<CompanyFormModalProps> = ({
     if (!validateForm()) return;
     setSubmitting(true);
     try {
-      const data = {
+      const data: jobsRepository.CompanyPayload & { name: string } = {
         name: formData.name.trim(),
         url: formData.url.trim() || undefined,
         notes: formData.notes.trim() || undefined,
+        careers_url: formData.careers_url.trim() || undefined,
         categories,
       };
       let response;
       if (mode === 'edit' && company) {
+        if (redetectBoard) data.redetect_board = true;
         response = await jobsRepository.updateCompany(company.id, data);
       } else {
         response = await jobsRepository.createCompany(data);
@@ -233,6 +242,51 @@ const CompanyFormModal: React.FC<CompanyFormModalProps> = ({
               placeholder="https://acme.com"
             />
             {errors.url && <p id="company-url-error" role="alert" className="mt-1 text-sm text-red-600">{errors.url}</p>}
+          </div>
+
+          <div>
+            <label htmlFor="careers_url" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Careers page URL
+            </label>
+            <input
+              type="text"
+              id="careers_url"
+              name="careers_url"
+              value={formData.careers_url}
+              onChange={handleInputChange}
+              aria-describedby={errors.careers_url ? 'company-careers-url-error' : 'company-careers-url-help'}
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
+                errors.careers_url ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+              }`}
+              placeholder="https://acme.com/careers"
+            />
+            {errors.careers_url ? (
+              <p id="company-careers-url-error" role="alert" className="mt-1 text-sm text-red-600">{errors.careers_url}</p>
+            ) : (
+              <p id="company-careers-url-help" className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Where the job board lives. Leave blank to let the agent find it.
+              </p>
+            )}
+            {mode === 'edit' && company?.ats_provider && (
+              <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                <p>
+                  Board: <span className="font-medium text-gray-700 dark:text-gray-300">{company.ats_provider}</span>
+                  {company.ats_token ? ` (${company.ats_token})` : ''}
+                </p>
+                {company.sync_error && (
+                  <p className="text-amber-600 dark:text-amber-400 mt-0.5">{company.sync_error}</p>
+                )}
+                <label className="inline-flex items-center gap-2 mt-1.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={redetectBoard}
+                    onChange={e => setRedetectBoard(e.target.checked)}
+                    className="rounded border-gray-300 dark:border-gray-600"
+                  />
+                  Re-detect board on next run
+                </label>
+              </div>
+            )}
           </div>
 
           <div>

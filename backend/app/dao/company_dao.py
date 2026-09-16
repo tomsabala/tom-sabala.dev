@@ -36,13 +36,14 @@ class CompanyDAO:
         except Exception as e:
             raise Exception(f"Failed to fetch company: {str(e)}")
 
-    def create(self, name, url=None, notes=None, categories=None):
+    def create(self, name, url=None, notes=None, categories=None, careersUrl=None):
         try:
             company = Company(
                 name=name,
                 url=url,
                 notes=notes,
                 categories=_normalizeCategories(categories),
+                careersUrl=careersUrl,
             )
             self.session.add(company)
             self.session.commit()

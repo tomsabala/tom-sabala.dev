@@ -124,6 +124,13 @@ DATABASE_URL=postgresql://prod_user:prod_password@db-host:5432/prod_db
 SENDGRID_API_KEY=SG.production-api-key-here
 SENDGRID_FROM_EMAIL=noreply@tom-sabala.dev  # Verified domain
 CONTACT_EMAIL=sabala144@gmail.com
+
+# Job-search agent (set on BOTH the web and worker services)
+REDIS_URL=redis://default:password@redis-host:6379/0  # Railway Redis plugin
+ANTHROPIC_API_KEY=sk-ant-production-key-here
+# Worker service only:
+SERVICE_ROLE=worker
+BROWSER_FALLBACK_ENABLED=true  # false if chromium is missing from the image
 ```
 
 ### Frontend Production `.env`
@@ -145,10 +152,14 @@ python3 -c "import secrets; print(secrets.token_hex(32))"
 Railway auto-detects Python via `requirements.txt` and uses `Procfile` for the start command. Builds use Nixpacks.
 
 **Key files:**
-- `backend/Procfile` — start command:
-  `web: python scripts/setup_docs.py; flask db upgrade && gunicorn -c gunicorn_config.py "app:create_app()"`
-- `backend/nixpacks.toml` — holds an identical start command; Railway may use
-  either, so the two must be kept in sync or a deploy could skip migrations
+- `backend/start.sh` — the single start command for both roles. It branches on
+  `SERVICE_ROLE`: `worker` execs `python worker.py`, anything else (default
+  `web`) runs `flask db upgrade` then gunicorn. The worker must never migrate —
+  two concurrent upgrades race on the alembic version table.
+- `backend/Procfile` — `web: ./start.sh`
+- `backend/nixpacks.toml` — holds the identical start command plus the
+  `playwright install --with-deps chromium` step; Railway may use either file,
+  so the two must be kept in sync or a deploy could skip migrations
 - `backend/runtime.txt` — pins Python version: `python-3.12.x`
 - `backend/gunicorn_config.py` — gunicorn config (reads `PORT` from env)
 
@@ -181,6 +192,26 @@ Gunicorn is already in `requirements.txt` and configured via `gunicorn_config.py
 6. [ ] Deploy (auto-builds from `requirements.txt`, runs `Procfile`)
 7. [ ] Confirm migrations ran (the start command applies them on every deploy)
 8. [ ] Test all API endpoints
+
+### Agent Worker Service (job-search agent)
+
+The sweep runs off the web service. Add a **second Railway service from the same
+repo**, root directory `backend/`, so both roles ship from one build:
+
+1. [ ] Add the Redis plugin to the project and reference its URL as `REDIS_URL`
+       from **both** services
+2. [ ] New service → same GitHub repo → root directory `backend/`
+3. [ ] Set `SERVICE_ROLE=worker` on it, plus `DATABASE_URL`, `REDIS_URL`,
+       `ANTHROPIC_API_KEY` (and `SENTRY_DSN` if used). No `PORT` — it serves
+       no HTTP.
+4. [ ] Leave `SERVICE_ROLE` unset (or `web`) on the API service
+5. [ ] If the build's `playwright install --with-deps chromium` step fails
+       (the `|| echo` keeps the build green), set `BROWSER_FALLBACK_ENABLED=false`
+       on the worker: discovery then uses static fetches only, which already
+       covers ATS-embedded and server-rendered career pages
+6. [ ] Confirm the worker log shows `*** Listening on agent...`
+7. [ ] `POST /api/jobs/agent/runs` returns 503 unless both `ANTHROPIC_API_KEY`
+       and `REDIS_URL` are set on the web service
 
 ---
 
