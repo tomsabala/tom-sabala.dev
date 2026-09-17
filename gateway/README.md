@@ -7,8 +7,13 @@ zero-dependency Node **broker** that starts one container per (app, visitor sess
                     ┌─ /oauth2/*      → oauth2-proxy  (Google, admin whitelist)
 browser ── Caddy ───┼─ /manifest.json → broker        (the app list you may see)
                     ├─ /a/<slug>/*    → broker        → apps-<slug>-<key>  (your container)
-                    └─ everything else → Vercel       (launcher + /hosted/** bundles)
+                    └─ everything else → /srv/launcher on disk  (launcher + /hosted/** bundles)
 ```
+
+Vercel is **not** in this request path. `apps.tom-sabala.dev` serves the frontend build from a
+volume filled by the one-shot `launcher-build` service, so the subdomain is self-contained:
+no second public hostname, no `Host` rewriting, and no dependency on a Vercel domain that
+`vercel.json`'s own host rules would bounce straight back here.
 
 `frontend/src/apps/apps.json` is the single manifest: the launcher imports it at build time,
 the broker reads the same file at runtime.
@@ -63,9 +68,17 @@ cp gateway/instances/resume-matcher.admin.env.example gateway/instances/resume-m
 # 4. App images (the broker never pulls; it only starts what is already local)
 docker pull ghcr.io/tomsabala/resume-matcher:apps-mount
 
-# 5. Up
+# 5. The launcher itself: builds frontend/ into the volume Caddy serves.
+#    Reads the checkout read-only and writes nothing back into it.
+docker compose -f gateway/docker-compose.yml run --rm launcher-build
+
+# 6. Up
 docker compose -f gateway/docker-compose.yml up -d
 ```
+
+Step 5 is the one that is easy to forget: skip it and Caddy serves an empty directory — the
+apps subdomain 404s while `/a/*` and `/manifest.json` work fine. Repeat it after every
+`git pull` that touches `frontend/`.
 
 Then, in this order:
 
@@ -99,9 +112,17 @@ survive.
    | `access` | `public`, or `admin` to hide it from anonymous visitors entirely |
 
 3. `cp gateway/instances/<slug>.anon.env.example …` and write the two env files.
-4. Commit, `git pull` on the VPS. The broker re-reads the manifest within ~5 s; no restart.
-   (The compose file bind-mounts the *directory* — a single-file mount would be detached by
-   `git pull`'s atomic rename and freeze the broker on the old manifest.)
+4. Commit, then on the VPS:
+
+   ```bash
+   git pull
+   # apps.json alone: nothing else to do — the broker re-reads it within ~5 s. (The compose
+   # file bind-mounts the *directory*; a single-file mount would be detached by git pull's
+   # atomic rename and freeze the broker on the old manifest.)
+
+   # anything else under frontend/ (or to refresh the launcher's own bundled fallback list):
+   docker compose -f gateway/docker-compose.yml run --rm launcher-build
+   ```
 
 Anonymous instances get no `LLM_API_KEY` by design. Give one out and any visitor can spend
 it; the app's only cap is global per instance.
@@ -116,9 +137,11 @@ node --test 'gateway/broker/**/*.test.mjs'                          # broker uni
 ```
 
 The dev stack swaps oauth2-proxy for `dev-auth-stub/` (`Cookie: dev_admin=1` == admin) and
-points Caddy's launcher upstream at the Vite dev server. The broker itself is identical and
-has no bypass flag. `IDLE_TTL_SECONDS`, `MAX_ANON_INSTANCES` and `MAX_ADMIN_INSTANCES` are
-overridable per run, which is how the reaper and capacity paths get tested in seconds:
+mounts `caddy/launcher-proxy.caddy`, so the launcher comes from the Vite dev server with hot
+reload instead of from disk. Everything else — Caddyfile, broker, socket proxy — is the same
+file production uses; the broker has no bypass flag. `IDLE_TTL_SECONDS`,
+`MAX_ANON_INSTANCES` and `MAX_ADMIN_INSTANCES` are overridable per run, which is how the
+reaper and capacity paths get tested in seconds:
 
 ```bash
 IDLE_TTL_SECONDS=20 docker compose -f gateway/docker-compose.dev.yml up -d
@@ -148,6 +171,10 @@ docker rm -f $(docker ps -aq --filter label=dev.tom-sabala.apps.kind=anon)
 # After pushing a new image tag: the broker recreates any instance whose
 # dev.tom-sabala.apps.image label no longer matches the manifest, on its next request.
 docker pull ghcr.io/tomsabala/resume-matcher:apps-mount
+
+# Rebuild the launcher after a frontend change (safe while the stack is up: Caddy picks up
+# the new files immediately, and the volume is only swapped at the end of the build)
+docker compose -f gateway/docker-compose.yml run --rm launcher-build
 ```
 
 Broker logs are the audit trail: instance create/restart/recreate, capacity refusals, ready
@@ -163,6 +190,9 @@ timeouts, reaps, and dropped manifest entries.
 | PDF export renders a login page | `FRONTEND_BASE_URL` escaped to the gateway | the broker sets it to `http://127.0.0.1:<port>/a/<slug>`; do not override it in the instance env file |
 | Chromium fails to launch | `CapDrop: ALL` too tight for that image | add `"capAdd": ["SYS_ADMIN"]`. Not needed for Resume-Matcher — verified working with all capabilities dropped |
 | Manifest edits ignored | the file was replaced by rename and the mount is a file, not a directory | check `volumes:` mounts `../frontend/src/apps`, not `.../apps.json` |
+| Launcher 404s while `/a/*` works | `launcher-build` never ran, so `/srv/launcher` is empty | `docker compose … run --rm launcher-build` |
+| Launcher shows an old app list | the build volume predates the last `git pull` | same — rebuild |
+| Cert never issued | DNS not on the VPS yet, or Cloudflare is proxying (orange cloud) | HTTP-01 needs port 80 reaching Caddy directly; set the `apps` record to DNS-only |
 
 ## Invariants — do not break these
 
@@ -178,3 +208,8 @@ timeouts, reaps, and dropped manifest entries.
   broker RCE as host compromise and keep its dependency count at zero.
 - Hiding the `apps` tab in the portfolio's Settings hides the sidebar link only. This
   subdomain has no connection to that flag.
+- Do **not** point the launcher at `tom-sabala.dev` as an upstream if you ever put Vercel back
+  in the path. `vercel.json` redirects `/apps.html` and `/hosted/**` off that host to this
+  subdomain, so the gateway would proxy a request out and get the same request back: an
+  infinite loop. Those redirects are what keeps bundles off the cookie-bearing origin, so the
+  fix is never to delete them.

@@ -211,26 +211,31 @@ along with the normal frontend deploy — no second project, no extra cost:
 | Subdomain | Entry | Content | Served by |
 |-----------|-------|---------|-----------|
 | `terminal.tom-sabala.dev` | `terminal.html` | Interactive terminal portfolio | Vercel |
-| `apps.tom-sabala.dev` | `apps.html` | App launcher: static bundles **and** per-visitor app instances | the gateway VPS, which proxies the launcher and `/hosted/**` back to Vercel |
+| `apps.tom-sabala.dev` | `apps.html` | App launcher: static bundles **and** per-visitor app instances | the gateway VPS, from the frontend build on its own disk — Vercel is not in the path |
 
 Every domain on the project serves the whole build, so the remaining host rules redirect
 `/hosted/**` and `/apps.html` **off** `tom-sabala.dev`/`www` to the apps subdomain, so app
 bundles never execute on the origin listed in the API's `CORS_ORIGINS`.
 
-`apps.tom-sabala.dev` is no longer a Vercel domain: its DNS points at the gateway VPS
-(`gateway/`), which terminates TLS, runs admin sign-in and the instance broker, and proxies
-everything else to the Vercel production host. Full runbook in **`gateway/README.md`**.
+`apps.tom-sabala.dev` is not a Vercel domain: its DNS points at the gateway VPS (`gateway/`),
+which terminates TLS, runs admin sign-in, the instance broker, **and** serves the launcher and
+`/hosted/**` from a volume it builds itself. So a change under `frontend/` reaches the apps
+subdomain only after `git pull` + `docker compose -f gateway/docker-compose.yml run --rm
+launcher-build` on the VPS — a Vercel deploy alone does not update it. Full runbook in
+**`gateway/README.md`**.
 
 **Action Required (terminal subdomain, once):**
 - [ ] Add the domain to the existing Vercel project (Settings → Domains)
 - [ ] Point DNS at Vercel (CNAME `terminal` → `cname.vercel-dns.com`)
 
 **Action Required (apps subdomain, once):**
-- [ ] Provision the VPS and bring up `gateway/docker-compose.yml` (see `gateway/README.md`)
+- [ ] Provision the VPS, run `launcher-build`, then `gateway/docker-compose.yml up -d`
+      (see `gateway/README.md`)
 - [ ] Add `https://apps.tom-sabala.dev/oauth2/callback` to the Google OAuth client
-- [ ] Repoint DNS: remove the `apps` CNAME to Vercel, add an A/AAAA record to the VPS
-- [ ] Remove `apps.tom-sabala.dev` from the Vercel project's domains (it is proxied by host
-      header now; leaving it attached is harmless but misleading)
+- [ ] Repoint DNS: remove the `apps` CNAME to Vercel, add an A/AAAA record to the VPS.
+      On Cloudflare set it to **DNS only** (grey cloud) — proxying breaks Caddy's HTTP-01
+      challenge, so no certificate is ever issued
+- [ ] Leave `apps.tom-sabala.dev` off the Vercel project's domains
 - [ ] Verify `https://apps.tom-sabala.dev` lands on the launcher, a bundle opens in-frame, and
       a service app starts its own instance
 - [ ] Verify `https://tom-sabala.dev/hosted/sandbox-check/index.html` redirects to the apps subdomain

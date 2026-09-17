@@ -1,0 +1,9 @@
+# Launcher handler: local development. Proxies to the Vite dev server so the launcher keeps
+# hot reload while the gateway in front of it is the real thing.
+#
+# Production uses launcher-static.caddy instead; each compose file mounts its choice at
+# /etc/caddy/launcher.caddy, so the site's routes and headers stay in one Caddyfile.
+rewrite / /apps.html
+reverse_proxy {$LAUNCHER_UPSTREAM} {
+	header_up Host {$LAUNCHER_HOST}
+}

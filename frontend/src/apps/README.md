@@ -5,12 +5,17 @@
 
 | `kind` | Served from | Framed at | Needs the gateway? |
 |---|---|---|---|
-| `bundle` | `frontend/public/hosted/<slug>/`, deployed by Vercel | `/hosted/<slug>/index.html` | no |
+| `bundle` | `frontend/public/hosted/<slug>/`, a static file in the build | `/hosted/<slug>/index.html` | to be published on the subdomain, yes |
 | `service` | a container the broker starts per visitor session | `/a/<slug>/` | yes |
+
+`apps.tom-sabala.dev` is served entirely by the gateway VPS (`gateway/`), which serves the
+frontend build from disk. Vercel still builds and deploys the same output for
+`tom-sabala.dev`, but it is not in the apps subdomain's request path, so publishing a bundle
+there is `git pull` plus one build command on the VPS — see `gateway/README.md`.
 
 This file lives outside `public/` on purpose — everything under `public/` is a public asset.
 
-## Add a bundle (client-side only, rides the normal deploy)
+## Add a bundle (client-side only)
 
 1. **Build it with a matching base path** so its asset URLs resolve inside `/hosted/<slug>/`:
 
@@ -46,7 +51,8 @@ This file lives outside `public/` on purpose — everything under `public/` is a
    anonymous visitors entirely (enforced by the gateway, not here). `sourceUrl` is optional
    and must be https.
 
-4. `npm run test` (registry invariants) and `npm run build`, then commit. Vercel deploys it.
+4. `npm run test` (registry invariants) and `npm run build`, then commit. On the VPS:
+   `git pull && docker compose -f gateway/docker-compose.yml run --rm launcher-build`.
 
 ## Add a service (its own server, one container per visitor)
 
@@ -61,8 +67,8 @@ this directory changes except the `apps.json` entry.
 - `parseManifest` drops a bad entry and logs it rather than throwing — one typo must not take
   the launcher down for every other app.
 - The launcher fetches `/manifest.json` from the gateway at runtime; the bundled `apps.json`
-  is the fallback when there is no gateway in front (plain `npm run dev`, or a Vercel-only
-  deploy), filtered to `access: "public"`.
+  is the fallback when there is no gateway in front — plain `npm run dev`, or the copy of
+  `apps.html` that Vercel still serves at `tom-sabala.dev` — filtered to `access: "public"`.
 - The iframe `sandbox` attribute is **not** a boundary here: combined with `allow-same-origin`
   (needed for `localStorage`/IndexedDB) a bundle can reach `parent.document` and therefore owns
   the whole `apps.tom-sabala.dev` origin, launcher included. Keep this directory first-party

@@ -20,10 +20,12 @@ services:
       APPS_SITE_ADDRESS: ${APPS_SITE_ADDRESS}
       AUTH_UPSTREAM: oauth2-proxy:4180
       BROKER_UPSTREAM: broker:8081
-      LAUNCHER_UPSTREAM: ${LAUNCHER_UPSTREAM}
-      LAUNCHER_HOST: ${LAUNCHER_HOST}
+      PORTFOLIO_ORIGIN: ${PORTFOLIO_ORIGIN:-https://tom-sabala.dev}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy/launcher-static.caddy:/etc/caddy/launcher.caddy:ro
+      # Filled by the launcher-build service below; empty until you run it once.
+      - launcher:/srv/launcher:ro
       - caddy_data:/data
       - caddy_config:/config
     networks:
@@ -31,6 +33,22 @@ services:
     depends_on:
       - broker
       - oauth2-proxy
+
+  # One-shot: builds the frontend into the volume Caddy serves. Never started by `up`.
+  #   docker compose -f gateway/docker-compose.yml run --rm launcher-build
+  # Run it after every `git pull` that touches frontend/ — including apps.json entries that
+  # need to appear in the bundled fallback list. (The broker re-reads apps.json by itself.)
+  launcher-build:
+    image: node:22-alpine
+    profiles: ['build']
+    command: ['/launcher-build.sh']
+    volumes:
+      # Read-only on purpose: the build must never touch the git checkout. See the script.
+      - ../frontend:/src:ro
+      - ./launcher-build.sh:/launcher-build.sh:ro
+      - launcher_workspace:/build
+      - launcher_npm_cache:/root/.npm
+      - launcher:/srv/launcher
 
   oauth2-proxy:
     image: quay.io/oauth2-proxy/oauth2-proxy:v7.7.1
@@ -142,3 +160,7 @@ networks:
 volumes:
   caddy_data:
   caddy_config:
+  # The frontend build Caddy serves, plus the workspace and npm cache that produce it.
+  launcher:
+  launcher_workspace:
+  launcher_npm_cache:

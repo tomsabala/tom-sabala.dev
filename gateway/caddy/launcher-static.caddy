@@ -1,0 +1,20 @@
+# Launcher handler: production. Serves the frontend build from disk, so nothing about
+# apps.tom-sabala.dev depends on Vercel being reachable or on a second public hostname.
+#
+# The volume is filled by the one-shot `launcher-build` service:
+#   docker compose -f gateway/docker-compose.yml run --rm launcher-build
+root * /srv/launcher
+
+# `/` is the launcher, not the portfolio SPA.
+rewrite / /apps.html
+
+# The build output contains the other two entries as well. They belong on the origin that
+# carries the admin session, and serving them here would only create a broken duplicate:
+# this origin is absent from the API's CORS_ORIGINS, so every request from them fails.
+@portfolio path /index.html /terminal.html
+redir @portfolio {$PORTFOLIO_ORIGIN:https://tom-sabala.dev}{uri} 302
+
+# Real file, directory index, then the launcher — which reads the unknown path off the hash
+# and renders "No app called X" itself.
+try_files {path} {path}/index.html /apps.html
+file_server

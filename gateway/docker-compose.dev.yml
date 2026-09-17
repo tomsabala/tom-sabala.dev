@@ -27,6 +27,9 @@ services:
       - 'host.docker.internal:host-gateway'
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Dev keeps the Vite dev server as the launcher, for hot reload. Production mounts
+      # launcher-static.caddy here and serves the build from disk instead.
+      - ./caddy/launcher-proxy.caddy:/etc/caddy/launcher.caddy:ro
     networks:
       - edge
     depends_on:

@@ -1,11 +1,11 @@
 # apps.tom-sabala.dev front door. One file for both environments; the environment supplies
-# the site address and the three upstreams (see docker-compose.yml / docker-compose.dev.yml).
+# the site address and the upstreams (see docker-compose.yml / docker-compose.dev.yml).
 #
 # Route ownership:
 #   /oauth2/*      oauth2-proxy (Google, existing admin whitelist)
 #   /manifest.json broker — the app list this viewer may see
 #   /a/*           broker — one container per (app, visitor session)
-#   everything else the launcher, still deployed by Vercel
+#   everything else the launcher, from ./caddy/launcher-{static,proxy}.caddy
 
 {$APPS_SITE_ADDRESS} {
 	encode zstd gzip
@@ -45,9 +45,8 @@
 	}
 
 	handle {
-		rewrite / /apps.html
-		reverse_proxy {$LAUNCHER_UPSTREAM} {
-			header_up Host {$LAUNCHER_HOST}
-		}
+		# Production serves the frontend build from disk; dev proxies the Vite server. Each
+		# compose file mounts its choice here, so routes and headers stay in one file.
+		import /etc/caddy/launcher.caddy
 	}
 }
