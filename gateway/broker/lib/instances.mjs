@@ -16,6 +16,8 @@ import { readFile } from 'node:fs/promises';
 import { LABELS, containerName, keyKind, volumeName } from './identity.mjs';
 
 const ENV_LINE = /^[A-Za-z_][A-Za-z0-9_]*=/;
+/** How long a resolved image id is reused; a `docker pull` takes effect within this. */
+const IMAGE_ID_TTL_MS = 30_000;
 
 export class CapacityError extends Error {
   constructor(scope, limit) {
@@ -36,6 +38,8 @@ export function createInstanceManager({ docker, config, log, now = () => Date.no
   const inflight = new Map();
   /** name → last request timestamp; drives the reaper. */
   const lastSeen = new Map();
+  /** image reference → { id, expires }; see imageMatches(). */
+  const imageIds = new Map();
   let reaperTimer = null;
 
   async function instanceEnv(slug, kind, runtime) {
@@ -117,6 +121,34 @@ export function createInstanceManager({ docker, config, log, now = () => Date.no
     if (ofKind >= limit) throw new CapacityError(kind, limit);
   }
 
+  /**
+   * Whether a container is running the image its tag points at *now*.
+   *
+   * The label only records the reference string, so a moving tag like `:apps-mount` looks
+   * unchanged after a `docker pull` even though the digest moved — an admin or shared
+   * instance would then serve the old build until someone noticed. Comparing the container's
+   * resolved image id catches it, so the deploy step really is just `docker pull`.
+   *
+   * Cached briefly: `ensure` runs on every proxied request, and this must not add a Docker
+   * round trip to each one. An image id nobody can look up (pull in progress, image removed)
+   * is treated as a match — refusing to serve would be worse than serving the old build.
+   */
+  async function imageMatches(detail, reference) {
+    const cached = imageIds.get(reference);
+    let id = cached && cached.expires > now() ? cached.id : null;
+    if (!id) {
+      try {
+        id = (await docker.inspectImage(reference))?.Id ?? null;
+      } catch (error) {
+        log.warn(`could not resolve ${reference}: ${error.message}`);
+        return true;
+      }
+      if (!id) return true;
+      imageIds.set(reference, { id, expires: now() + IMAGE_ID_TTL_MS });
+    }
+    return detail.Image === id;
+  }
+
   function endpointOf(detail, runtime) {
     const networks = detail.NetworkSettings?.Networks ?? {};
     const ip =
@@ -167,7 +199,9 @@ export function createInstanceManager({ docker, config, log, now = () => Date.no
     let detail = await docker.inspect(name);
 
     if (detail) {
-      const staleImage = detail.Config?.Labels?.[LABELS.image] !== app.runtime.image;
+      const staleImage =
+        detail.Config?.Labels?.[LABELS.image] !== app.runtime.image ||
+        !(await imageMatches(detail, app.runtime.image));
       const running = detail.State?.Running === true;
 
       if (running && !staleImage) {

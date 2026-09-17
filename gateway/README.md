@@ -260,8 +260,9 @@ docker volume ls --filter name=apps-
 # Force a clean slate for everyone
 docker rm -f $(docker ps -aq --filter label=dev.tom-sabala.apps.kind=anon)
 
-# After pushing a new image tag: the broker recreates any instance whose
-# dev.tom-sabala.apps.image label no longer matches the manifest, on its next request.
+# Deploy a new app build. The broker compares each container's resolved image digest against
+# what the tag points at now, so a pull is the whole deploy: running instances are recreated
+# on their next request (within 30 s, the digest cache TTL). Nothing to restart.
 docker pull ghcr.io/tomsabala/resume-matcher:apps-mount
 
 # Rebuild the launcher after a frontend change (safe while the stack is up: Caddy picks up
@@ -271,6 +272,37 @@ docker compose -f gateway/docker-compose.yml run --rm launcher-build
 
 Broker logs are the audit trail: instance create/restart/recreate, capacity refusals, ready
 timeouts, reaps, and dropped manifest entries.
+
+### Continuous delivery for an app
+
+The app repo builds and pushes its own image; the VPS only pulls. For Resume-Matcher that is
+`.github/workflows/apps-image.yml` in its repo: on push to `main` it builds with
+`--build-arg NEXT_PUBLIC_BASE_PATH=/a/resume-matcher` (the mount prefix is inlined at build
+time, so this image is deployment-specific) and pushes two tags —
+`:apps-mount`, which moves, and `:apps-mount-<sha>`, which does not.
+
+Getting it onto the box, cheapest first:
+
+```bash
+# Manual: one command, and the broker does the rest.
+docker pull ghcr.io/tomsabala/resume-matcher:apps-mount
+
+# Automatic: a timer, so nothing needs inbound access to the VPS.
+#   /etc/cron.d/apps-image-pull
+0 * * * * root docker pull -q ghcr.io/tomsabala/resume-matcher:apps-mount
+```
+
+A cron beats wiring CI to SSH in: no deploy key, no secret in GitHub, and nothing that can
+reach the box from outside. The cost is up to an hour's delay — `docker pull` by hand when
+that matters.
+
+Pin `:apps-mount-<sha>` in `apps.json` instead if you would rather deploys be explicit: the
+image reference changes, so the broker recreates on the next request and a rollback is an
+`apps.json` edit plus `git pull`.
+
+GHCR packages start **private**. Either make the package public (GitHub → Packages → …  →
+Package settings) or `docker login ghcr.io` on the VPS with a read-only PAT — otherwise the
+pull fails and instances 503 with "did not start in time".
 
 ### Failure modes
 
@@ -284,6 +316,7 @@ timeouts, reaps, and dropped manifest entries.
 | Manifest edits ignored | the file was replaced by rename and the mount is a file, not a directory | check `volumes:` mounts `../frontend/src/apps`, not `.../apps.json` |
 | Launcher 404s while `/a/*` works | `launcher-build` never ran, so `/srv/launcher` is empty | `docker compose … run --rm launcher-build` |
 | Launcher shows an old app list | the build volume predates the last `git pull` | same — rebuild |
+| App still serves the old build after a pull | the digest cache has up to 30 s left, or the instance is mid-request | wait, or `docker rm -f` the instance; a `503` "did not start in time" right after a pull usually means the pull failed on auth |
 | Cert never issued | DNS not on the VPS yet, or Cloudflare is proxying (orange cloud) | HTTP-01 needs port 80 reaching Caddy directly; set the `apps` record to DNS-only |
 
 ## Invariants — do not break these

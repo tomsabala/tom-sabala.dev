@@ -31,6 +31,12 @@ export function createDockerClient({ baseUrl, fetchImpl = fetch }) {
       return body;
     },
 
+    /** Image detail by reference or id; null when the image is not present locally. */
+    async inspectImage(reference) {
+      const { body } = await request('GET', `/images/${encodeURIComponent(reference)}/json`);
+      return body;
+    },
+
     async list({ label = [], status = [], all = false } = {}) {
       const filters = {};
       if (label.length > 0) filters.label = label;
