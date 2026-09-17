@@ -45,17 +45,6 @@ class AgentRunDAO:
         except Exception as e:
             raise Exception(f"Failed to fetch agent runs: {str(e)}")
 
-    def getActive(self):
-        try:
-            return (
-                self.session.query(AgentRun)
-                .filter(AgentRun.activeLock.is_(True))
-                .order_by(AgentRun.id.desc())
-                .first()
-            )
-        except Exception as e:
-            raise Exception(f"Failed to fetch active agent run: {str(e)}")
-
     def setQueueJobId(self, runId, queueJobId):
         try:
             run = self.session.get(AgentRun, runId)

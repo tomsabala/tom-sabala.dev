@@ -17,6 +17,8 @@ from app.services.agent.html_text import htmlToText
 USER_AGENT = 'tom-sabala.dev-job-agent/1.0'
 HTTP_TIMEOUT = 15
 BROWSER_TIMEOUT_MS = 30000
+# Redirects are followed by hand so the allow-list is re-checked on every hop.
+MAX_REDIRECTS = 5
 # Below this much static text a page is almost certainly client-rendered.
 MIN_STATIC_TEXT = 400
 
@@ -115,40 +117,57 @@ def _fetchWithBrowser(url):
         return None
 
 
+def _get(url, companyDomain):
+    """One allow-listed GET, following redirects hop by hop.
+
+    `requests` would follow them for us, but only the first URL would ever be
+    checked: an allowed host answering `302 -> http://169.254.169.254/` would
+    walk straight past the allow-list this module exists to enforce.
+    """
+    current = url
+    for _ in range(MAX_REDIRECTS + 1):
+        if not isFetchAllowed(current, companyDomain):
+            return None
+        try:
+            response = requests.get(
+                current,
+                timeout=HTTP_TIMEOUT,
+                headers={'User-Agent': USER_AGENT, 'Accept': 'text/html,application/xhtml+xml'},
+                allow_redirects=False,
+            )
+        except requests.RequestException:
+            return None
+        if response.status_code // 100 != 3:
+            return response
+        location = response.headers.get('Location')
+        if not location:
+            return response
+        current = urljoin(current, location)
+    return None
+
+
 def fetchPage(url, companyDomain=None):
     """Fetch one page. Returns {'url', 'html', 'text', 'rendered'} or None.
 
     Callers must have already checked `isFetchAllowed`; this re-checks anyway
-    because it is the last line before the socket.
+    because it is the last line before the socket — and re-checks again after
+    every redirect.
     """
-    if not isFetchAllowed(url, companyDomain):
-        return None
-    try:
-        response = requests.get(
-            url,
-            timeout=HTTP_TIMEOUT,
-            headers={'User-Agent': USER_AGENT, 'Accept': 'text/html,application/xhtml+xml'},
-        )
-    except requests.RequestException:
-        return None
-    if response.status_code // 100 != 2:
+    response = _get(url, companyDomain)
+    if response is None or response.status_code // 100 != 2:
         return None
 
+    finalUrl = response.url or url
     html = response.text or ''
     text = htmlToText(html)
     rendered = False
     if len(text) < MIN_STATIC_TEXT and browserFallbackEnabled():
-        renderedHtml = _fetchWithBrowser(url)
+        renderedHtml = _fetchWithBrowser(finalUrl)
         if renderedHtml:
             html = renderedHtml
             text = htmlToText(renderedHtml)
             rendered = True
-    return {'url': response.url or url, 'html': html, 'text': text, 'rendered': rendered}
-
-
-def fetchText(url, companyDomain=None):
-    page = fetchPage(url, companyDomain)
-    return page['text'] if page else None
+    return {'url': finalUrl, 'html': html, 'text': text, 'rendered': rendered}
 
 
 def extractLinks(html, baseUrl, limit=40):

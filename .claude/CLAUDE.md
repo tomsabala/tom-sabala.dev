@@ -79,6 +79,7 @@ backend/app/
 │   ├── idea_dao.py
 │   ├── tab_config_dao.py  # getAll(), getVisible(), bulkUpsert()
 │   ├── job_posting_dao.py      # upsert(), closeMissing(), setScore(), dismiss()
+│   │                           #   closeMissing spans all sources per company
 │   ├── agent_run_dao.py        # create/markRunning/bumpCounters/finish/findStale
 │   └── job_search_profile_dao.py  # get(), save()
 ├── services/            # Business logic
@@ -90,7 +91,8 @@ backend/app/
 │   ├── storage_factory.py        # Storage provider selection
 │   ├── board_discovery_service.py # Regex detection, then a bounded tool-use loop
 │   ├── ats/                       # Board APIs: greenhouse, lever, ashby,
-│   │                              #   workable, smartrecruiters (+ registry)
+│   │                              #   workable, smartrecruiters (+ registry);
+│   │                              #   each exposes fetchPostings() + boardUrl()
 │   └── agent/                     # net.py (egress allow-list), html_text.py,
 │                                  #   posting_sync.py, posting_matcher.py,
 │                                  #   ranking_service.py, sweep_service.py
@@ -185,17 +187,30 @@ read from the provider's API (`services/ats/`) whenever one exists; a hand-rolle
 board falls back to postings the agent reports, filtered by `validateAgentPostings`
 (URL allow-listed AND title present in text the agent actually fetched).
 
-**Agent Facts, Not Opinions**: "Already applied?" is `posting_matcher.findApplication` —
-`job_applications.job_posting_id` FK, then normalized URL, then (company + exactly
-equal normalized title); a fallback hit writes the FK back so later runs join at
-tier 1. "Is this new?" is `job_postings.first_seen_at >= run.started_at`. Applied
-postings are omitted entirely; everything else carries a `New` or `Seen` badge.
+**Agent Facts, Not Opinions**: "Already applied?" is `posting_matcher` —
+`buildApplicationIndex()` normalizes every application once per sweep into three
+lookup tiers, and `ApplicationIndex.find()` resolves a posting by
+`job_applications.job_posting_id` FK, then normalized URL, then (company +
+exactly equal normalized title). Fallback hits are queued and written by a single
+`commitLinks()` after the scan, so later runs join at tier 1. "Is this new?" is
+`job_postings.first_seen_at >= run.started_at`. Applied postings are omitted
+entirely; everything else carries a `New` or `Seen` badge.
 
 **Agent Egress Allow-List**: All discovery traffic goes through `services/agent/net.py`.
 `isFetchAllowed()` permits only the company's own domain (or a subdomain) and known
 ATS hosts, and refuses LinkedIn/Indeed/Glassdoor/ZipRecruiter/Monster/SimplyHired/Dice
-at any depth. Playwright is a fallback for client-rendered pages, gated by
-`BROWSER_FALLBACK_ENABLED` and degrading to the static fetch when chromium is absent.
+at any depth. Redirects are followed by hand (max 5) so the allow-list is re-checked
+on every hop — `requests` would check only the first URL, letting an allowed host
+302 straight past the guard. Playwright is a fallback for client-rendered pages,
+gated by `BROWSER_FALLBACK_ENABLED` and degrading to the static fetch when chromium
+is absent.
+
+**Agent Posting URLs**: a posting whose board API carries no URL of its own inherits
+the provider's public board index (`AtsAdapter.boardUrl`), else the careers page
+discovery landed on, else the company URL — a finding you cannot click through to is
+not usable. `closeMissing()` considers every open posting for the company, not only
+rows matching the current source, so switching board (redetect, ATS migration,
+`custom` later resolving to a real provider) cannot orphan rows that stay open forever.
 
 **Agent Score Cache**: `job_postings.last_scored_hash` stores
 `sha256(content_hash + interests)`. An unchanged posting scored against unchanged

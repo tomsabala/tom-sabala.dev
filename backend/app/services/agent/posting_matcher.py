@@ -5,8 +5,12 @@ Tiers, in order:
   2. normalised job_url == normalised posting.url
   3. same company AND exactly equal normalised title
 
-A tier-2 or tier-3 hit writes the FK back, so the same pair resolves at tier 1
-on every later run.
+A tier-2 or tier-3 hit records a link-back so the same pair resolves at tier 1
+on every later run. The applications are normalised into lookup tables ONCE per
+sweep: a linear rescan per posting turned a 600-posting board against a
+100-application history into ~180k regex passes, and committing each link-back
+inside that loop expired the session, forcing every posting row to be reloaded
+one at a time for ranking.
 """
 import re
 import sys
@@ -52,59 +56,90 @@ def normalizeUrl(value):
     return f'{host}{path}'
 
 
-def loadApplications(session):
-    """Every application, fetched once so a sweep does not rescan per posting."""
-    return session.query(JobApplication).all()
+class ApplicationIndex:
+    """Every application, normalised once into the three lookup tiers.
 
-
-def findApplication(session, posting, company, applications=None):
-    """Return the JobApplication already covering this posting, or None.
-
-    `applications` lets a sweep pass one prefetched list; omitted, the list is
-    loaded here.
+    First application wins a contested key, ordered by id, so a run's matches
+    are stable rather than dependent on row order.
     """
-    candidates = applications if applications is not None else loadApplications(session)
 
-    # Tier 1: the durable link.
-    for candidate in candidates:
-        if candidate.jobPostingId is not None and candidate.jobPostingId == posting.id:
-            return candidate
+    def __init__(self, applications):
+        self._byPostingId = {}
+        self._byUrl = {}
+        self._byCompanyId = {}
+        self._byCompanyName = {}
+        self._pendingLinks = {}
 
-    postingUrl = normalizeUrl(posting.url)
-    postingTitle = normalizeText(posting.title)
-    companyName = normalizeText(company.name if company else '')
+        for application in applications:
+            if application.jobPostingId is not None:
+                self._byPostingId.setdefault(application.jobPostingId, application)
 
-    # Tier 2: same posting URL.
-    if postingUrl:
-        for candidate in candidates:
-            if candidate.jobUrl and normalizeUrl(candidate.jobUrl) == postingUrl:
-                _linkBack(session, candidate, posting)
-                return candidate
+            url = normalizeUrl(application.jobUrl)
+            if url:
+                self._byUrl.setdefault(url, application)
 
-    # Tier 3: same company and exactly the same title. Equality only —
-    # substring matching would collapse "Software Engineer" into
-    # "Senior Software Engineer II".
-    for candidate in candidates:
-        if normalizeText(candidate.position) != postingTitle:
-            continue
-        sameCompany = (
-            (candidate.companyId is not None and candidate.companyId == posting.companyId)
-            or (companyName and normalizeText(candidate.companyName) == companyName)
-        )
-        if sameCompany:
-            _linkBack(session, candidate, posting)
-            return candidate
+            title = normalizeText(application.position)
+            if not title:
+                # An empty normalised title would match every equally empty
+                # posting title, so it never becomes a tier-3 key.
+                continue
+            if application.companyId is not None:
+                self._byCompanyId.setdefault((application.companyId, title), application)
+            companyName = normalizeText(application.companyName)
+            if companyName:
+                self._byCompanyName.setdefault((companyName, title), application)
 
-    return None
+    def find(self, posting, company=None):
+        """Return the JobApplication already covering this posting, or None."""
+        hit = self._byPostingId.get(posting.id)
+        if hit is not None:
+            return hit
+
+        url = normalizeUrl(posting.url)
+        if url:
+            hit = self._byUrl.get(url)
+            if hit is not None:
+                return self._link(hit, posting)
+
+        # Equality only — substring matching would collapse "Software Engineer"
+        # into "Senior Software Engineer II".
+        title = normalizeText(posting.title)
+        if not title:
+            return None
+        hit = self._byCompanyId.get((posting.companyId, title))
+        if hit is None and company is not None:
+            companyName = normalizeText(company.name)
+            if companyName:
+                hit = self._byCompanyName.get((companyName, title))
+        if hit is not None:
+            return self._link(hit, posting)
+        return None
+
+    def _link(self, application, posting):
+        """Queue the fallback match for a single write, and satisfy tier 1 now."""
+        self._byPostingId.setdefault(posting.id, application)
+        if application.jobPostingId != posting.id:
+            self._pendingLinks.setdefault(application, posting.id)
+        return application
+
+    def commitLinks(self, session):
+        """Persist every queued link-back in one transaction. Returns the count."""
+        if not self._pendingLinks:
+            return 0
+        for application, postingId in self._pendingLinks.items():
+            application.jobPostingId = postingId
+        written = len(self._pendingLinks)
+        self._pendingLinks = {}
+        try:
+            session.commit()
+            return written
+        except Exception:
+            session.rollback()
+            print(traceback.format_exc(), file=sys.stderr)
+            return 0
 
 
-def _linkBack(session, application, posting):
-    """Make the fallback match durable so later runs resolve at tier 1."""
-    if application.jobPostingId == posting.id:
-        return
-    application.jobPostingId = posting.id
-    try:
-        session.commit()
-    except Exception:
-        session.rollback()
-        print(traceback.format_exc(), file=sys.stderr)
+def buildApplicationIndex(session):
+    """Load every application once and index it for a whole sweep."""
+    applications = session.query(JobApplication).order_by(JobApplication.id.asc()).all()
+    return ApplicationIndex(applications)

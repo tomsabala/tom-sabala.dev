@@ -12,7 +12,11 @@ import traceback
 
 BATCH_SIZE = 15
 MAX_DESCRIPTION = 1500
-MAX_TOKENS = 1500
+# A full batch is ~15 x (ids, score, verdict, 200-char reason) ≈ 1300 tokens,
+# so 1500 sat close enough to the ceiling that a truncated — therefore
+# unparseable — array was likely, and the retry would truncate identically.
+# Output tokens are billed as produced, so headroom here costs nothing.
+MAX_TOKENS = 4000
 
 RANKING_SYSTEM = (
     "You score job postings for one candidate against their stated interests.\n"
@@ -40,6 +44,19 @@ def _postingLine(posting, companyName):
     if posting.description:
         parts.append(f"description: {posting.description[:MAX_DESCRIPTION]}")
     return '\n'.join(parts)
+
+
+def _replyText(message):
+    """The first text block of a reply, or '' when there is none.
+
+    An empty `content` list, or a leading non-text block, is a normal wire
+    outcome; reaching into `content[0].text` blind would raise out of the
+    sweep and fail a run that had already paid for every board fetch.
+    """
+    for block in getattr(message, 'content', None) or []:
+        if getattr(block, 'type', None) == 'text' or hasattr(block, 'text'):
+            return getattr(block, 'text', '') or ''
+    return ''
 
 
 def _coerceScore(value):
@@ -81,7 +98,15 @@ def _scoreBatch(client, model, batch, interests, companyNameById):
         inputTokens += getattr(message.usage, 'input_tokens', 0) or 0
         outputTokens += getattr(message.usage, 'output_tokens', 0) or 0
 
-        raw = '[' + message.content[0].text.strip()
+        text = _replyText(message).strip()
+        if not text:
+            lastError = 'ranking reply carried no text block'
+            print(f'rankPostings: {lastError}', file=sys.stderr)
+            if attempt == 1:
+                continue
+            return {}, inputTokens, outputTokens, lastError
+
+        raw = '[' + text
         try:
             parsed = json.loads(raw)
         except json.JSONDecodeError as e:

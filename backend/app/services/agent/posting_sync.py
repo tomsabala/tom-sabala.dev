@@ -19,24 +19,29 @@ def contentHash(posting):
     return hashlib.sha256(payload.encode('utf-8')).hexdigest()
 
 
-def syncCompany(postingDao, companyId, source, postings):
+def syncCompany(postingDao, companyId, source, postings, listingUrl=None):
     """Upsert every posting, close the ones that vanished.
 
-    Returns (seen, created, closed, rows) where `rows` are the JobPosting rows
-    for the postings just seen.
+    `listingUrl` is where a human would go to reach this board — the
+    provider's public board index, else the company's careers page. A posting
+    whose API record carries no URL of its own inherits it, because a finding
+    you cannot click through to is not usable.
+
+    Returns (seen, created, closed). Callers read the resulting rows back from
+    `getOpenForCompanies`, so the rows themselves are not returned here.
     """
     seenIds = []
     created = 0
-    rows = []
 
     for posting in postings or []:
         payload = dict(posting)
+        if not (payload.get('url') or '').strip():
+            payload['url'] = listingUrl or ''
         payload['contentHash'] = contentHash(payload)
         row, wasCreated = postingDao.upsert(companyId, source, payload)
-        rows.append(row)
         seenIds.append(row.externalId)
         if wasCreated:
             created += 1
 
     closed = postingDao.closeMissing(companyId, source, seenIds)
-    return len(seenIds), created, closed, rows
+    return len(seenIds), created, closed

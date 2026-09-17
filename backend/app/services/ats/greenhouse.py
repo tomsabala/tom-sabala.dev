@@ -40,3 +40,6 @@ class GreenhouseAdapter(AtsAdapter):
                 'description': htmlToText(html.unescape(content)) or None,
             })
         return postings
+
+    def boardUrl(self, token):
+        return f'https://boards.greenhouse.io/{token}'

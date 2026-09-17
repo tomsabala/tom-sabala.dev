@@ -22,7 +22,15 @@ RESULT_TTL = 86400
 
 
 def _agentAvailable():
-    return bool(os.getenv('ANTHROPIC_API_KEY')) and bool(os.getenv('REDIS_URL'))
+    """Only the key is a hard prerequisite.
+
+    REDIS_URL is optional — `app.queue` falls back to localhost, which is what
+    docker-compose serves in development, so demanding the variable reported
+    the feature as unavailable against a perfectly working Redis. A Redis that
+    is genuinely unreachable surfaces as the 502 from the enqueue below, which
+    names the real failure instead of a blanket 503.
+    """
+    return bool(os.getenv('ANTHROPIC_API_KEY'))
 
 
 def _releaseStaleRuns(runDao):
@@ -180,6 +188,9 @@ def getFindings(runId):
 
 @agent_bp.route('/jobs/agent/runs/<int:runId>/cancel', methods=['POST'])
 @jwt_required()
+# Like the reads above, these admin-only writes would otherwise inherit the
+# app-wide 50/hour, which triaging one sweep's findings blows straight through.
+@limiter.limit("120 per hour")
 def cancelRun(runId):
     try:
         runDao = AgentRunDAO(db.session)
@@ -217,6 +228,7 @@ def cancelRun(runId):
 
 @agent_bp.route('/jobs/agent/postings/<int:postingId>/dismiss', methods=['POST'])
 @jwt_required()
+@limiter.limit("300 per hour")
 def dismissPosting(postingId):
     try:
         posting = JobPostingDAO(db.session).dismiss(postingId)
@@ -230,6 +242,7 @@ def dismissPosting(postingId):
 
 @agent_bp.route('/jobs/agent/postings/<int:postingId>/bookmark', methods=['POST'])
 @jwt_required()
+@limiter.limit("300 per hour")
 def bookmarkPosting(postingId):
     try:
         postingDao = JobPostingDAO(db.session)

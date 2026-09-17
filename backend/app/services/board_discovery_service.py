@@ -30,7 +30,10 @@ PAGE_TEXT_BUDGET = 40000
 _BAD_TOKENS = ('embed', 'www', 'api', 'jobs', 'job-boards', 'apply', 'boards', 'careers')
 
 BOARD_PATTERNS = [
-    ('greenhouse', re.compile(r'boards\.greenhouse\.io/(?:embed/job_board\?for=)?([A-Za-z0-9_-]+)')),
+    # `?for=` covers both /embed/job_board?for=x and /embed/job_board/js?for=x,
+    # the script-tag form most boards actually embed.
+    ('greenhouse', re.compile(r'boards\.greenhouse\.io/[^"\'\s]*[?&]for=([A-Za-z0-9_-]+)')),
+    ('greenhouse', re.compile(r'boards\.greenhouse\.io/([A-Za-z0-9_-]+)')),
     ('greenhouse', re.compile(r'job-boards\.greenhouse\.io/([A-Za-z0-9_-]+)')),
     ('greenhouse', re.compile(r'boards-api\.greenhouse\.io/v1/boards/([A-Za-z0-9_-]+)')),
     ('lever', re.compile(r'jobs\.lever\.co/([A-Za-z0-9_-]+)')),

@@ -39,3 +39,6 @@ class LeverAdapter(AtsAdapter):
                 'description': job.get('descriptionPlain') or None,
             })
         return postings
+
+    def boardUrl(self, token):
+        return f'https://jobs.lever.co/{token}'

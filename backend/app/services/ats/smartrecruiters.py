@@ -61,3 +61,6 @@ class SmartRecruitersAdapter(AtsAdapter):
             if offset >= int(body.get('totalFound') or 0):
                 break
         return postings
+
+    def boardUrl(self, token):
+        return f'https://jobs.smartrecruiters.com/{token}'

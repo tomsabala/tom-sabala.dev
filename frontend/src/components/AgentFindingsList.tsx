@@ -95,14 +95,22 @@ const AgentFindingsList: React.FC<AgentFindingsListProps> = ({
               <div key={finding.id} className="flex items-start gap-4 py-3 group">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <a
-                      href={finding.posting.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-medium text-gray-900 dark:text-gray-100 text-sm hover:text-[var(--accent)] transition-colors"
-                    >
-                      {finding.posting.title}
-                    </a>
+                    {finding.posting.url ? (
+                      <a
+                        href={finding.posting.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium text-gray-900 dark:text-gray-100 text-sm hover:text-[var(--accent)] transition-colors"
+                      >
+                        {finding.posting.title}
+                      </a>
+                    ) : (
+                      // href="" would reload the page; a board with no URL at
+                      // all is not clickable, so it is plain text.
+                      <span className="font-medium text-gray-900 dark:text-gray-100 text-sm">
+                        {finding.posting.title}
+                      </span>
+                    )}
                     {finding.is_new ? (
                       <span
                         className="inline-block px-2 py-0.5 rounded-full text-xs font-medium text-white"

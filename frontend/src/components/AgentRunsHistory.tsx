@@ -16,6 +16,8 @@ const STATUS_STYLES: Record<string, string> = {
   cancelled: 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300',
 };
 
+const TERMINAL_STATUSES = ['succeeded', 'failed', 'cancelled'];
+
 function formatWhen(run: AgentRun): string {
   const raw = run.started_at || run.created_at;
   if (!raw) return '—';
@@ -34,7 +36,10 @@ const AgentRunsHistory: React.FC<AgentRunsHistoryProps> = ({ runs, onError }) =>
       return;
     }
     setExpandedId(run.id);
-    if (details[run.id]) return;
+    // A terminal run's counters can never change, so its detail is cached.
+    // A queued or running one is still moving: refetch on every expand or the
+    // panel shows whatever it happened to say the first time it was opened.
+    if (details[run.id] && TERMINAL_STATUSES.includes(run.status)) return;
     setLoadingId(run.id);
     try {
       const res = await agentRepository.getRun(run.id);

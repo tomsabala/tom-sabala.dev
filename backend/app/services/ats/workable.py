@@ -52,3 +52,6 @@ class WorkableAdapter(AtsAdapter):
                 'description': htmlToText(job.get('description') or '') or None,
             })
         return postings
+
+    def boardUrl(self, token):
+        return f'https://apply.workable.com/{token}/'

@@ -79,21 +79,28 @@ class JobPostingDAO:
             raise Exception(f"Failed to upsert job posting: {str(e)}")
 
     def closeMissing(self, companyId, source, seenExternalIds):
-        """Mark postings the board no longer lists as closed. Returns the count."""
+        """Mark postings the board no longer lists as closed. Returns the count.
+
+        Every open row for the company is considered, not just rows matching
+        `source`: a company that switches board (redetect, an ATS migration, or
+        a `custom` board that later resolves to a real provider) would
+        otherwise leave its old rows open forever, and they would keep being
+        scored and surfaced as findings from a board that no longer lists them.
+        """
         try:
             now = datetime.utcnow()
             query = (
                 self.session.query(JobPosting)
                 .filter(JobPosting.companyId == companyId)
-                .filter(JobPosting.source == source)
                 .filter(JobPosting.closedAt.is_(None))
             )
             seen = {str(x) for x in (seenExternalIds or [])}
             closed = 0
             for row in query.all():
-                if row.externalId not in seen:
-                    row.closedAt = now
-                    closed += 1
+                if row.source == source and row.externalId in seen:
+                    continue
+                row.closedAt = now
+                closed += 1
             self.session.commit()
             return closed
         except Exception as e:

@@ -14,7 +14,7 @@ from datetime import datetime
 from app import db
 from app.dao import AgentRunDAO, CompanyDAO, JobPostingDAO
 from app.queue import cancelKey, getRedis
-from app.services.agent.posting_matcher import findApplication, loadApplications
+from app.services.agent.posting_matcher import buildApplicationIndex
 from app.services.agent.posting_sync import syncCompany
 from app.services.agent.ranking_service import rankPostings
 from app.services.ats.base import AtsError
@@ -56,7 +56,7 @@ def runSweepJob(runId):
         maxTokens = _intEnv('AGENT_MAX_TOKENS_PER_RUN', 400000)
         rankingModel = os.getenv('AGENT_RANKING_MODEL', 'claude-haiku-4-5-20251001')
 
-        companies = companyDao.getAll()[:maxCompanies]
+        companies = companyDao.getAll(limit=maxCompanies)
         runDao.markRunning(runId, rankingModel, len(companies))
         run = runDao.getById(runId)
         startedAt = run.startedAt or datetime.utcnow()
@@ -82,9 +82,11 @@ def runSweepJob(runId):
                 provider = resolution.get('provider')
                 adapter = getAdapter(provider)
                 postings = []
+                listingUrl = None
 
                 if adapter is not None:
                     postings = adapter.fetchPostings(resolution['token'])
+                    listingUrl = adapter.boardUrl(resolution['token'])
                 elif provider == 'custom':
                     kept, rejected = validateAgentPostings(
                         company, resolution.get('postings'), resolution.get('fetchedTexts')
@@ -102,7 +104,18 @@ def runSweepJob(runId):
                     continue
 
                 source = provider or 'custom'
-                seen, created, _closed, _rows = syncCompany(postingDao, company.id, source, postings)
+                # Where a human reaches this board, for postings the API gave
+                # no URL of their own: the provider's board index, else
+                # whatever careers page discovery actually landed on.
+                listingUrl = (
+                    listingUrl
+                    or resolution.get('careersUrl')
+                    or company.careersUrl
+                    or company.url
+                )
+                seen, created, _closed = syncCompany(
+                    postingDao, company.id, source, postings, listingUrl=listingUrl
+                )
                 company.lastSyncedAt = datetime.utcnow()
                 company.syncError = None
                 session.commit()
@@ -153,14 +166,17 @@ def runSweepJob(runId):
         candidates = postingDao.getOpenForCompanies(sweptCompanyIds)
 
         # ── Applied pass: a join, and matches never reach the model ──────────
-        applications = loadApplications(session)
+        applications = buildApplicationIndex(session)
         remaining = []
         appliedSkipped = 0
         for posting in candidates:
-            if findApplication(session, posting, companyById.get(posting.companyId), applications):
+            if applications.find(posting, companyById.get(posting.companyId)):
                 appliedSkipped += 1
             else:
                 remaining.append(posting)
+        # One write for every fallback match, after the scan: committing inside
+        # it would expire `remaining` and reload each row again for ranking.
+        applications.commitLinks(session)
         if appliedSkipped:
             runDao.bumpCounters(runId, postingsAppliedSkipped=appliedSkipped)
 

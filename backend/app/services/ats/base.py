@@ -76,3 +76,12 @@ class AtsAdapter:
 
     def fetchPostings(self, token):
         raise NotImplementedError
+
+    def boardUrl(self, token):
+        """The provider's public listing page for this board.
+
+        Used as a posting's URL when the API omits one: a finding with no link
+        is unusable, and the board index is the shortest honest route to the
+        listing. Never invented — it is the documented public pattern.
+        """
+        raise NotImplementedError
