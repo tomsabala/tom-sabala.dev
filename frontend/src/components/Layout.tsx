@@ -98,6 +98,35 @@ const navItems = [
   },
 ];
 
+// Rendered as target="_blank" anchors after the routed nav items; each is still gated by its
+// tab key, so Settings can hide it exactly like a routed tab.
+const externalNavItems = [
+  {
+    tabKey: 'terminal',
+    href: 'https://terminal.tom-sabala.dev',
+    label: 'Terminal',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="4 17 10 11 4 5"/>
+        <line x1="12" y1="19" x2="20" y2="19"/>
+      </svg>
+    ),
+  },
+  {
+    tabKey: 'apps',
+    href: 'https://apps.tom-sabala.dev',
+    label: 'Apps',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+        <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+        <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+        <path d="M17.5 14v7M14 17.5h7"/>
+      </svg>
+    ),
+  },
+];
+
 const API_BASE = (import.meta.env.VITE_API_URL as string) || 'http://localhost:5001/api';
 
 function Layout() {
@@ -413,35 +442,32 @@ function Layout() {
             </Link>
           )}
 
-          {/* Terminal — external link */}
-          {(isAuthenticated || visibleTabs === null || visibleTabs.has('terminal')) && (() => {
-            const isHiddenFromPublic = isAuthenticated && hiddenFromPublic.has('terminal');
-            return (
+          {/* Terminal + Apps — external links */}
+          {externalNavItems.map(({ tabKey, href, label, icon }) =>
+            (isAuthenticated || visibleTabs === null || visibleTabs.has(tabKey)) ? (
               <a
-                href="https://terminal.tom-sabala.dev"
+                key={tabKey}
+                href={href}
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label="Terminal (opens in new tab)"
+                aria-label={`${label} (opens in new tab)`}
                 className="relative flex items-center h-10 px-3 mx-1 rounded-md transition-colors text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
               >
                 <span className="relative flex-shrink-0">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="4 17 10 11 4 5"/>
-                    <line x1="12" y1="19" x2="20" y2="19"/>
-                  </svg>
-                  {isHiddenFromPublic && !(expanded || mobileOpen) && (
+                  {icon}
+                  {isAuthenticated && hiddenFromPublic.has(tabKey) && !(expanded || mobileOpen) && (
                     <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-amber-400 dark:bg-amber-500 ring-1 ring-white dark:ring-[#1a1a1a]" />
                   )}
                 </span>
                 {(expanded || mobileOpen) && (
                   <span className="ml-3 text-sm font-medium whitespace-nowrap flex items-center gap-1 flex-1 min-w-0">
-                    Terminal
+                    {label}
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
                       <polyline points="15 3 21 3 21 9"/>
                       <line x1="10" y1="14" x2="21" y2="3"/>
                     </svg>
-                    {isHiddenFromPublic && (
+                    {isAuthenticated && hiddenFromPublic.has(tabKey) && (
                       <span className="ml-auto text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400 whitespace-nowrap">
                         hidden
                       </span>
@@ -449,8 +475,8 @@ function Layout() {
                   </span>
                 )}
               </a>
-            );
-          })()}
+            ) : null
+          )}
         </nav>
 
         <div className="w-full h-px bg-gray-100 dark:bg-gray-700 flex-shrink-0" />

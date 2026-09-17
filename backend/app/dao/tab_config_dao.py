@@ -1,7 +1,7 @@
 from app.models.tab_config import TabConfig
 from datetime import datetime
 
-TAB_KEYS = ['home', 'portfolio', 'cv', 'contact', 'github', 'terminal']
+TAB_KEYS = ['home', 'portfolio', 'cv', 'contact', 'github', 'terminal', 'apps']
 
 
 class TabConfigDAO:

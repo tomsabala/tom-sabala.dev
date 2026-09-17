@@ -162,6 +162,11 @@ frontend/src/
 │   ├── hooks/                # State management hooks
 │   ├── themes/               # 7 color themes
 │   └── __tests__/            # Vitest tests (69+ cases)
+├── apps/                     # Apps launcher (apps.tom-sabala.dev)
+│   ├── apps.json             # Single manifest: bundle + service apps (broker reads this too)
+│   ├── registry.ts           # parseManifest/HOSTED_APPS + slug/hash/entry-URL helpers
+│   ├── AppsLauncher.tsx      # Card grid + iframe view (hash deep links, runtime manifest)
+│   └── __tests__/            # Vitest tests (37 cases)
 └── types/index.ts
 ```
 
@@ -221,6 +226,12 @@ therefore costs ~0 tokens.
 when terminal, under a unique index (`uq_agent_runs_active`) — Postgres treats NULLs
 as distinct, so at most one run holds the lock. A second POST gets 409. A run whose
 worker died is force-finished as `failed` after `AGENT_RUN_STALE_MINUTES`.
+
+**Apps subdomain**: `frontend/src/apps/apps.json` is the single manifest, read by the launcher (import) and by the gateway broker (bind-mounted file). Two kinds: `bundle` apps are static builds committed to `frontend/public/hosted/<slug>/` and framed at `/hosted/<slug>/index.html`; `service` apps are containers the broker starts **one per visitor session** and frames at `/a/<slug>/`. Entry URLs are derived from the validated slug, never stored. The launcher fetches `/manifest.json` from the gateway at runtime (falling back to the bundled public entries with no gateway in front), so `access: "admin"` apps are absent for anonymous visitors — names included.
+
+The iframe `sandbox` is not a security boundary (`allow-same-origin` lets a bundle reach `parent.document`), and that is accepted: `public/hosted/` and every `image` in `apps.json` are first-party only. What is enforced is (a) the origin — `vercel.json` redirects `/hosted/**` and `/apps.html` off `tom-sabala.dev`/`www`, so nothing here runs where the admin session is usable, and `apps.tom-sabala.dev` is never in `CORS_ORIGINS`; (b) for services, a separate container per session — own filesystem, own database, tmpfs-backed and reaped for anonymous visitors, volume-backed for admins. See `frontend/src/apps/README.md` and `gateway/README.md`.
+
+**Apps gateway** (`gateway/`): Caddy + oauth2-proxy + a zero-dependency Node broker on one VPS, serving `apps.tom-sabala.dev` end to end. Caddy routes `/oauth2/*` to oauth2-proxy, `/manifest.json` and `/a/*` to the broker, and everything else to the frontend build on disk — Vercel is not in this subdomain's request path, so the launcher and the bundles are published by `docker compose -f gateway/docker-compose.yml run --rm launcher-build` on the VPS after a `git pull`. The broker starts/reaps one container per (app, session), proxies to it, and never sees the Docker socket (a scoped socket proxy does). Hiding the `apps` tab in Settings only removes the sidebar link — it has no effect on this subdomain.
 
 ## API Endpoints
 

@@ -5,9 +5,54 @@
       "has": [{ "type": "host", "value": "terminal.tom-sabala.dev" }],
       "destination": "/terminal.html",
       "permanent": false
+    },
+    {
+      "source": "/apps.html",
+      "has": [{ "type": "host", "value": "tom-sabala.dev" }],
+      "destination": "https://apps.tom-sabala.dev/apps.html",
+      "permanent": false
+    },
+    {
+      "source": "/apps.html",
+      "has": [{ "type": "host", "value": "www.tom-sabala.dev" }],
+      "destination": "https://apps.tom-sabala.dev/apps.html",
+      "permanent": false
+    },
+    {
+      "source": "/hosted/:path*",
+      "has": [{ "type": "host", "value": "tom-sabala.dev" }],
+      "destination": "https://apps.tom-sabala.dev/hosted/:path*",
+      "permanent": false
+    },
+    {
+      "source": "/hosted/:path*",
+      "has": [{ "type": "host", "value": "www.tom-sabala.dev" }],
+      "destination": "https://apps.tom-sabala.dev/hosted/:path*",
+      "permanent": false
+    }
+  ],
+  "headers": [
+    {
+      "source": "/apps.html",
+      "headers": [
+        { "key": "Content-Security-Policy", "value": "frame-ancestors 'self'" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" }
+      ]
+    },
+    {
+      "source": "/hosted/:path*",
+      "headers": [{ "key": "X-Content-Type-Options", "value": "nosniff" }]
     }
   ],
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/:path((?!hosted/).*)",
+      "has": [{ "type": "host", "value": "terminal.tom-sabala.dev" }],
+      "destination": "/terminal.html"
+    },
+    {
+      "source": "/:path((?!hosted/).*)",
+      "destination": "/index.html"
+    }
   ]
 }

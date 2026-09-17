@@ -1,0 +1,4 @@
+# Real secrets; the committed *.example twins document the shape.
+.env
+instances/*.env
+oauth2/emails.txt

@@ -1,0 +1,101 @@
+# Laptop stack: same Caddyfile, same broker, same single auth code path.
+#
+#   cd frontend && npm run dev                                   # launcher upstream
+#   docker compose -f gateway/docker-compose.dev.yml up --build  # gateway on :8080
+#
+# Differences from production: plain HTTP on :8080, the Vite dev server stands in for
+# Vercel, and oauth2-proxy is replaced by dev-auth-stub (`Cookie: dev_admin=1` == admin).
+# The stub is referenced only here; the broker has no bypass flag.
+
+name: apps-gateway-dev
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      # Host port only; Caddy still answers on :8080 inside. Override when 8080 is taken:
+      #   APPS_DEV_PORT=8088 docker compose -f gateway/docker-compose.dev.yml up --build
+      - '${APPS_DEV_PORT:-8080}:8080'
+    environment:
+      APPS_SITE_ADDRESS: ':8080'
+      AUTH_UPSTREAM: dev-auth:4180
+      BROKER_UPSTREAM: broker:8081
+      LAUNCHER_UPSTREAM: host.docker.internal:5173
+      LAUNCHER_HOST: localhost:5173
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Dev keeps the Vite dev server as the launcher, for hot reload. Production mounts
+      # launcher-static.caddy here and serves the build from disk instead.
+      - ./caddy/launcher-proxy.caddy:/etc/caddy/launcher.caddy:ro
+    networks:
+      - edge
+    depends_on:
+      - broker
+      - dev-auth
+
+  dev-auth:
+    image: node:22-alpine
+    restart: unless-stopped
+    command: ['node', '/srv/server.mjs']
+    volumes:
+      - ./dev-auth-stub/server.mjs:/srv/server.mjs:ro
+    networks:
+      - edge
+
+  broker:
+    build: ./broker
+    restart: unless-stopped
+    environment:
+      PORT: 8081
+      MANIFEST_PATH: /etc/apps-manifest/apps.json
+      DOCKER_API: http://socket-proxy:2375
+      # Dev-only fixed secret: sessions survive a broker restart during verification.
+      SESSION_SECRET: dev-only-session-secret-not-for-production-0123456789
+      COOKIE_NAME: apps_sid
+      COOKIE_SECURE: 'false'
+      AUTH_VERIFY_URL: http://dev-auth:4180/oauth2/auth
+      AUTH_SIGNIN_PATH: /oauth2/start
+      INSTANCE_NETWORK: apps-instances-dev
+      INSTANCE_ENV_DIR: /etc/apps-instances
+      IDLE_TTL_SECONDS: ${IDLE_TTL_SECONDS:-1200}
+      READY_TIMEOUT_SECONDS: ${READY_TIMEOUT_SECONDS:-90}
+      MAX_ANON_INSTANCES: ${MAX_ANON_INSTANCES:-2}
+      MAX_ADMIN_INSTANCES: ${MAX_ADMIN_INSTANCES:-2}
+    volumes:
+      # The directory, not the file: an atomic rewrite (sed -i, git checkout, most editors)
+      # replaces the inode and would detach a single-file bind mount.
+      - ../frontend/src/apps:/etc/apps-manifest:ro
+      - ./instances:/etc/apps-instances:ro
+    networks:
+      - edge
+      - instances
+      - socket
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:8081/healthz']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  socket-proxy:
+    image: tecnativa/docker-socket-proxy:0.3
+    restart: unless-stopped
+    environment:
+      CONTAINERS: 1
+      POST: 1
+      PING: 1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - socket
+
+networks:
+  edge:
+    name: apps-edge-dev
+  instances:
+    name: apps-instances-dev
+  socket:
+    name: apps-socket-dev
+    internal: true

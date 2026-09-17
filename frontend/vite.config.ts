@@ -22,6 +22,7 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, 'index.html'),
         terminal: resolve(__dirname, 'terminal.html'),
+        apps: resolve(__dirname, 'apps.html'),
       },
       output: {
         manualChunks: {

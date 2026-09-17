@@ -1,0 +1,166 @@
+# Production stack for apps.tom-sabala.dev on a single VPS.
+#   caddy        TLS + routing (the only service with published ports)
+#   oauth2-proxy Google sign-in against the existing admin whitelist
+#   broker       one container per (app, visitor session)
+#   socket-proxy the only service that can see the Docker socket
+#
+# Copy .env.example to .env before the first `docker compose up -d`.
+
+name: apps-gateway
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    environment:
+      APPS_SITE_ADDRESS: ${APPS_SITE_ADDRESS}
+      AUTH_UPSTREAM: oauth2-proxy:4180
+      BROKER_UPSTREAM: broker:8081
+      PORTFOLIO_ORIGIN: ${PORTFOLIO_ORIGIN:-https://tom-sabala.dev}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy/launcher-static.caddy:/etc/caddy/launcher.caddy:ro
+      # Filled by the launcher-build service below; empty until you run it once.
+      - launcher:/srv/launcher:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - edge
+    depends_on:
+      - broker
+      - oauth2-proxy
+
+  # One-shot: builds the frontend into the volume Caddy serves. Never started by `up`.
+  #   docker compose -f gateway/docker-compose.yml run --rm launcher-build
+  # Run it after every `git pull` that touches frontend/ — including apps.json entries that
+  # need to appear in the bundled fallback list. (The broker re-reads apps.json by itself.)
+  launcher-build:
+    image: node:22-alpine
+    profiles: ['build']
+    command: ['/launcher-build.sh']
+    volumes:
+      # Read-only on purpose: the build must never touch the git checkout. See the script.
+      - ../frontend:/src:ro
+      - ./launcher-build.sh:/launcher-build.sh:ro
+      - launcher_workspace:/build
+      - launcher_npm_cache:/root/.npm
+      - launcher:/srv/launcher
+
+  oauth2-proxy:
+    image: quay.io/oauth2-proxy/oauth2-proxy:v7.7.1
+    restart: unless-stopped
+    command:
+      - --provider=google
+      - --http-address=0.0.0.0:4180
+      - --proxy-prefix=/oauth2
+      - --redirect-url=https://${APPS_SITE_ADDRESS}/oauth2/callback
+      - --email-domain=*
+      - --authenticated-emails-file=/etc/oauth2-proxy/emails.txt
+      - --cookie-name=__Host-apps_admin
+      - --cookie-secure=true
+      - --cookie-samesite=lax
+      # Makes X-Auth-Request-Email available on /oauth2/auth, which is how the broker
+      # learns who an admin is.
+      - --set-xauthrequest=true
+      - --reverse-proxy=true
+      - --skip-provider-button=true
+      - --upstream=static://202
+    environment:
+      OAUTH2_PROXY_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      OAUTH2_PROXY_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      OAUTH2_PROXY_COOKIE_SECRET: ${OAUTH2_COOKIE_SECRET}
+    volumes:
+      - ./oauth2/emails.txt:/etc/oauth2-proxy/emails.txt:ro
+    networks:
+      - edge
+
+  broker:
+    build: ./broker
+    restart: unless-stopped
+    environment:
+      PORT: 8081
+      MANIFEST_PATH: /etc/apps-manifest/apps.json
+      DOCKER_API: http://socket-proxy:2375
+      SESSION_SECRET: ${SESSION_SECRET}
+      COOKIE_NAME: __Host-apps_sid
+      COOKIE_SECURE: 'true'
+      AUTH_VERIFY_URL: http://oauth2-proxy:4180/oauth2/auth
+      AUTH_SIGNIN_PATH: /oauth2/start
+      INSTANCE_NETWORK: apps-instances
+      INSTANCE_ENV_DIR: /etc/apps-instances
+      IDLE_TTL_SECONDS: ${IDLE_TTL_SECONDS:-1200}
+      READY_TIMEOUT_SECONDS: ${READY_TIMEOUT_SECONDS:-90}
+      MAX_ANON_INSTANCES: ${MAX_ANON_INSTANCES:-2}
+      MAX_ADMIN_INSTANCES: ${MAX_ADMIN_INSTANCES:-2}
+    volumes:
+      # The directory, not the file: `git pull` replaces apps.json by rename, which would
+      # detach a single-file bind mount and freeze the broker on the old manifest forever.
+      - ../frontend/src/apps:/etc/apps-manifest:ro
+      - ./instances:/etc/apps-instances:ro
+    networks:
+      # edge: reachable from caddy. instances: can reach the containers it starts.
+      # socket: the only path to the Docker API.
+      - edge
+      - instances
+      - socket
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:8081/healthz']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  socket-proxy:
+    image: tecnativa/docker-socket-proxy:0.3
+    restart: unless-stopped
+    environment:
+      # The broker only ever calls /containers/*; POST=1 is what unblocks non-GET methods.
+      # Note what this does NOT buy: anyone who owns the broker can still create a container
+      # with arbitrary mounts. It limits reachable surface, it is not a privilege boundary.
+      CONTAINERS: 1
+      POST: 1
+      PING: 1
+      IMAGES: 0
+      NETWORKS: 0
+      VOLUMES: 0
+      EXEC: 0
+      BUILD: 0
+      COMMIT: 0
+      CONFIGS: 0
+      DISTRIBUTION: 0
+      EVENTS: 0
+      INFO: 0
+      NODES: 0
+      PLUGINS: 0
+      SECRETS: 0
+      SERVICES: 0
+      SESSION: 0
+      SWARM: 0
+      SYSTEM: 0
+      TASKS: 0
+      VERSION: 0
+      AUTH: 0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - socket
+
+networks:
+  edge:
+    name: apps-edge
+  instances:
+    name: apps-instances
+  socket:
+    name: apps-socket
+    internal: true
+
+volumes:
+  caddy_data:
+  caddy_config:
+  # The frontend build Caddy serves, plus the workspace and npm cache that produce it.
+  launcher:
+  launcher_workspace:
+  launcher_npm_cache:

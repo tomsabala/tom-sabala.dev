@@ -235,6 +235,46 @@ repo**, root directory `backend/`, so both roles ship from one build:
 7. [ ] Configure custom domain
 8. [ ] Test all pages and features
 
+### Subdomain Entry Points
+`frontend/vercel.json` routes `terminal.tom-sabala.dev` to its own Vite entry, so it rides
+along with the normal frontend deploy — no second project, no extra cost:
+
+| Subdomain | Entry | Content | Served by |
+|-----------|-------|---------|-----------|
+| `terminal.tom-sabala.dev` | `terminal.html` | Interactive terminal portfolio | Vercel |
+| `apps.tom-sabala.dev` | `apps.html` | App launcher: static bundles **and** per-visitor app instances | the gateway VPS, from the frontend build on its own disk — Vercel is not in the path |
+
+Every domain on the project serves the whole build, so the remaining host rules redirect
+`/hosted/**` and `/apps.html` **off** `tom-sabala.dev`/`www` to the apps subdomain, so app
+bundles never execute on the origin listed in the API's `CORS_ORIGINS`.
+
+`apps.tom-sabala.dev` is not a Vercel domain: its DNS points at the gateway VPS (`gateway/`),
+which terminates TLS, runs admin sign-in, the instance broker, **and** serves the launcher and
+`/hosted/**` from a volume it builds itself. So a change under `frontend/` reaches the apps
+subdomain only after `git pull` + `docker compose -f gateway/docker-compose.yml run --rm
+launcher-build` on the VPS — a Vercel deploy alone does not update it. Full runbook in
+**`gateway/README.md`**.
+
+**Action Required (terminal subdomain, once):**
+- [ ] Add the domain to the existing Vercel project (Settings → Domains)
+- [ ] Point DNS at Vercel (CNAME `terminal` → `cname.vercel-dns.com`)
+
+**Action Required (apps subdomain, once):**
+- [ ] Provision the VPS, run `launcher-build`, then `gateway/docker-compose.yml up -d`
+      (see `gateway/README.md`)
+- [ ] Add `https://apps.tom-sabala.dev/oauth2/callback` to the Google OAuth client
+- [ ] Repoint DNS: remove the `apps` CNAME to Vercel, add an A/AAAA record to the VPS.
+      On Cloudflare set it to **DNS only** (grey cloud) — proxying breaks Caddy's HTTP-01
+      challenge, so no certificate is ever issued
+- [ ] Leave `apps.tom-sabala.dev` off the Vercel project's domains
+- [ ] Verify `https://apps.tom-sabala.dev` lands on the launcher, a bundle opens in-frame, and
+      a service app starts its own instance
+- [ ] Verify `https://tom-sabala.dev/hosted/sandbox-check/index.html` redirects to the apps subdomain
+- [ ] Do **not** add `apps.tom-sabala.dev` to `CORS_ORIGINS` — that would hand any hosted bundle
+      or app instance credentialed API access
+- [ ] Hide the sidebar link any time via Settings → Tabs → Apps (tab key `apps`); this hides the
+      link only — the apps subdomain stays publicly reachable
+
 ### PDF Download Feature Configuration
 **Important:** The CV/Resume PDF download feature uses query parameters to control download behavior:
 
