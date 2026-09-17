@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sandbox Check</title>
+    <style>
+      :root { color-scheme: light dark; }
+      body {
+        font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif;
+        margin: 0;
+        padding: 1.5rem;
+      }
+      h1 { font-size: 1.1rem; margin: 0 0 1rem; }
+      ul { list-style: none; padding: 0; margin: 0 0 1rem; }
+      li { padding: .35rem 0; border-bottom: 1px solid rgba(128, 128, 128, .25); }
+      .ok::before { content: 'PASS'; color: #15803d; font-weight: 700; margin-right: .5rem; }
+      .bad::before { content: 'FAIL'; color: #b91c1c; font-weight: 700; margin-right: .5rem; }
+      button { font: inherit; padding: .35rem .75rem; cursor: pointer; }
+      code { font-family: ui-monospace, SFMono-Regular, monospace; }
+    </style>
+  </head>
+  <body>
+    <h1>Sandbox Check — is this bundle fully functional in the launcher frame?</h1>
+    <ul id="results"></ul>
+    <button id="bump" type="button">Click me</button>
+    <p>Reload the frame: the click count must survive if storage works.</p>
+
+    <script>
+      const results = document.getElementById('results');
+
+      function report(label, passed, detail) {
+        const li = document.createElement('li');
+        li.className = passed ? 'ok' : 'bad';
+        li.append(label);
+        if (detail) {
+          const code = document.createElement('code');
+          code.textContent = detail;
+          li.append(' — ', code);
+        }
+        results.appendChild(li);
+      }
+
+      report('Scripts execute', true, `origin ${location.origin}`);
+
+      let clicks = 0;
+      try {
+        clicks = Number(localStorage.getItem('sandbox-check:clicks') ?? '0');
+        localStorage.setItem('sandbox-check:clicks', String(clicks));
+        report('Storage is writable', true, `${clicks} stored click(s)`);
+      } catch (err) {
+        report('Storage is writable', false, String(err));
+      }
+
+      const bump = document.getElementById('bump');
+      bump.textContent = `Clicked ${clicks} time(s)`;
+      bump.addEventListener('click', () => {
+        clicks += 1;
+        bump.textContent = `Clicked ${clicks} time(s)`;
+        try {
+          localStorage.setItem('sandbox-check:clicks', String(clicks));
+        } catch { /* reported above */ }
+      });
+
+      fetch('./probe.json')
+        .then(res => res.json())
+        .then(data => report('Relative assets resolve', true, data.asset))
+        .catch(err => report('Relative assets resolve', false, String(err)));
+    </script>
+  </body>
+</html>
