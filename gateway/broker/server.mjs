@@ -12,7 +12,7 @@
 import http from 'node:http';
 import { loadConfig } from './lib/config.mjs';
 import { createDockerClient } from './lib/docker.mjs';
-import { createIdentityResolver, instanceKey } from './lib/identity.mjs';
+import { createIdentityResolver, instanceKey, tenantKey } from './lib/identity.mjs';
 import { createInstanceManager } from './lib/instances.mjs';
 import { createManifestStore, publicManifest } from './lib/manifest.mjs';
 import { parseServicePath } from './lib/paths.mjs';
@@ -98,11 +98,18 @@ async function main() {
       return respond(res, 401, { body: 'Admin sign-in required.\n', setCookie: sessionState.setCookie });
     }
 
-    const key = instanceKey({ admin: viewer.admin, email: viewer.email, sessionId: sessionState.id });
+    // Who the viewer is, independent of which container serves them: for a `shared` app one
+    // instance serves everybody, and this is how the app tells them apart.
+    const identity = { admin: viewer.admin, email: viewer.email, sessionId: sessionState.id };
+    const tenant = {
+      id: tenantKey(identity),
+      role: viewer.admin ? 'admin' : 'anon',
+    };
+    const key = instanceKey({ mode: app.mode, ...identity });
 
     try {
       const { endpoint } = await instances.ensure(app, key);
-      proxy.web(req, res, endpoint, sessionState.setCookie);
+      proxy.web(req, res, endpoint, { setCookie: sessionState.setCookie, tenant });
     } catch (error) {
       if (error.code === 'capacity') {
         log.warn(`capacity reached for ${app.slug}: ${error.message}`);
@@ -174,17 +181,24 @@ async function main() {
       if (app.access === 'admin' && !viewer.admin) return socket.destroy();
 
       // No cookie can be minted on a 101 response, and an upgrade always follows a document
-      // request that already established one.
+      // request that already established one. A shared app needs no identity at all.
       const sessionId = verifySession(
         readCookie(req.headers.cookie, config.cookieName),
         config.sessionSecret
       );
-      if (!viewer.admin && !sessionId) return socket.destroy();
+      if (app.mode !== 'shared' && !viewer.admin && !sessionId) return socket.destroy();
 
       try {
-        const key = instanceKey({ admin: viewer.admin, email: viewer.email, sessionId });
+        const identity = { admin: viewer.admin, email: viewer.email, sessionId };
+        // A shared app without a session has no tenant of its own to claim; it gets the
+        // anonymous role and no tenant header, so the app falls back to its own default.
+        const tenant =
+          viewer.admin || sessionId
+            ? { id: tenantKey(identity), role: viewer.admin ? 'admin' : 'anon' }
+            : undefined;
+        const key = instanceKey({ mode: app.mode, ...identity });
         const { endpoint } = await instances.ensure(app, key);
-        proxy.upgrade(req, socket, head, endpoint);
+        proxy.upgrade(req, socket, head, endpoint, { tenant });
       } catch (error) {
         log.error(`upgrade for ${app.slug} failed: ${error.message}`);
         socket.destroy();
@@ -195,7 +209,7 @@ async function main() {
   server.listen(config.port, () => {
     log.info(`listening on ${config.port}; docker at ${config.dockerApi}`);
     log.info(
-      `idle TTL ${config.idleTtlMs / 1000}s, caps anon=${config.maxInstances.anon} admin=${config.maxInstances.admin}`
+      `idle TTL ${config.idleTtlMs / 1000}s, caps anon=${config.maxInstances.anon} admin=${config.maxInstances.admin} total=${config.maxInstances.total}`
     );
   });
 

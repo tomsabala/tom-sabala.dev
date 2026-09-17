@@ -18,6 +18,16 @@ type HostedAppStatus = 'live' | 'wip';
 export type AppKind = 'bundle' | 'service';
 /** `admin` apps are absent from the manifest the gateway serves anonymous visitors. */
 export type AppAccess = 'public' | 'admin';
+/**
+ * What one container is shared by.
+ *
+ * `session` — one per visitor. The only safe mode for an app with no multi-tenancy of its
+ *   own, and the expensive one: RAM is multiplied by concurrent visitors.
+ * `shared`  — one per app, for everybody, kept warm. Costs the app's memory once no matter
+ *   how many people are on it. Only for apps that either store nothing per visitor or have
+ *   their own accounts: every visitor sees the same data.
+ */
+export type ServiceMode = 'session' | 'shared';
 
 interface AppBase {
   /** Launcher deep link (`#/<slug>`); for bundles also the directory under public/hosted. */
@@ -53,6 +63,8 @@ export interface ServiceRuntime {
 
 export interface ServiceApp extends AppBase {
   kind: 'service';
+  /** Survives into the browser-facing manifest: the launcher words its overlay from it. */
+  mode: ServiceMode;
   runtime?: ServiceRuntime;
 }
 
@@ -170,9 +182,14 @@ function parseEntry(raw: unknown): HostedApp | null {
 
   if (kind === 'bundle') return { kind, ...base };
 
+  // Default `session`: per-visitor isolation is the safe answer for an app whose
+  // multi-tenancy is unknown. Sharing has to be opted into deliberately.
+  const mode = entry.mode === undefined ? 'session' : entry.mode;
+  if (mode !== 'session' && mode !== 'shared') return drop(`unknown mode for ${slug}`, entry.mode);
+
   const runtime = parseRuntime(entry);
   if (runtime === null) return drop(`invalid container settings for ${slug}`, entry);
-  return { kind, ...base, ...(runtime ? { runtime } : {}) };
+  return { kind, ...base, mode, ...(runtime ? { runtime } : {}) };
 }
 
 /**

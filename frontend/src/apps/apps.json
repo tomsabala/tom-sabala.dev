@@ -19,10 +19,11 @@
       "access": "public",
       "image": "ghcr.io/tomsabala/resume-matcher:apps-mount",
       "port": 3000,
-      "memoryMb": 1536,
+      "mode": "session",
+      "memoryMb": 768,
       "shmSizeMb": 512,
       "dataPath": "/app/backend/data",
-      "dataTmpfsMb": 512,
+      "dataTmpfsMb": 128,
       "readyPath": "/",
       "capAdd": []
     }

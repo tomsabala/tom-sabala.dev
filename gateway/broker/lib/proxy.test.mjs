@@ -1,6 +1,63 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { filterResponseHeaders } from './proxy.mjs';
+import { filterResponseHeaders, requestHeaders } from './proxy.mjs';
+
+function inbound(headers) {
+  return { headers };
+}
+
+const TENANT = { id: 'anon-0123456789abcdef', role: 'anon' };
+
+test('the viewer identity is injected for the app to scope on', () => {
+  const headers = requestHeaders(inbound({ host: 'apps.test' }), {
+    cookieName: 'apps_sid',
+    tenant: TENANT,
+  });
+  assert.equal(headers['x-apps-tenant'], 'anon-0123456789abcdef');
+  assert.equal(headers['x-apps-role'], 'anon');
+});
+
+test('a client-supplied identity is overwritten, never trusted', () => {
+  const headers = requestHeaders(
+    inbound({ 'x-apps-tenant': 'admin-deadbeefdeadbeef', 'x-apps-role': 'admin' }),
+    { cookieName: 'apps_sid', tenant: TENANT }
+  );
+  assert.equal(headers['x-apps-tenant'], 'anon-0123456789abcdef');
+  assert.equal(headers['x-apps-role'], 'anon');
+});
+
+test('the gateway session cookie never reaches the app', () => {
+  const headers = requestHeaders(
+    inbound({ cookie: 'apps_sid=secret.mac; theme=dark' }),
+    { cookieName: 'apps_sid', tenant: TENANT }
+  );
+  assert.equal(headers.cookie, 'theme=dark');
+});
+
+test('the inbound Host survives, so Next accepts its own Server Actions', () => {
+  const headers = requestHeaders(inbound({ host: 'apps.tom-sabala.dev' }), {
+    cookieName: 'apps_sid',
+    tenant: TENANT,
+  });
+  assert.equal(headers.host, 'apps.tom-sabala.dev');
+});
+
+test('hop-by-hop headers are dropped, except on an upgrade', () => {
+  const raw = { connection: 'upgrade', upgrade: 'websocket', 'transfer-encoding': 'chunked' };
+  const plain = requestHeaders(inbound({ ...raw }), { cookieName: 'apps_sid' });
+  assert.deepEqual(Object.keys(plain), []);
+
+  const upgraded = requestHeaders(inbound({ ...raw }), { cookieName: 'apps_sid', keepUpgrade: true });
+  assert.equal(upgraded.connection, 'upgrade');
+  assert.equal(upgraded.upgrade, 'websocket');
+  assert.equal(upgraded['transfer-encoding'], undefined);
+});
+
+test('no tenant means no header at all, not an empty one', () => {
+  const headers = requestHeaders(inbound({ host: 'apps.test' }), { cookieName: 'apps_sid' });
+  assert.ok(!('x-apps-tenant' in headers));
+  assert.ok(!('x-apps-role' in headers));
+});
 
 test('an app cannot set the gateway session cookie', () => {
   const headers = filterResponseHeaders(

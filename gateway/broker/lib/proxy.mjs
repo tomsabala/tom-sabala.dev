@@ -44,20 +44,32 @@ export function filterResponseHeaders(upstreamHeaders, cookieName, setCookie) {
   return headers;
 }
 
+/**
+ * Builds the headers sent upstream. Two things are deliberate here: the gateway's own
+ * session cookie is removed (an app may neither read nor replay it), and the viewer's
+ * identity is *added* — the broker is the only thing that can set `X-Apps-*`, since
+ * server.mjs deletes any inbound copy before this runs.
+ */
+export function requestHeaders(req, { cookieName, tenant, keepUpgrade = false }) {
+  const headers = { ...req.headers };
+  for (const name of HOP_BY_HOP) {
+    if (keepUpgrade && (name === 'connection' || name === 'upgrade')) continue;
+    delete headers[name];
+  }
+
+  const cookie = stripCookie(headers.cookie, cookieName);
+  if (cookie) headers.cookie = cookie;
+  else delete headers.cookie;
+
+  if (tenant) {
+    headers['x-apps-tenant'] = tenant.id;
+    headers['x-apps-role'] = tenant.role;
+  }
+  return headers;
+}
+
 export function createProxy({ cookieName, log }) {
   const agent = new http.Agent({ keepAlive: true, maxSockets: 128 });
-
-  function outboundHeaders(req, { keepUpgrade = false } = {}) {
-    const headers = { ...req.headers };
-    for (const name of HOP_BY_HOP) {
-      if (keepUpgrade && (name === 'connection' || name === 'upgrade')) continue;
-      delete headers[name];
-    }
-    const cookie = stripCookie(headers.cookie, cookieName);
-    if (cookie) headers.cookie = cookie;
-    else delete headers.cookie;
-    return headers;
-  }
 
   function target(endpoint) {
     const url = new URL(endpoint);
@@ -65,11 +77,18 @@ export function createProxy({ cookieName, log }) {
   }
 
   return {
-    /** Proxies one request; `setCookie` is the freshly minted session, if any. */
-    web(req, res, endpoint, setCookie) {
+    /** Proxies one request. `setCookie` is the freshly minted session, if any. */
+    web(req, res, endpoint, { setCookie, tenant } = {}) {
       const { hostname, port } = target(endpoint);
       const upstream = http.request(
-        { hostname, port, method: req.method, path: req.url, headers: outboundHeaders(req), agent },
+        {
+          hostname,
+          port,
+          method: req.method,
+          path: req.url,
+          headers: requestHeaders(req, { cookieName, tenant }),
+          agent,
+        },
         proxyRes => {
           const headers = filterResponseHeaders(proxyRes.headers, cookieName, setCookie);
           res.writeHead(proxyRes.statusCode ?? 502, headers);
@@ -92,14 +111,14 @@ export function createProxy({ cookieName, log }) {
     },
 
     /** WebSocket / SSE upgrade passthrough. */
-    upgrade(req, socket, head, endpoint) {
+    upgrade(req, socket, head, endpoint, { tenant } = {}) {
       const { hostname, port } = target(endpoint);
       const upstream = http.request({
         hostname,
         port,
         method: req.method,
         path: req.url,
-        headers: outboundHeaders(req, { keepUpgrade: true }),
+        headers: requestHeaders(req, { cookieName, tenant, keepUpgrade: true }),
       });
 
       upstream.on('upgrade', (proxyRes, proxySocket, proxyHead) => {

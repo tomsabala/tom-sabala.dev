@@ -18,8 +18,8 @@ import { LABELS, containerName, keyKind, volumeName } from './identity.mjs';
 const ENV_LINE = /^[A-Za-z_][A-Za-z0-9_]*=/;
 
 export class CapacityError extends Error {
-  constructor(kind, limit) {
-    super(`no free ${kind} slot (limit ${limit})`);
+  constructor(scope, limit) {
+    super(`no free ${scope} slot (limit ${limit})`);
     this.code = 'capacity';
   }
 }
@@ -74,12 +74,14 @@ export function createInstanceManager({ docker, config, log, now = () => Date.no
       RestartPolicy: { Name: 'no' },
     };
 
-    if (kind === 'admin') {
+    // Anonymous state is thrown away with the container, so it lives on tmpfs. Admin and
+    // shared state is the point of those modes, so it lives on a named volume.
+    if (kind === 'anon') {
+      hostConfig.Tmpfs = { [runtime.dataPath]: `rw,size=${runtime.dataTmpfsMb}m,mode=1777` };
+    } else {
       hostConfig.Mounts = [
         { Type: 'volume', Source: volumeName(app.slug, key), Target: runtime.dataPath },
       ];
-    } else {
-      hostConfig.Tmpfs = { [runtime.dataPath]: `rw,size=${runtime.dataTmpfsMb}m,mode=1777` };
     }
 
     return {
@@ -95,10 +97,24 @@ export function createInstanceManager({ docker, config, log, now = () => Date.no
     };
   }
 
+  /**
+   * Refused before any container is created or started. Both ceilings matter: the per-kind
+   * caps keep one kind from starving the other, and the total is what the box's RAM can
+   * actually hold — without it, anon=1 plus admin=1 puts two instances on a machine sized
+   * for one, and the kernel decides which dies instead of the visitor getting a 503.
+   */
   async function assertCapacity(kind) {
+    const running = await docker.list({ label: [LABELS.slug], status: ['running'] });
+    if (running.length >= config.maxInstances.total) {
+      throw new CapacityError('instance', config.maxInstances.total);
+    }
+
+    // Shared apps have no per-kind cap: there is exactly one instance per app either way,
+    // and the total above is what the box can hold.
     const limit = config.maxInstances[kind];
-    const running = await docker.list({ label: [`${LABELS.kind}=${kind}`], status: ['running'] });
-    if (running.length >= limit) throw new CapacityError(kind, limit);
+    if (limit === undefined) return;
+    const ofKind = running.filter(c => c.Labels?.[LABELS.kind] === kind).length;
+    if (ofKind >= limit) throw new CapacityError(kind, limit);
   }
 
   function endpointOf(detail, runtime) {
@@ -182,14 +198,14 @@ export function createInstanceManager({ docker, config, log, now = () => Date.no
     try {
       return { name, endpoint: await waitReady(name, app.runtime, deadline) };
     } catch (error) {
-      // A wedged anonymous instance is worth less than a fresh attempt; an admin one is kept
-      // for inspection because its volume holds real work.
+      // A wedged anonymous instance is worth less than a fresh attempt; an admin or shared
+      // one is kept for inspection because its volume holds real work.
       if (kind === 'anon') {
         const current = await docker.inspect(name);
         if (current) await docker.remove(current.Id, { force: true });
         lastSeen.delete(name);
       } else {
-        log.error(`admin instance ${name} failed to become ready; keeping it for inspection`);
+        log.error(`${kind} instance ${name} failed to become ready; keeping it for inspection`);
       }
       throw error;
     }
@@ -210,17 +226,19 @@ export function createInstanceManager({ docker, config, log, now = () => Date.no
       }
       if (now() - seen < config.idleTtlMs) continue;
 
-      const kind = container.Labels?.[LABELS.kind] === 'admin' ? 'admin' : 'anon';
+      // Only anonymous instances are removed: their data is meant to disappear. Admin and
+      // shared instances are stopped, freeing the RAM while the volume stays put, and the
+      // next request restarts them (~6 s).
+      const kind = container.Labels?.[LABELS.kind] ?? 'anon';
       const running = container.State === 'running';
       try {
-        if (kind === 'admin') {
-          if (!running) continue;
-          await docker.stop(container.Id);
-          log.info(`stopped idle admin instance ${name}; volume retained`);
-        } else {
+        if (kind === 'anon') {
           await docker.remove(container.Id, { force: true });
           lastSeen.delete(name);
           log.info(`removed idle anonymous instance ${name}`);
+        } else if (running) {
+          await docker.stop(container.Id);
+          log.info(`stopped idle ${kind} instance ${name}; volume retained`);
         }
       } catch (error) {
         log.error(`reaping ${name} failed: ${error.message}`);

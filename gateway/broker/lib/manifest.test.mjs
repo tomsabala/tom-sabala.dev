@@ -125,7 +125,7 @@ test('the wire manifest never names an image or a container setting', () => {
   }
 });
 
-test('the wire manifest keeps what the launcher renders', () => {
+test('the wire manifest keeps what the launcher renders, mode included', () => {
   const { apps } = parseManifest({ apps: [service] });
   assert.deepEqual(publicManifest(apps, true).apps[0], {
     kind: 'service',
@@ -135,5 +135,21 @@ test('the wire manifest keeps what the launcher renders', () => {
     tech: ['FastAPI'],
     status: 'live',
     access: 'admin',
+    // The launcher words its overlay from this, so it must not be stripped with the
+    // container settings: "your private instance" would be a lie for a shared app.
+    mode: 'session',
   });
+});
+
+test('a shared app is parsed and advertised as shared', () => {
+  const { apps, dropped } = parseManifest({ apps: [{ ...service, mode: 'shared' }] });
+  assert.deepEqual(dropped, []);
+  assert.equal(apps[0].mode, 'shared');
+  assert.equal(publicManifest(apps, true).apps[0].mode, 'shared');
+});
+
+test('an unknown mode is dropped rather than guessed', () => {
+  const { apps, dropped } = parseManifest({ apps: [{ ...service, mode: 'per-tenant' }] });
+  assert.deepEqual(apps, []);
+  assert.equal(dropped.length, 1);
 });

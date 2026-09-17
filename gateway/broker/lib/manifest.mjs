@@ -119,9 +119,17 @@ function parseEntry(entry, dropped) {
 
   if (entry.kind === 'bundle') return app;
 
+  // `session` (one container per visitor) is the default because it is the safe one; a
+  // `shared` app is one warm container for everybody and must be opted into.
+  const mode = entry.mode === undefined ? 'session' : entry.mode;
+  if (mode !== 'session' && mode !== 'shared') {
+    dropped.push(`${slug}: unknown mode ${JSON.stringify(entry.mode)}`);
+    return null;
+  }
+
   const runtime = parseRuntime(entry, slug, dropped);
   if (!runtime) return null;
-  return { ...app, runtime };
+  return { ...app, mode, runtime };
 }
 
 export function parseManifest(raw) {

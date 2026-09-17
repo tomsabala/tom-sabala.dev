@@ -96,6 +96,7 @@ services:
       READY_TIMEOUT_SECONDS: ${READY_TIMEOUT_SECONDS:-90}
       MAX_ANON_INSTANCES: ${MAX_ANON_INSTANCES:-2}
       MAX_ADMIN_INSTANCES: ${MAX_ADMIN_INSTANCES:-2}
+      MAX_TOTAL_INSTANCES: ${MAX_TOTAL_INSTANCES:-0}
     volumes:
       # The directory, not the file: `git pull` replaces apps.json by rename, which would
       # detach a single-file bind mount and freeze the broker on the old manifest forever.

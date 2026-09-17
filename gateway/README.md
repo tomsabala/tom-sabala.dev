@@ -44,12 +44,101 @@ never lists the app, which is the boundary that matters. Switch it to `404` in
 
 Resume-Matcher's own `X-Workspace-Id` is **not** part of this: its `api_keys`,
 `improvements` and `tailoring_previews` tables have no `workspace_id`, and an unknown id
-falls back to the default workspace. The container is the boundary.
+falls back to the default workspace. That is why it runs `mode: "session"` — for it, the
+container *is* the boundary.
+
+## The tenant contract, for apps that can separate visitors themselves
+
+An app that scopes its own data does not need a container of its own. The broker tells it who
+is asking, on every proxied request and upgrade:
+
+| header | value | meaning |
+|---|---|---|
+| `X-Apps-Tenant` | `anon-<16 hex>` | hash of the gateway session cookie — a cleared cookie is a new tenant, which is what makes an anonymous visit fresh |
+| `X-Apps-Tenant` | `admin-<16 hex>` | hash of the lowercased admin email — stable across browsers and sessions |
+| `X-Apps-Role` | `anon` \| `admin` | whether oauth2-proxy authenticated the viewer |
+
+Neither can be forged: `server.mjs` deletes every inbound `X-Apps-*` and `X-Auth-Request-*`
+header before anything reads them, `proxy.mjs` sets them from the broker's own identity
+resolution, and the instance has no published port — the broker is the only route to it.
+Verified: a request carrying `X-Apps-Tenant: forged-by-client` and `X-Apps-Role: admin`
+arrives at the app as `anon-…` / `anon`.
+
+The values are hashes, so nothing downstream ever sees an email address or a live session id,
+and they are stable for as long as the identity is. An app keyed on them gets fresh state per
+anonymous visit and persistent state for the admin — the same guarantee `mode: "session"`
+buys with a container each, at one container total.
+
+For Resume-Matcher specifically, the work to get there is written up in that repo:
+`docs/agent/features/multi-tenancy.md`.
+
+## What this costs, and what drives it
+
+**Cataloguing an app is nearly free. Concurrency is what costs.** A reaped or stopped
+instance holds 0 RAM and 113 kB of disk beyond its image, and restarts to healthy in ~6 s.
+Twenty apps in `apps.json` that nobody is using cost the same as zero. So the box is sized
+for *simultaneous visitors*, never for the length of the app list.
+
+Two dials decide the bill:
+
+| | RAM cost | Use it when |
+|---|---|---|
+| `"mode": "session"` | `memoryMb` × concurrent visitors | the app has no multi-tenancy of its own, so two visitors must not share state |
+| `"mode": "shared"` | `memoryMb`, once, however many visitors | the app stores nothing per visitor, or has its own accounts |
+
+`session` is the default because it is the safe one, and it is also the expensive one —
+Resume-Matcher needs it (`api_keys`, `improvements` and `tailoring_previews` have no owner
+column). An app with its own login does not, and one `shared` container serves everybody
+while staying warm. Per-app disk is the other cost: the image, once, whatever the mode.
+
+### Measured, not estimated
+
+One `resume-matcher` container under the manifest's limits (`memoryMb: 768`, tmpfs 128 MB):
+
+| | RSS |
+|---|---|
+| idle and healthy | **288 MB** |
+| peak during a PDF export (Chromium) | **607 MB** |
+| peak during three *concurrent* exports | **582 MB** — it reuses one browser |
+| stopped | **0**, and ~6 s to bring back |
+| whole gateway (caddy + broker + oauth2-proxy + socket-proxy) | **55 MB** |
+
+A trivial `shared` app for comparison: **21 MB**. Most apps are far closer to that than to
+Resume-Matcher, which carries Chromium and a LaTeX engine.
+
+`memoryMb` is a ceiling, not a reservation, so budget by the ceiling — tmpfs content counts
+inside the same limit. With ~0.6 GB for the OS, Docker and the gateway:
+
+| RAM | `MAX_TOTAL_INSTANCES` | Means |
+|---|---|---|
+| 2 GB | 1 | One `session` visitor at a time, or ~5 small `shared` apps warm. Set `IDLE_TTL_SECONDS=300` so one visitor does not hold the only slot for 20 minutes. Do **not** build the app image here (needs ~4 GB) — pull it. `launcher-build` peaks around 1 GB, so run it with no instance up. |
+| 4 GB | 4 | Four concurrent `session` visitors, or one plus a dozen small `shared` apps. |
+| 8 GB | 9 | Headroom to stop thinking about it. |
+
+`MAX_TOTAL_INSTANCES` is the cap that matters. The per-kind caps are independent, so
+`anon=1` + `admin=1` still allows two containers — on a 2 GB box that is an OOM kill instead
+of a 503. Leave it `0` only when `anon + admin` already fits. `shared` instances have no
+per-kind cap (there is one per app by definition) but do count against the total.
+
+CPU is not the binding constraint, but it sets the wait: a cold start is ~6 s on 12 cores and
+a PDF export ~2.9 s. On 1–2 shared vCPUs expect both to be several times that;
+`READY_TIMEOUT_SECONDS=90` still covers it. A host swapfile protects the OS and the gateway,
+not the instances — their cgroup has swap disabled on purpose, so an over-limit instance is
+killed rather than dragging the box down.
+
+### Consolidating what you already pay for
+
+This box is a plain Docker host with Caddy in front, so the services you rent elsewhere can
+move onto it and stop being a per-service bill. Two ways in, and the second is usually right
+for an app that already has users:
+
+1. **As an app** — add it to `apps.json` with `"mode": "shared"`. It gets the launcher card,
+   the `/a/<slug>/` mount, sign-in gating via `access`, and scale-to-zero for free.
+2. **As a plain service** — add it to `gateway/docker-compose.yml` and give it a route in the
+   Caddyfile. No manifest entry, no broker involvement, its own hostname if you want one.
+   Best for anything with its own domain, users or database.
 
 ## VPS bootstrap
-
-Sized for two anonymous instances plus one admin instance at `memoryMb: 1536` each:
-**Hetzner CX32-class, 4 vCPU / 8 GB, ≈€7/mo**. A 4 GB box fits one instance, not three.
 
 ```bash
 # 1. Docker + unattended upgrades
@@ -110,8 +199,11 @@ survive.
    | `readyPath` | probed until it answers non-5xx (404 counts: a basePath app has no `/` route) |
    | `capAdd` | capabilities to add back on top of `CapDrop: ALL` |
    | `access` | `public`, or `admin` to hide it from anonymous visitors entirely |
+   | `mode` | `session` (default, one container per visitor) or `shared` (one for everybody). See the cost model above — this is the single biggest lever on what the box has to be. |
 
-3. `cp gateway/instances/<slug>.anon.env.example …` and write the two env files.
+3. Write the instance env file(s) from the `.example` twins in `gateway/instances/`. The
+   broker reads `<slug>.<kind>.env`, where kind is `anon`, `admin` or `shared` — a
+   `session` app wants the first two, a `shared` app only the last.
 4. Commit, then on the VPS:
 
    ```bash
@@ -184,7 +276,7 @@ timeouts, reaps, and dropped manifest entries.
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `503` "at capacity" | `MAX_*_INSTANCES` reached | raise it (and the RAM), or lower `memoryMb` |
+| `503` "at capacity" | `MAX_TOTAL_INSTANCES` or a per-kind cap reached — the broker log names which | raise it *and* the RAM, lower `memoryMb`, or shorten `IDLE_TTL_SECONDS` so idle slots free up sooner |
 | `503` "did not start in time" | image missing locally, crash on boot, or `READY_TIMEOUT_SECONDS` too low for a cold image | `docker logs` the instance; anonymous instances are removed on timeout, admin ones kept for inspection |
 | App loads but its API 404s | image built without the right `basePath` | rebuild with `--build-arg NEXT_PUBLIC_BASE_PATH=/a/<slug>` |
 | PDF export renders a login page | `FRONTEND_BASE_URL` escaped to the gateway | the broker sets it to `http://127.0.0.1:<port>/a/<slug>`; do not override it in the instance env file |
