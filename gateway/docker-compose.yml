@@ -124,7 +124,9 @@ services:
       CONTAINERS: 1
       POST: 1
       PING: 1
-      IMAGES: 0
+      # Read-only /images: the broker resolves a tag's current digest so a `docker pull`
+      # actually reaches running instances. It never builds, pulls or deletes images.
+      IMAGES: 1
       NETWORKS: 0
       VOLUMES: 0
       EXEC: 0

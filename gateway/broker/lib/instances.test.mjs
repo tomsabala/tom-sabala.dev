@@ -33,15 +33,19 @@ function config({ anon = 2, admin = 2, total = 4 }) {
 }
 
 /** Records what the manager tried to do; nothing here reaches a real Docker daemon. */
-function fakeDocker(running = []) {
-  const calls = { created: [], started: [], removed: [] };
+function fakeDocker(running = [], { existing = null, imageId = 'sha256:current' } = {}) {
+  const calls = { created: [], started: [], removed: [], imageLookups: 0 };
   return {
     calls,
     async list() {
       return running;
     },
     async inspect() {
-      return null;
+      return existing;
+    },
+    async inspectImage() {
+      calls.imageLookups += 1;
+      return imageId === null ? null : { Id: imageId };
     },
     async create(name, spec) {
       calls.created.push({ name, spec });
@@ -53,6 +57,18 @@ function fakeDocker(running = []) {
     async remove(id) {
       calls.removed.push(id);
     },
+  };
+}
+
+/** A running container as the Docker inspect endpoint reports it. */
+function existingContainer({ imageId = 'sha256:current', reference = APP.runtime.image } = {}) {
+  return {
+    Id: 'existing',
+    Image: imageId,
+    Name: '/apps-demo-shared',
+    Config: { Labels: { [LABELS.image]: reference } },
+    State: { Running: true },
+    NetworkSettings: { Networks: { 'apps-instances': { IPAddress: '127.0.0.1' } } },
   };
 }
 
@@ -219,4 +235,64 @@ test('instances left by a previous broker are adopted, not reaped immediately', 
   clock += 999_999;
   await instances.reapOnce();
   assert.deepEqual(docker.calls.removed, ['a']);
+});
+
+test('a running instance on the current image is reused as-is', async () => {
+  const docker = fakeDocker([], { existing: existingContainer() });
+  const instances = createInstanceManager({ docker, config: config({}), log: silent });
+
+  const { endpoint } = await instances.ensure(APP, 'shared');
+  assert.equal(endpoint, 'http://127.0.0.1:3000');
+  assert.deepEqual(docker.calls.created, []);
+  assert.deepEqual(docker.calls.removed, []);
+});
+
+test('a moved tag recreates the instance, even though the label is unchanged', async () => {
+  // What `docker pull` on a moving tag looks like: same reference, different digest. Without
+  // the digest check an admin or shared instance would serve the old build indefinitely.
+  const docker = fakeDocker([], {
+    existing: existingContainer({ imageId: 'sha256:previous' }),
+    imageId: 'sha256:current',
+  });
+  const instances = createInstanceManager({ docker, config: config({}), log: silent });
+
+  await assert.rejects(instances.ensure(APP, 'shared'));
+  assert.deepEqual(docker.calls.removed, ['existing']);
+  assert.equal(docker.calls.created.length, 1);
+});
+
+test('a renamed image in the manifest recreates the instance', async () => {
+  const docker = fakeDocker([], {
+    existing: existingContainer({ reference: 'ghcr.io/example/demo:old' }),
+  });
+  const instances = createInstanceManager({ docker, config: config({}), log: silent });
+
+  await assert.rejects(instances.ensure(APP, 'shared'));
+  assert.deepEqual(docker.calls.removed, ['existing']);
+});
+
+test('an unresolvable image leaves the instance alone rather than killing it', async () => {
+  // Mid-pull, or the image was removed by hand: serving the old build beats serving a 503.
+  const docker = fakeDocker([], {
+    existing: existingContainer({ imageId: 'sha256:previous' }),
+    imageId: null,
+  });
+  const instances = createInstanceManager({ docker, config: config({}), log: silent });
+
+  const { endpoint } = await instances.ensure(APP, 'shared');
+  assert.equal(endpoint, 'http://127.0.0.1:3000');
+  assert.deepEqual(docker.calls.removed, []);
+});
+
+test('the image digest is not looked up on every request', async () => {
+  const docker = fakeDocker([], { existing: existingContainer() });
+  let clock = 1_000;
+  const instances = createInstanceManager({ docker, config: config({}), log: silent, now: () => clock });
+
+  for (let i = 0; i < 5; i += 1) await instances.ensure(APP, 'shared');
+  assert.equal(docker.calls.imageLookups, 1, 'cached within the TTL');
+
+  clock += 60_000;
+  await instances.ensure(APP, 'shared');
+  assert.equal(docker.calls.imageLookups, 2, 'and refreshed after it');
 });
