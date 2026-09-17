@@ -44,7 +44,33 @@ never lists the app, which is the boundary that matters. Switch it to `404` in
 
 Resume-Matcher's own `X-Workspace-Id` is **not** part of this: its `api_keys`,
 `improvements` and `tailoring_previews` tables have no `workspace_id`, and an unknown id
-falls back to the default workspace. The container is the boundary.
+falls back to the default workspace. That is why it runs `mode: "session"` — for it, the
+container *is* the boundary.
+
+## The tenant contract, for apps that can separate visitors themselves
+
+An app that scopes its own data does not need a container of its own. The broker tells it who
+is asking, on every proxied request and upgrade:
+
+| header | value | meaning |
+|---|---|---|
+| `X-Apps-Tenant` | `anon-<16 hex>` | hash of the gateway session cookie — a cleared cookie is a new tenant, which is what makes an anonymous visit fresh |
+| `X-Apps-Tenant` | `admin-<16 hex>` | hash of the lowercased admin email — stable across browsers and sessions |
+| `X-Apps-Role` | `anon` \| `admin` | whether oauth2-proxy authenticated the viewer |
+
+Neither can be forged: `server.mjs` deletes every inbound `X-Apps-*` and `X-Auth-Request-*`
+header before anything reads them, `proxy.mjs` sets them from the broker's own identity
+resolution, and the instance has no published port — the broker is the only route to it.
+Verified: a request carrying `X-Apps-Tenant: forged-by-client` and `X-Apps-Role: admin`
+arrives at the app as `anon-…` / `anon`.
+
+The values are hashes, so nothing downstream ever sees an email address or a live session id,
+and they are stable for as long as the identity is. An app keyed on them gets fresh state per
+anonymous visit and persistent state for the admin — the same guarantee `mode: "session"`
+buys with a container each, at one container total.
+
+For Resume-Matcher specifically, the work to get there is written up in that repo:
+`docs/agent/features/multi-tenancy.md`.
 
 ## What this costs, and what drives it
 

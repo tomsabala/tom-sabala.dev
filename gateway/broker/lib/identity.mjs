@@ -19,23 +19,34 @@ export const LABELS = {
 export const SHARED_KEY = 'shared';
 
 /**
- * Instance key: the identity an instance belongs to, hashed so a container name never
- * carries an email address or a live session id.
+ * Tenant key: who the viewer is, hashed so nothing downstream ever carries an email address
+ * or a live session id.
  *
- * A `shared` app has one instance for everybody, so the key is a constant — that is the
- * whole point: its memory cost does not scale with visitors.
- * Admins key on their email, so every browser and every new session lands on the same
- * persistent instance. Anonymous visitors key on the session cookie, so a cleared cookie is
- * a clean slate.
+ * Admins key on their email, so every browser and every new session resolves to the same
+ * tenant. Anonymous visitors key on the gateway session cookie, so a cleared cookie is a
+ * clean slate — that, not the container, is what makes an anonymous visit fresh.
+ *
+ * Forwarded to the app as `X-Apps-Tenant` so a multi-tenant app can scope its own data
+ * instead of needing a container of its own. A client cannot forge it: the broker deletes
+ * inbound `X-Apps-*` headers, and the instance is only reachable through the broker.
  */
-export function instanceKey({ mode, admin, email, sessionId }) {
-  if (mode === 'shared') return SHARED_KEY;
+export function tenantKey({ admin, email, sessionId }) {
   if (admin) {
     if (!email) throw new Error('admin identity without an email');
     return `admin-${createHash('sha256').update(email.trim().toLowerCase()).digest('hex').slice(0, 16)}`;
   }
   if (!sessionId) throw new Error('anonymous identity without a session id');
   return `anon-${createHash('sha256').update(sessionId).digest('hex').slice(0, 16)}`;
+}
+
+/**
+ * Which container serves this viewer. Same as the tenant key, except for a `shared` app,
+ * where one instance serves everybody — that is the whole point: its memory cost does not
+ * scale with visitors, and the app separates them by tenant instead.
+ */
+export function instanceKey({ mode, admin, email, sessionId }) {
+  if (mode === 'shared') return SHARED_KEY;
+  return tenantKey({ admin, email, sessionId });
 }
 
 export function keyKind(key) {
