@@ -16,6 +16,9 @@ class JobApplication(db.Model):
     position = db.Column(db.String(200), nullable=False)
     status = db.Column(db.String(50), nullable=False, default='bookmarked')
     jobUrl = db.Column('job_url', db.String(500), nullable=True)
+    # Durable "already applied?" key: set on bookmark, or back-filled by the
+    # agent's URL / (company + title) fallback match so later runs join on it.
+    jobPostingId = db.Column('job_posting_id', db.Integer, db.ForeignKey('job_postings.id', ondelete='SET NULL'), nullable=True, index=True)
     dateApplied = db.Column('date_applied', db.Date, nullable=True)
     notes = db.Column(db.Text, nullable=True)
     createdAt = db.Column('created_at', db.DateTime, nullable=False, default=datetime.utcnow)
@@ -29,6 +32,7 @@ class JobApplication(db.Model):
             'position': self.position,
             'status': self.status,
             'job_url': self.jobUrl,
+            'job_posting_id': self.jobPostingId,
             'date_applied': self.dateApplied.isoformat() if self.dateApplied else None,
             'notes': self.notes,
             'created_at': self.createdAt.isoformat() if self.createdAt else None,

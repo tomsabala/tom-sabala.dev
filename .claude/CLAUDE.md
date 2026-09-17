@@ -4,14 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Personal portfolio website with Flask backend API and React frontend. Features include portfolio project management, resume/CV with PDF version control, contact form with email notifications, Google OAuth admin authentication, job tracking (companies + applications with AI-generated category tags), and admin-controlled tab visibility.
+Personal portfolio website with Flask backend API and React frontend. Features include portfolio project management, resume/CV with PDF version control, contact form with email notifications, Google OAuth admin authentication, job tracking (companies + applications with AI-generated category tags), an on-demand job-search agent that sweeps every tracked company's job board, and admin-controlled tab visibility.
 
 **Tech Stack:**
-- Backend: Python 3 + Flask + SQLAlchemy + PostgreSQL + SendGrid + Anthropic API
+- Backend: Python 3 + Flask + SQLAlchemy + PostgreSQL + Redis/RQ + SendGrid + Anthropic API
 - Frontend: React 18 + TypeScript + Vite + React Router + Tailwind CSS
 - Auth: Google OAuth + JWT with HttpOnly cookies
 - Storage: Local filesystem or AWS S3 (configurable via factory pattern)
-- Deployment: Vercel (frontend) + Railway (backend)
+- Deployment: Vercel (frontend) + Railway (backend web service + agent worker service)
 
 ## Development Commands
 
@@ -23,9 +23,12 @@ python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
 
-# Start PostgreSQL and run server
+# Start PostgreSQL + Redis, then the API
 docker compose up -d
 python run.py
+
+# Agent worker (separate shell; consumes the RQ 'agent' queue)
+SERVICE_ROLE=worker python worker.py
 
 # Database migrations
 flask db upgrade              # Apply migrations
@@ -59,7 +62,12 @@ backend/app/
 │   ├── company.py       # Job tracker companies (name, url, notes, categories JSON)
 │   ├── job_application.py  # Job applications (8 statuses)
 │   ├── idea.py          # Ideas list
-│   └── tab_config.py    # Nav tab visibility config (tab_key, is_visible)
+│   ├── tab_config.py    # Nav tab visibility config (tab_key, is_visible)
+│   ├── job_posting.py   # Board postings; firstSeenAt/closedAt drive New/Seen
+│   ├── agent_run.py     # Agent sweeps (RUN_STATUSES, activeLock single-run guard)
+│   ├── agent_run_company_result.py  # Per-company outcome of a sweep
+│   ├── agent_run_finding.py         # Surfaced posting + score/verdict/isNew
+│   └── job_search_profile.py        # Singleton (id=1) interests + minScore
 ├── dao/                 # Data Access Objects (all DB queries)
 │   ├── project_dao.py
 │   ├── user_dao.py
@@ -69,14 +77,25 @@ backend/app/
 │   ├── company_dao.py   # includes _normalizeCategories() helper
 │   ├── job_application_dao.py
 │   ├── idea_dao.py
-│   └── tab_config_dao.py  # getAll(), getVisible(), bulkUpsert()
+│   ├── tab_config_dao.py  # getAll(), getVisible(), bulkUpsert()
+│   ├── job_posting_dao.py      # upsert(), closeMissing(), setScore(), dismiss()
+│   │                           #   closeMissing spans all sources per company
+│   ├── agent_run_dao.py        # create/markRunning/bumpCounters/finish/findStale
+│   └── job_search_profile_dao.py  # get(), save()
 ├── services/            # Business logic
 │   ├── auth_service.py           # JWT token management
 │   ├── google_oauth_service.py   # Google OAuth verification
 │   ├── email_service.py          # SendGrid integration
 │   ├── file_storage_service.py   # Local file storage
 │   ├── s3_storage_service.py     # AWS S3 storage
-│   └── storage_factory.py        # Storage provider selection
+│   ├── storage_factory.py        # Storage provider selection
+│   ├── board_discovery_service.py # Regex detection, then a bounded tool-use loop
+│   ├── ats/                       # Board APIs: greenhouse, lever, ashby,
+│   │                              #   workable, smartrecruiters (+ registry);
+│   │                              #   each exposes fetchPostings() + boardUrl()
+│   └── agent/                     # net.py (egress allow-list), html_text.py,
+│                                  #   posting_sync.py, posting_matcher.py,
+│                                  #   ranking_service.py, sweep_service.py
 ├── routes/              # API endpoints (blueprints)
 │   ├── portfolio_routes.py   # /api/portfolio/*
 │   ├── resume_routes.py      # /api/cv/*
@@ -85,10 +104,15 @@ backend/app/
 │   ├── dashboard_routes.py   # /api/dashboard/* (stats + tab visibility)
 │   ├── health_routes.py      # /api/health
 │   ├── jobs_routes.py        # /api/jobs/* (companies + applications + AI categories)
-│   └── ideas_routes.py       # /api/ideas/*
+│   ├── ideas_routes.py       # /api/ideas/*
+│   └── agent_routes.py       # /api/jobs/agent/* (runs, findings, postings)
 └── utils/
     ├── csrf_protection.py    # CSRF token handling
     └── tab_guard.py          # require_tab_visible() decorator
+
+backend/queue.py           # app/queue.py: Redis connection + RQ queue helpers
+backend/worker.py          # RQ worker entry point (SERVICE_ROLE=worker)
+backend/start.sh           # One image, two roles; only web runs `flask db upgrade`
 ```
 
 ### Frontend Structure
@@ -100,7 +124,7 @@ frontend/src/
 │   ├── Portfolio.tsx    # Admin: add/edit/delete/reorder/visibility; tabs: Projects/Ideas
 │   ├── CV.tsx           # Admin: PDF upload, version management
 │   ├── Contact.tsx
-│   ├── Jobs.tsx         # Admin-only: companies (category filter) + applications (status filter)
+│   ├── Jobs.tsx         # Admin-only: companies + applications + agent (3 tabs)
 │   ├── Settings.tsx     # Admin-only: tab visibility control (Option C: preview sidebar)
 │   └── GitHubStatsPage.tsx
 ├── components/
@@ -111,7 +135,10 @@ frontend/src/
 │   ├── PdfViewer.tsx         # PDF display with pagination
 │   ├── PdfUploadForm.tsx     # Drag-and-drop PDF upload
 │   ├── PdfHistoryList.tsx    # Version history management
-│   ├── CompanyFormModal.tsx  # Add/edit company with AI category tags
+│   ├── CompanyFormModal.tsx  # Add/edit company with AI tags + careers URL
+│   ├── AgentRunModal.tsx     # Interests + min score; saved as the next default
+│   ├── AgentFindingsList.tsx # Findings grouped by company, New/Seen badges
+│   ├── AgentRunsHistory.tsx  # Last 20 runs, expands to per-company results
 │   ├── ProtectedRoute.tsx    # JWT auth guard (redirects to login)
 │   └── VisibleTabRoute.tsx   # Tab visibility guard (renders 404 if tab hidden)
 ├── contexts/
@@ -126,6 +153,7 @@ frontend/src/
 │   ├── authRepository.ts
 │   ├── csrfTokenRepository.ts
 │   ├── jobsRepository.ts     # Companies + applications + suggestCategories()
+│   ├── agentRepository.ts    # Agent profile, runs, findings, dismiss/bookmark
 │   └── settingsRepository.ts # getVisibleTabs() (public), getAdminTabConfigs(), updateTabConfigs()
 ├── terminal/                 # Interactive terminal view (/terminal)
 │   ├── TerminalApp.tsx       # Main component
@@ -155,6 +183,49 @@ frontend/src/
 **Tab Visibility Guard**: `require_tab_visible(tabKey)` decorator on public backend routes. Checks JWT optionally — admin always passes through; non-admin gets 404 if tab is hidden. Frontend mirrors this with `VisibleTabRoute` component backed by `TabConfigContext`.
 
 **Company Categories**: AI-generated tags via Anthropic API (`claude-haiku-4-5-20251001`). Stored as JSON array on `companies.categories`. Triggered explicitly by "Suggest with AI" button in `CompanyFormModal`. Normalized + deduplicated by `_normalizeCategories()` in `company_dao.py`.
+
+**Job-Search Agent**: On-demand sweep of every tracked company, run on a dedicated
+Railway worker (`SERVICE_ROLE=worker`) consuming an RQ queue on Redis. Per company:
+stored board config → regex detection of a known ATS token → a bounded Anthropic
+tool-use loop (`board_discovery_service.py`, max 10 turns, 4 tools). Postings are
+read from the provider's API (`services/ats/`) whenever one exists; a hand-rolled
+board falls back to postings the agent reports, filtered by `validateAgentPostings`
+(URL allow-listed AND title present in text the agent actually fetched).
+
+**Agent Facts, Not Opinions**: "Already applied?" is `posting_matcher` —
+`buildApplicationIndex()` normalizes every application once per sweep into three
+lookup tiers, and `ApplicationIndex.find()` resolves a posting by
+`job_applications.job_posting_id` FK, then normalized URL, then (company +
+exactly equal normalized title). Fallback hits are queued and written by a single
+`commitLinks()` after the scan, so later runs join at tier 1. "Is this new?" is
+`job_postings.first_seen_at >= run.started_at`. Applied postings are omitted
+entirely; everything else carries a `New` or `Seen` badge.
+
+**Agent Egress Allow-List**: All discovery traffic goes through `services/agent/net.py`.
+`isFetchAllowed()` permits only the company's own domain (or a subdomain) and known
+ATS hosts, and refuses LinkedIn/Indeed/Glassdoor/ZipRecruiter/Monster/SimplyHired/Dice
+at any depth. Redirects are followed by hand (max 5) so the allow-list is re-checked
+on every hop — `requests` would check only the first URL, letting an allowed host
+302 straight past the guard. Playwright is a fallback for client-rendered pages,
+gated by `BROWSER_FALLBACK_ENABLED` and degrading to the static fetch when chromium
+is absent.
+
+**Agent Posting URLs**: a posting whose board API carries no URL of its own inherits
+the provider's public board index (`AtsAdapter.boardUrl`), else the careers page
+discovery landed on, else the company URL — a finding you cannot click through to is
+not usable. `closeMissing()` considers every open posting for the company, not only
+rows matching the current source, so switching board (redetect, ATS migration,
+`custom` later resolving to a real provider) cannot orphan rows that stay open forever.
+
+**Agent Score Cache**: `job_postings.last_scored_hash` stores
+`sha256(content_hash + interests)`. An unchanged posting scored against unchanged
+interests is replayed for free; changing either rescores. Re-running the same search
+therefore costs ~0 tokens.
+
+**Single Active Run**: `agent_runs.active_lock` is TRUE while queued/running and NULL
+when terminal, under a unique index (`uq_agent_runs_active`) — Postgres treats NULLs
+as distinct, so at most one run holds the lock. A second POST gets 409. A run whose
+worker died is force-finished as `failed` after `AGENT_RUN_STALE_MINUTES`.
 
 **Apps subdomain**: `frontend/src/apps/apps.json` is the single manifest, read by the launcher (import) and by the gateway broker (bind-mounted file). Two kinds: `bundle` apps are static builds committed to `frontend/public/hosted/<slug>/` and framed at `/hosted/<slug>/index.html`; `service` apps are containers the broker starts **one per visitor session** and frames at `/a/<slug>/`. Entry URLs are derived from the validated slug, never stored. The launcher fetches `/manifest.json` from the gateway at runtime (falling back to the bundled public entries with no gateway in front), so `access: "admin"` apps are absent for anonymous visitors — names included.
 
@@ -191,13 +262,21 @@ The iframe `sandbox` is not a security boundary (`allow-same-origin` lets a bund
 - `GET /api/dashboard/tabs/admin` - Full tab config including hidden tabs
 - `PUT /api/dashboard/tabs` - Update tab visibility
 - `GET /api/jobs/companies` - List companies
-- `POST /api/jobs/companies` - Create company (accepts `categories`)
-- `PUT /api/jobs/companies/:id` - Update company (accepts `categories`)
+- `POST /api/jobs/companies` - Create company (accepts `categories`, `careers_url`)
+- `PUT /api/jobs/companies/:id` - Update company (accepts `categories`, `careers_url`, `redetect_board`)
 - `DELETE /api/jobs/companies/:id` - Delete company
 - `POST /api/jobs/companies/suggest-categories` - AI tag suggestions (Anthropic, 20/hr limit)
 - `GET /api/jobs/applications` - List applications (optional ?status= filter)
 - `POST/PUT/DELETE /api/jobs/applications/:id` - CRUD applications
 - `PATCH /api/jobs/applications/:id/status` - Quick status update
+- `GET /api/jobs/agent/profile` - Saved interests + min score (prefills the run modal)
+- `POST /api/jobs/agent/runs` - Start a sweep (10/hr; 409 if one is active, 503 without ANTHROPIC_API_KEY/REDIS_URL)
+- `GET /api/jobs/agent/runs` - Recent runs, newest first (300/hr)
+- `GET /api/jobs/agent/runs/:id` - One run + per-company results (1200/hr: the UI polls every 3s)
+- `GET /api/jobs/agent/runs/:id/findings` - Findings joined to postings + companies (300/hr)
+- `POST /api/jobs/agent/runs/:id/cancel` - Signal cancellation (409 if already terminal)
+- `POST /api/jobs/agent/postings/:id/dismiss` - Hide a posting from all future runs
+- `POST /api/jobs/agent/postings/:id/bookmark` - Create a linked `bookmarked` application (409 if already linked)
 
 **Auth:**
 - `POST /api/auth/google` - Google OAuth login
@@ -229,8 +308,16 @@ The iframe `sandbox` is not a security boundary (`allow-same-origin` lets a bund
 - `STORAGE_TYPE` - `local` or `s3`
 - `AWS_*` - S3 credentials (if using S3)
 - `SENTRY_DSN` - Error tracking (production)
-- `ANTHROPIC_API_KEY` - For AI company category suggestions
+- `ANTHROPIC_API_KEY` - AI company category suggestions + the job-search agent
 - `GITHUB_USERNAME` - For GitHub stats feature
+- `REDIS_URL` - Redis for the agent queue (default `redis://localhost:6379/0`)
+- `SERVICE_ROLE` - `web` (default) or `worker`; only `web` runs migrations
+- `BROWSER_FALLBACK_ENABLED` - Playwright fallback for client-rendered career pages
+- `AGENT_DISCOVERY_MODEL` - Board-discovery model (default `claude-sonnet-4-5-20250929`)
+- `AGENT_RANKING_MODEL` - Relevance model (default `claude-haiku-4-5-20251001`)
+- `AGENT_MAX_COMPANIES_PER_RUN`, `AGENT_MAX_TOKENS_PER_RUN` - Per-run ceilings
+- `AGENT_RUN_STALE_MINUTES` - After this, a run whose worker died is failed and unlocked
+- `AGENT_REDISCOVER_AFTER_DAYS` - Negative-cache window before retrying a board-less company
 
 **Frontend:**
 - `VITE_API_URL` - Backend API URL (default: `http://localhost:5001/api`)
@@ -238,7 +325,7 @@ The iframe `sandbox` is not a security boundary (`allow-same-origin` lets a bund
 
 ## Security Features
 
-- Rate limiting via Flask-Limiter (200/day, 50/hour default; 5/min on contact)
+- Rate limiting via Flask-Limiter (200/day, 50/hour default; 5/min on contact; agent reads have their own ceilings)
 - Security headers (XSS, HSTS, CSP, X-Frame-Options)
 - CSRF protection for state-changing operations
 - JWT tokens in HttpOnly cookies with secure flag in production
@@ -246,3 +333,5 @@ The iframe `sandbox` is not a security boundary (`allow-same-origin` lets a bund
 - Sentry error tracking in production
 - Tab visibility enforced at both backend (404 for hidden tabs) and frontend (VisibleTabRoute)
 - Public tab config endpoint returns only visible tab keys — hidden tabs not disclosed
+- Agent egress is allow-listed: company domain + known ATS hosts only, aggregators always refused
+- Agent-reported postings are validated against fetched page text before they reach the database

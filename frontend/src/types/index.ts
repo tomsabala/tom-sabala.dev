@@ -179,6 +179,12 @@ export interface Company {
   url: string | null;
   notes: string | null;
   categories: string[];
+  careers_url: string | null;
+  ats_provider: string | null;
+  ats_token: string | null;
+  board_detected_at: string | null;
+  last_synced_at: string | null;
+  sync_error: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -187,6 +193,7 @@ export interface CompanyFormData {
   name: string;
   url: string;
   notes: string;
+  careers_url: string;
 }
 
 export type TabConfigs = Record<string, boolean>;
@@ -198,6 +205,7 @@ export interface JobApplication {
   position: string;
   status: string;
   job_url: string | null;
+  job_posting_id: number | null;
   date_applied: string | null;
   notes: string | null;
   created_at: string;
@@ -224,4 +232,75 @@ export interface IdeaItem {
 export interface IdeaFormData {
   title: string;
   description: string;
+}
+
+// Job-search agent types
+export interface JobSearchProfile {
+  interests: string;
+  min_score: number;
+  updated_at: string;
+}
+
+export type AgentRunStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled';
+
+export interface AgentRun {
+  id: number;
+  status: AgentRunStatus;
+  created_by: string | null;
+  interests_snapshot: string;
+  min_score: number;
+  model: string | null;
+  companies_total: number;
+  companies_processed: number;
+  companies_failed: number;
+  postings_seen: number;
+  postings_new: number;
+  postings_rejected: number;
+  postings_applied_skipped: number;
+  findings_count: number;
+  input_tokens: number;
+  output_tokens: number;
+  error: string | null;
+  started_at: string | null;
+  finished_at: string | null;
+  created_at: string;
+  duration_seconds: number | null;
+}
+
+export interface AgentRunCompanyResult {
+  id: number;
+  company_id: number;
+  company_name: string;
+  status: 'ok' | 'skipped' | 'error';
+  source: string | null;
+  postings_found: number;
+  error: string | null;
+  duration_ms: number | null;
+}
+
+export interface AgentRunDetail extends AgentRun {
+  company_results: AgentRunCompanyResult[];
+}
+
+export interface AgentPosting {
+  id: number;
+  company_id: number;
+  source: string;
+  title: string;
+  url: string;
+  location: string | null;
+  department: string | null;
+  is_remote: boolean | null;
+  posted_at: string | null;
+  first_seen_at: string;
+}
+
+export interface AgentFinding {
+  id: number;
+  score: number | null;
+  verdict: 'apply' | 'maybe' | 'skip' | null;
+  reason: string | null;
+  is_new: boolean;
+  posting: AgentPosting;
+  company: { id: number; name: string };
 }

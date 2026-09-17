@@ -24,9 +24,12 @@ class CompanyDAO:
     def __init__(self, session):
         self.session = session
 
-    def getAll(self):
+    def getAll(self, limit=None):
         try:
-            return self.session.query(Company).order_by(Company.name.asc()).all()
+            query = self.session.query(Company).order_by(Company.name.asc())
+            if limit is not None:
+                query = query.limit(limit)
+            return query.all()
         except Exception as e:
             raise Exception(f"Failed to fetch companies: {str(e)}")
 
@@ -36,13 +39,14 @@ class CompanyDAO:
         except Exception as e:
             raise Exception(f"Failed to fetch company: {str(e)}")
 
-    def create(self, name, url=None, notes=None, categories=None):
+    def create(self, name, url=None, notes=None, categories=None, careersUrl=None):
         try:
             company = Company(
                 name=name,
                 url=url,
                 notes=notes,
                 categories=_normalizeCategories(categories),
+                careersUrl=careersUrl,
             )
             self.session.add(company)
             self.session.commit()
