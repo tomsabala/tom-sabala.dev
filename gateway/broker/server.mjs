@@ -98,7 +98,12 @@ async function main() {
       return respond(res, 401, { body: 'Admin sign-in required.\n', setCookie: sessionState.setCookie });
     }
 
-    const key = instanceKey({ admin: viewer.admin, email: viewer.email, sessionId: sessionState.id });
+    const key = instanceKey({
+      mode: app.mode,
+      admin: viewer.admin,
+      email: viewer.email,
+      sessionId: sessionState.id,
+    });
 
     try {
       const { endpoint } = await instances.ensure(app, key);
@@ -174,15 +179,20 @@ async function main() {
       if (app.access === 'admin' && !viewer.admin) return socket.destroy();
 
       // No cookie can be minted on a 101 response, and an upgrade always follows a document
-      // request that already established one.
+      // request that already established one. A shared app needs no identity at all.
       const sessionId = verifySession(
         readCookie(req.headers.cookie, config.cookieName),
         config.sessionSecret
       );
-      if (!viewer.admin && !sessionId) return socket.destroy();
+      if (app.mode !== 'shared' && !viewer.admin && !sessionId) return socket.destroy();
 
       try {
-        const key = instanceKey({ admin: viewer.admin, email: viewer.email, sessionId });
+        const key = instanceKey({
+          mode: app.mode,
+          admin: viewer.admin,
+          email: viewer.email,
+          sessionId,
+        });
         const { endpoint } = await instances.ensure(app, key);
         proxy.upgrade(req, socket, head, endpoint);
       } catch (error) {

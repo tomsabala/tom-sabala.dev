@@ -128,3 +128,95 @@ test('parallel requests for one instance create exactly one container', async ()
   assert.equal(results.filter(r => r.status === 'rejected').length, 3);
   assert.equal(docker.calls.created.length, 1, 'the iframe fans out; the broker must not');
 });
+
+test('an anonymous instance gets tmpfs, so its data dies with it', async () => {
+  const docker = fakeDocker([]);
+  const instances = createInstanceManager({ docker, config: config({}), log: silent });
+
+  await assert.rejects(instances.ensure(APP, 'anon-1111'));
+  const { HostConfig } = docker.calls.created[0].spec;
+  assert.deepEqual(HostConfig.Tmpfs, { '/data': 'rw,size=128m,mode=1777' });
+  assert.equal(HostConfig.Mounts, undefined);
+});
+
+test('admin and shared instances get a named volume, so their data survives', async () => {
+  for (const key of ['admin-2222', 'shared']) {
+    const docker = fakeDocker([]);
+    const instances = createInstanceManager({ docker, config: config({}), log: silent });
+
+    await assert.rejects(instances.ensure(APP, key));
+    const { HostConfig } = docker.calls.created[0].spec;
+    assert.deepEqual(HostConfig.Mounts, [
+      { Type: 'volume', Source: `apps-demo-${key}`, Target: '/data' },
+    ]);
+    assert.equal(HostConfig.Tmpfs, undefined, `${key} must not be on tmpfs`);
+  }
+});
+
+test('a shared instance has no per-kind cap but still counts against the total', async () => {
+  const free = fakeDocker([]);
+  const instances = createInstanceManager({
+    docker: free,
+    config: config({ anon: 0, admin: 0, total: 1 }),
+    log: silent,
+  });
+  // anon and admin are capped at 0 here; a shared app is still allowed to start.
+  await assert.rejects(instances.ensure(APP, 'shared'));
+  assert.equal(free.calls.created.length, 1);
+
+  const full = fakeDocker([{ Id: 'x', Names: ['/apps-other-shared'], Labels: { [LABELS.kind]: 'shared' }, State: 'running' }]);
+  const capped = createInstanceManager({ docker: full, config: config({ total: 1 }), log: silent });
+  await assert.rejects(capped.ensure(APP, 'shared'), error => {
+    assert.equal(error.code, 'capacity');
+    return true;
+  });
+  assert.deepEqual(full.calls.created, []);
+});
+
+test('the reaper removes idle anonymous instances and only stops the others', async () => {
+  const containers = [
+    { Id: 'a', Names: ['/apps-demo-anon-1'], Labels: { [LABELS.kind]: 'anon' }, State: 'running' },
+    { Id: 'b', Names: ['/apps-demo-admin-1'], Labels: { [LABELS.kind]: 'admin' }, State: 'running' },
+    { Id: 'c', Names: ['/apps-demo-shared'], Labels: { [LABELS.kind]: 'shared' }, State: 'running' },
+  ];
+  const stopped = [];
+  const docker = {
+    ...fakeDocker(containers),
+    async stop(id) {
+      stopped.push(id);
+    },
+  };
+  let clock = 1_000;
+  const instances = createInstanceManager({
+    docker,
+    config: config({}),
+    log: silent,
+    now: () => clock,
+  });
+
+  await instances.adopt();
+  clock += 10_000;
+  await instances.reapOnce();
+  assert.deepEqual(docker.calls.removed, [], 'nothing is idle yet');
+
+  clock += 120_000;
+  await instances.reapOnce();
+  assert.deepEqual(docker.calls.removed, ['a'], 'only the anonymous instance is removed');
+  assert.deepEqual(stopped.sort(), ['b', 'c'], 'admin and shared keep their volumes');
+});
+
+test('instances left by a previous broker are adopted, not reaped immediately', async () => {
+  const containers = [{ Id: 'a', Names: ['/apps-demo-anon-1'], Labels: { [LABELS.kind]: 'anon' }, State: 'running' }];
+  const docker = fakeDocker(containers);
+  let clock = 1_000;
+  const instances = createInstanceManager({ docker, config: config({}), log: silent, now: () => clock });
+
+  // No adopt() call: the first reap sees an unknown container and must give it a full TTL.
+  clock += 999_999;
+  await instances.reapOnce();
+  assert.deepEqual(docker.calls.removed, []);
+
+  clock += 999_999;
+  await instances.reapOnce();
+  assert.deepEqual(docker.calls.removed, ['a']);
+});

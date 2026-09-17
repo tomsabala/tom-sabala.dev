@@ -64,6 +64,11 @@ function AppFrame({ app }: { app: HostedApp }) {
   // A service app is a container the broker may still be creating; the frame stays blank for
   // one to three seconds on a cold start, which reads as "broken" without an explicit overlay.
   const starting = app.kind === 'service' && !loaded;
+  // A shared app is one instance for everybody; calling it private would be a lie.
+  const startingLabel =
+    app.kind === 'service' && app.mode === 'shared'
+      ? 'Waking the app…'
+      : 'Starting your private instance…';
 
   return (
     <div className="flex flex-col h-screen">
@@ -120,7 +125,7 @@ function AppFrame({ app }: { app: HostedApp }) {
         {starting && (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-white dark:bg-[#111111] text-sm text-gray-500 dark:text-gray-400">
             <span className="h-5 w-5 rounded-full border-2 border-gray-300 dark:border-gray-600 border-t-transparent animate-spin" />
-            Starting your private instance…
+            {startingLabel}
           </div>
         )}
         <iframe

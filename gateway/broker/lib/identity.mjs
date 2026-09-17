@@ -16,15 +16,20 @@ export const LABELS = {
   image: `${LABEL_PREFIX}.image`,
 };
 
+export const SHARED_KEY = 'shared';
+
 /**
  * Instance key: the identity an instance belongs to, hashed so a container name never
  * carries an email address or a live session id.
  *
+ * A `shared` app has one instance for everybody, so the key is a constant — that is the
+ * whole point: its memory cost does not scale with visitors.
  * Admins key on their email, so every browser and every new session lands on the same
  * persistent instance. Anonymous visitors key on the session cookie, so a cleared cookie is
  * a clean slate.
  */
-export function instanceKey({ admin, email, sessionId }) {
+export function instanceKey({ mode, admin, email, sessionId }) {
+  if (mode === 'shared') return SHARED_KEY;
   if (admin) {
     if (!email) throw new Error('admin identity without an email');
     return `admin-${createHash('sha256').update(email.trim().toLowerCase()).digest('hex').slice(0, 16)}`;
@@ -34,6 +39,7 @@ export function instanceKey({ admin, email, sessionId }) {
 }
 
 export function keyKind(key) {
+  if (key === SHARED_KEY) return 'shared';
   return key.startsWith('admin-') ? 'admin' : 'anon';
 }
 

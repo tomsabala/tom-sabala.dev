@@ -45,6 +45,21 @@ test('container and volume names are derived from slug and key', () => {
   assert.equal(volumeName('resume-matcher', key), `apps-resume-matcher-${key}`);
 });
 
+test('a shared app has one key for everybody', () => {
+  const anon = instanceKey({ mode: 'shared', admin: false, sessionId: 'session-one' });
+  const other = instanceKey({ mode: 'shared', admin: false, sessionId: 'session-two' });
+  const admin = instanceKey({ mode: 'shared', admin: true, email: 'tom@example.com' });
+
+  assert.equal(anon, 'shared');
+  assert.equal(other, 'shared');
+  assert.equal(admin, 'shared', 'an admin must not get a second copy of a shared app');
+  assert.equal(keyKind(anon), 'shared');
+});
+
+test('a shared app needs no identity at all', () => {
+  assert.equal(instanceKey({ mode: 'shared' }), 'shared');
+});
+
 test('202 with an email is the only admin verdict', async () => {
   const cases = [
     { status: 202, email: 'tom@example.com', admin: true },

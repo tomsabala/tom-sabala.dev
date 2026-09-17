@@ -46,36 +46,71 @@ Resume-Matcher's own `X-Workspace-Id` is **not** part of this: its `api_keys`,
 `improvements` and `tailoring_previews` tables have no `workspace_id`, and an unknown id
 falls back to the default workspace. The container is the boundary.
 
-## Sizing
+## What this costs, and what drives it
 
-Measured, not estimated — one `resume-matcher` container with the manifest's limits
-(`memoryMb: 1280`, `shmSizeMb: 512`, tmpfs 256 MB):
+**Cataloguing an app is nearly free. Concurrency is what costs.** A reaped or stopped
+instance holds 0 RAM and 113 kB of disk beyond its image, and restarts to healthy in ~6 s.
+Twenty apps in `apps.json` that nobody is using cost the same as zero. So the box is sized
+for *simultaneous visitors*, never for the length of the app list.
+
+Two dials decide the bill:
+
+| | RAM cost | Use it when |
+|---|---|---|
+| `"mode": "session"` | `memoryMb` × concurrent visitors | the app has no multi-tenancy of its own, so two visitors must not share state |
+| `"mode": "shared"` | `memoryMb`, once, however many visitors | the app stores nothing per visitor, or has its own accounts |
+
+`session` is the default because it is the safe one, and it is also the expensive one —
+Resume-Matcher needs it (`api_keys`, `improvements` and `tailoring_previews` have no owner
+column). An app with its own login does not, and one `shared` container serves everybody
+while staying warm. Per-app disk is the other cost: the image, once, whatever the mode.
+
+### Measured, not estimated
+
+One `resume-matcher` container under the manifest's limits (`memoryMb: 768`, tmpfs 128 MB):
 
 | | RSS |
 |---|---|
-| instance, idle and healthy | **289 MB** |
-| instance, peak during a PDF export (Chromium) | **581 MB** |
+| idle and healthy | **288 MB** |
+| peak during a PDF export (Chromium) | **607 MB** |
+| peak during three *concurrent* exports | **582 MB** — it reuses one browser |
+| stopped | **0**, and ~6 s to bring back |
 | whole gateway (caddy + broker + oauth2-proxy + socket-proxy) | **55 MB** |
 
-`memoryMb` is a ceiling, not a reservation, so budget by the ceiling: an instance can grow to
-1280 MB before the kernel kills it, and tmpfs content counts inside that same limit. With
-~0.6 GB for the OS, Docker and the gateway:
+A trivial `shared` app for comparison: **21 MB**. Most apps are far closer to that than to
+Resume-Matcher, which carries Chromium and a LaTeX engine.
 
-| RAM | `MAX_TOTAL_INSTANCES` | Notes |
+`memoryMb` is a ceiling, not a reservation, so budget by the ceiling — tmpfs content counts
+inside the same limit. With ~0.6 GB for the OS, Docker and the gateway:
+
+| RAM | `MAX_TOTAL_INSTANCES` | Means |
 |---|---|---|
-| 2 GB | 1 | Works. Set `MAX_ANON_INSTANCES=1`, `MAX_ADMIN_INSTANCES=1` and `IDLE_TTL_SECONDS=300` — one visitor otherwise holds the only slot for 20 minutes. Do **not** build the app image here (needs ~4 GB); pull it. `launcher-build` peaks around 1 GB, so run it with no instance up. |
-| 4 GB | 2 | Comfortable: a visitor and you at the same time. |
-| 8 GB | 4 | Headroom for a second service app. |
+| 2 GB | 1 | One `session` visitor at a time, or ~5 small `shared` apps warm. Set `IDLE_TTL_SECONDS=300` so one visitor does not hold the only slot for 20 minutes. Do **not** build the app image here (needs ~4 GB) — pull it. `launcher-build` peaks around 1 GB, so run it with no instance up. |
+| 4 GB | 4 | Four concurrent `session` visitors, or one plus a dozen small `shared` apps. |
+| 8 GB | 9 | Headroom to stop thinking about it. |
 
 `MAX_TOTAL_INSTANCES` is the cap that matters. The per-kind caps are independent, so
 `anon=1` + `admin=1` still allows two containers — on a 2 GB box that is an OOM kill instead
-of a 503. Leave it `0` only when `anon + admin` already fits.
+of a 503. Leave it `0` only when `anon + admin` already fits. `shared` instances have no
+per-kind cap (there is one per app by definition) but do count against the total.
 
 CPU is not the binding constraint, but it sets the wait: a cold start is ~6 s on 12 cores and
 a PDF export ~2.9 s. On 1–2 shared vCPUs expect both to be several times that;
 `READY_TIMEOUT_SECONDS=90` still covers it. A host swapfile protects the OS and the gateway,
 not the instances — their cgroup has swap disabled on purpose, so an over-limit instance is
 killed rather than dragging the box down.
+
+### Consolidating what you already pay for
+
+This box is a plain Docker host with Caddy in front, so the services you rent elsewhere can
+move onto it and stop being a per-service bill. Two ways in, and the second is usually right
+for an app that already has users:
+
+1. **As an app** — add it to `apps.json` with `"mode": "shared"`. It gets the launcher card,
+   the `/a/<slug>/` mount, sign-in gating via `access`, and scale-to-zero for free.
+2. **As a plain service** — add it to `gateway/docker-compose.yml` and give it a route in the
+   Caddyfile. No manifest entry, no broker involvement, its own hostname if you want one.
+   Best for anything with its own domain, users or database.
 
 ## VPS bootstrap
 
@@ -138,8 +173,11 @@ survive.
    | `readyPath` | probed until it answers non-5xx (404 counts: a basePath app has no `/` route) |
    | `capAdd` | capabilities to add back on top of `CapDrop: ALL` |
    | `access` | `public`, or `admin` to hide it from anonymous visitors entirely |
+   | `mode` | `session` (default, one container per visitor) or `shared` (one for everybody). See the cost model above — this is the single biggest lever on what the box has to be. |
 
-3. `cp gateway/instances/<slug>.anon.env.example …` and write the two env files.
+3. Write the instance env file(s) from the `.example` twins in `gateway/instances/`. The
+   broker reads `<slug>.<kind>.env`, where kind is `anon`, `admin` or `shared` — a
+   `session` app wants the first two, a `shared` app only the last.
 4. Commit, then on the VPS:
 
    ```bash

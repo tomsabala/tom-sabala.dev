@@ -6,7 +6,7 @@
 | `kind` | Served from | Framed at | Needs the gateway? |
 |---|---|---|---|
 | `bundle` | `frontend/public/hosted/<slug>/`, a static file in the build | `/hosted/<slug>/index.html` | to be published on the subdomain, yes |
-| `service` | a container the broker starts per visitor session | `/a/<slug>/` | yes |
+| `service` | a container the broker starts, one per visitor (`mode: session`) or one for everybody (`mode: shared`) | `/a/<slug>/` | yes |
 
 `apps.tom-sabala.dev` is served entirely by the gateway VPS (`gateway/`), which serves the
 frontend build from disk. Vercel still builds and deploys the same output for
@@ -54,11 +54,16 @@ This file lives outside `public/` on purpose — everything under `public/` is a
 4. `npm run test` (registry invariants) and `npm run build`, then commit. On the VPS:
    `git pull && docker compose -f gateway/docker-compose.yml run --rm launcher-build`.
 
-## Add a service (its own server, one container per visitor)
+## Add a service (its own server)
 
 Needs the gateway — see `gateway/README.md` for the image requirements, the extra manifest
-fields (`image`, `port`, `memoryMb`, `dataPath`, …) and the per-instance env files. Nothing in
-this directory changes except the `apps.json` entry.
+fields (`mode`, `image`, `port`, `memoryMb`, `dataPath`, …) and the per-instance env files.
+Nothing in this directory changes except the `apps.json` entry.
+
+`mode` is the decision that matters: `session` gives every visitor their own container (the
+only safe answer for an app with no multi-tenancy, and the one that multiplies RAM by
+concurrent visitors), `shared` runs one warm container for everybody (cheap, but everyone
+sees the same data — say so in the tagline if it stores anything).
 
 ## Notes
 

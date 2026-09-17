@@ -25,6 +25,7 @@ const fixtures: HostedApp[] = [
     tech: ['FastAPI'],
     status: 'live',
     access: 'admin',
+    mode: 'session',
     runtime: {
       image: 'ghcr.io/example/notes:latest',
       port: 8080,
@@ -143,6 +144,25 @@ describe('parseManifest', () => {
       readyPath: '/',
       capAdd: [],
     });
+  });
+
+  it('defaults to per-session isolation, the safe mode', () => {
+    const [app] = parseManifest({ apps: [service] });
+    expect(app.kind === 'service' && app.mode).toBe('session');
+  });
+
+  it('keeps an explicit shared mode, including over the wire', () => {
+    const { image, port, dataPath, ...wire } = { ...service, mode: 'shared' };
+    void image;
+    void port;
+    void dataPath;
+    const [app] = parseManifest({ apps: [wire] });
+    expect(app.kind === 'service' && app.mode).toBe('shared');
+    expect(app.kind === 'service' && app.runtime).toBeUndefined();
+  });
+
+  it('drops an unknown mode rather than guessing the isolation model', () => {
+    expect(parseQuietly({ apps: [{ ...service, mode: 'per-tenant' }] })).toEqual([]);
   });
 
   it('drops a service that names no image', () => {
