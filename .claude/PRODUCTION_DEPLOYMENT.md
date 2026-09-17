@@ -204,6 +204,30 @@ Gunicorn is already in `requirements.txt` and configured via `gunicorn_config.py
 7. [ ] Configure custom domain
 8. [ ] Test all pages and features
 
+### Subdomain Entry Points (same Vercel project, no extra deployment)
+`frontend/vercel.json` routes each subdomain to its own Vite entry, so both ride along with
+the normal frontend deploy — no second project, no extra cost:
+
+| Subdomain | Entry | Content |
+|-----------|-------|---------|
+| `terminal.tom-sabala.dev` | `terminal.html` | Interactive terminal portfolio |
+| `apps.tom-sabala.dev` | `apps.html` | Launcher for the bundles in `frontend/public/hosted/<slug>/` |
+
+Every domain on the project serves the whole build, so the host rules do three things:
+the root redirect sends `/` to the right entry; a host-scoped rewrite keeps unknown paths on
+that subdomain's own entry instead of falling through to the portfolio SPA; and `/hosted/**`
+plus `/apps.html` are redirected **off** `tom-sabala.dev`/`www` to the apps subdomain, so app
+bundles never execute on the origin listed in the API's `CORS_ORIGINS`.
+
+**Action Required (once per subdomain):**
+- [ ] Add the domain to the existing Vercel project (Settings → Domains)
+- [ ] Point DNS at Vercel (CNAME `apps` → `cname.vercel-dns.com`)
+- [ ] Verify `https://apps.tom-sabala.dev` lands on the launcher and an app opens in-frame
+- [ ] Verify `https://tom-sabala.dev/hosted/sandbox-check/index.html` redirects to the apps subdomain
+- [ ] Do **not** add `apps.tom-sabala.dev` to `CORS_ORIGINS` — that would hand any hosted bundle credentialed API access
+- [ ] Hide the sidebar link any time via Settings → Tabs → Apps (tab key `apps`); this hides the
+      link only — `apps.tom-sabala.dev` and `/hosted/**` stay publicly reachable
+
 ### PDF Download Feature Configuration
 **Important:** The CV/Resume PDF download feature uses query parameters to control download behavior:
 

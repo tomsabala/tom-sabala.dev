@@ -134,6 +134,10 @@ frontend/src/
 │   ├── hooks/                # State management hooks
 │   ├── themes/               # 7 color themes
 │   └── __tests__/            # Vitest tests (69+ cases)
+├── apps/                     # Apps launcher (apps.tom-sabala.dev)
+│   ├── registry.ts           # HOSTED_APPS manifest + slug/hash/entry-URL helpers
+│   ├── AppsLauncher.tsx      # Card grid + sandboxed iframe view (hash deep links)
+│   └── __tests__/            # Vitest tests (21 cases)
 └── types/index.ts
 ```
 
@@ -150,6 +154,8 @@ frontend/src/
 **Tab Visibility Guard**: `require_tab_visible(tabKey)` decorator on public backend routes. Checks JWT optionally — admin always passes through; non-admin gets 404 if tab is hidden. Frontend mirrors this with `VisibleTabRoute` component backed by `TabConfigContext`.
 
 **Company Categories**: AI-generated tags via Anthropic API (`claude-haiku-4-5-20251001`). Stored as JSON array on `companies.categories`. Triggered explicitly by "Suggest with AI" button in `CompanyFormModal`. Normalized + deduplicated by `_normalizeCategories()` in `company_dao.py`.
+
+**Hosted Apps**: Client-side apps are committed as static bundles to `frontend/public/hosted/<slug>/` and listed in `frontend/src/apps/registry.ts`. `apps.html` (a Vite entry, like `terminal.html`) is served at `apps.tom-sabala.dev` via host rules in `frontend/vercel.json`, and frames each bundle in an iframe. Entry URLs are derived from the validated slug, never stored. The iframe `sandbox` is not a security boundary (`allow-same-origin` lets a bundle reach `parent.document`); containment comes from the origin instead — `vercel.json` redirects `/hosted/**` and `/apps.html` off `tom-sabala.dev`/`www`, so bundles only run on a subdomain with no admin cookies and no `CORS_ORIGINS` entry. `public/hosted/` is first-party only. No backend, no uploads, no extra deployment — see `frontend/src/apps/README.md`. The sidebar link is gated by the `apps` tab key; that hides the link only, not the static files.
 
 ## API Endpoints
 
