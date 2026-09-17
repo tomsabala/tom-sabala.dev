@@ -204,29 +204,40 @@ Gunicorn is already in `requirements.txt` and configured via `gunicorn_config.py
 7. [ ] Configure custom domain
 8. [ ] Test all pages and features
 
-### Subdomain Entry Points (same Vercel project, no extra deployment)
-`frontend/vercel.json` routes each subdomain to its own Vite entry, so both ride along with
-the normal frontend deploy — no second project, no extra cost:
+### Subdomain Entry Points
+`frontend/vercel.json` routes `terminal.tom-sabala.dev` to its own Vite entry, so it rides
+along with the normal frontend deploy — no second project, no extra cost:
 
-| Subdomain | Entry | Content |
-|-----------|-------|---------|
-| `terminal.tom-sabala.dev` | `terminal.html` | Interactive terminal portfolio |
-| `apps.tom-sabala.dev` | `apps.html` | Launcher for the bundles in `frontend/public/hosted/<slug>/` |
+| Subdomain | Entry | Content | Served by |
+|-----------|-------|---------|-----------|
+| `terminal.tom-sabala.dev` | `terminal.html` | Interactive terminal portfolio | Vercel |
+| `apps.tom-sabala.dev` | `apps.html` | App launcher: static bundles **and** per-visitor app instances | the gateway VPS, which proxies the launcher and `/hosted/**` back to Vercel |
 
-Every domain on the project serves the whole build, so the host rules do three things:
-the root redirect sends `/` to the right entry; a host-scoped rewrite keeps unknown paths on
-that subdomain's own entry instead of falling through to the portfolio SPA; and `/hosted/**`
-plus `/apps.html` are redirected **off** `tom-sabala.dev`/`www` to the apps subdomain, so app
+Every domain on the project serves the whole build, so the remaining host rules redirect
+`/hosted/**` and `/apps.html` **off** `tom-sabala.dev`/`www` to the apps subdomain, so app
 bundles never execute on the origin listed in the API's `CORS_ORIGINS`.
 
-**Action Required (once per subdomain):**
+`apps.tom-sabala.dev` is no longer a Vercel domain: its DNS points at the gateway VPS
+(`gateway/`), which terminates TLS, runs admin sign-in and the instance broker, and proxies
+everything else to the Vercel production host. Full runbook in **`gateway/README.md`**.
+
+**Action Required (terminal subdomain, once):**
 - [ ] Add the domain to the existing Vercel project (Settings → Domains)
-- [ ] Point DNS at Vercel (CNAME `apps` → `cname.vercel-dns.com`)
-- [ ] Verify `https://apps.tom-sabala.dev` lands on the launcher and an app opens in-frame
+- [ ] Point DNS at Vercel (CNAME `terminal` → `cname.vercel-dns.com`)
+
+**Action Required (apps subdomain, once):**
+- [ ] Provision the VPS and bring up `gateway/docker-compose.yml` (see `gateway/README.md`)
+- [ ] Add `https://apps.tom-sabala.dev/oauth2/callback` to the Google OAuth client
+- [ ] Repoint DNS: remove the `apps` CNAME to Vercel, add an A/AAAA record to the VPS
+- [ ] Remove `apps.tom-sabala.dev` from the Vercel project's domains (it is proxied by host
+      header now; leaving it attached is harmless but misleading)
+- [ ] Verify `https://apps.tom-sabala.dev` lands on the launcher, a bundle opens in-frame, and
+      a service app starts its own instance
 - [ ] Verify `https://tom-sabala.dev/hosted/sandbox-check/index.html` redirects to the apps subdomain
-- [ ] Do **not** add `apps.tom-sabala.dev` to `CORS_ORIGINS` — that would hand any hosted bundle credentialed API access
+- [ ] Do **not** add `apps.tom-sabala.dev` to `CORS_ORIGINS` — that would hand any hosted bundle
+      or app instance credentialed API access
 - [ ] Hide the sidebar link any time via Settings → Tabs → Apps (tab key `apps`); this hides the
-      link only — `apps.tom-sabala.dev` and `/hosted/**` stay publicly reachable
+      link only — the apps subdomain stays publicly reachable
 
 ### PDF Download Feature Configuration
 **Important:** The CV/Resume PDF download feature uses query parameters to control download behavior:
