@@ -1,0 +1,53 @@
+# apps.tom-sabala.dev front door. One file for both environments; the environment supplies
+# the site address and the three upstreams (see docker-compose.yml / docker-compose.dev.yml).
+#
+# Route ownership:
+#   /oauth2/*      oauth2-proxy (Google, existing admin whitelist)
+#   /manifest.json broker — the app list this viewer may see
+#   /a/*           broker — one container per (app, visitor session)
+#   everything else the launcher, still deployed by Vercel
+
+{$APPS_SITE_ADDRESS} {
+	encode zstd gzip
+	log
+
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy same-origin
+		Cross-Origin-Opener-Policy same-origin
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+		-Server
+	}
+
+	handle /oauth2/* {
+		reverse_proxy {$AUTH_UPSTREAM}
+	}
+
+	handle /manifest.json {
+		reverse_proxy {$BROKER_UPSTREAM}
+	}
+
+	# `handle`, not `handle_path`: the prefix must survive to the broker and to the app,
+	# whose image is built with basePath=/a/<slug>.
+	handle /a/* {
+		# The one real header win on this origin: only this site may frame an app.
+		header Content-Security-Policy "frame-ancestors 'self'"
+		reverse_proxy {$BROKER_UPSTREAM} {
+			flush_interval -1
+			transport http {
+				dial_timeout 5s
+				# Matches the app's own 30-minute ceiling; anything shorter silently kills
+				# long local-LLM runs mid-response.
+				read_timeout 30m
+				write_timeout 30m
+			}
+		}
+	}
+
+	handle {
+		rewrite / /apps.html
+		reverse_proxy {$LAUNCHER_UPSTREAM} {
+			header_up Host {$LAUNCHER_HOST}
+		}
+	}
+}

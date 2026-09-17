@@ -135,9 +135,10 @@ frontend/src/
 │   ├── themes/               # 7 color themes
 │   └── __tests__/            # Vitest tests (69+ cases)
 ├── apps/                     # Apps launcher (apps.tom-sabala.dev)
-│   ├── registry.ts           # HOSTED_APPS manifest + slug/hash/entry-URL helpers
-│   ├── AppsLauncher.tsx      # Card grid + sandboxed iframe view (hash deep links)
-│   └── __tests__/            # Vitest tests (21 cases)
+│   ├── apps.json             # Single manifest: bundle + service apps (broker reads this too)
+│   ├── registry.ts           # parseManifest/HOSTED_APPS + slug/hash/entry-URL helpers
+│   ├── AppsLauncher.tsx      # Card grid + iframe view (hash deep links, runtime manifest)
+│   └── __tests__/            # Vitest tests (37 cases)
 └── types/index.ts
 ```
 
@@ -155,7 +156,11 @@ frontend/src/
 
 **Company Categories**: AI-generated tags via Anthropic API (`claude-haiku-4-5-20251001`). Stored as JSON array on `companies.categories`. Triggered explicitly by "Suggest with AI" button in `CompanyFormModal`. Normalized + deduplicated by `_normalizeCategories()` in `company_dao.py`.
 
-**Hosted Apps**: Client-side apps are committed as static bundles to `frontend/public/hosted/<slug>/` and listed in `frontend/src/apps/registry.ts`. `apps.html` (a Vite entry, like `terminal.html`) is served at `apps.tom-sabala.dev` via host rules in `frontend/vercel.json`, and frames each bundle in an iframe. Entry URLs are derived from the validated slug, never stored. The iframe `sandbox` is not a security boundary (`allow-same-origin` lets a bundle reach `parent.document`); containment comes from the origin instead — `vercel.json` redirects `/hosted/**` and `/apps.html` off `tom-sabala.dev`/`www`, so bundles only run on a subdomain with no admin cookies and no `CORS_ORIGINS` entry. `public/hosted/` is first-party only. No backend, no uploads, no extra deployment — see `frontend/src/apps/README.md`. The sidebar link is gated by the `apps` tab key; that hides the link only, not the static files.
+**Apps subdomain**: `frontend/src/apps/apps.json` is the single manifest, read by the launcher (import) and by the gateway broker (bind-mounted file). Two kinds: `bundle` apps are static builds committed to `frontend/public/hosted/<slug>/`, served by Vercel and framed at `/hosted/<slug>/index.html`; `service` apps are containers the broker starts **one per visitor session** and frames at `/a/<slug>/`. Entry URLs are derived from the validated slug, never stored. The launcher fetches `/manifest.json` from the gateway at runtime (falling back to the bundled public entries with no gateway in front), so `access: "admin"` apps are absent for anonymous visitors — names included.
+
+The iframe `sandbox` is not a security boundary (`allow-same-origin` lets a bundle reach `parent.document`), and that is accepted: `public/hosted/` and every `image` in `apps.json` are first-party only. What is enforced is (a) the origin — `vercel.json` redirects `/hosted/**` and `/apps.html` off `tom-sabala.dev`/`www`, so nothing here runs where the admin session is usable, and `apps.tom-sabala.dev` is never in `CORS_ORIGINS`; (b) for services, a separate container per session — own filesystem, own database, tmpfs-backed and reaped for anonymous visitors, volume-backed for admins. See `frontend/src/apps/README.md` and `gateway/README.md`.
+
+**Apps gateway** (`gateway/`): Caddy + oauth2-proxy + a zero-dependency Node broker on one VPS, fronting `apps.tom-sabala.dev`. Caddy routes `/oauth2/*` to oauth2-proxy, `/manifest.json` and `/a/*` to the broker, and everything else to the Vercel deployment (launcher and static bundles). The broker starts/reaps one container per (app, session), proxies to it, and never sees the Docker socket (a scoped socket proxy does). Hiding the `apps` tab in Settings only removes the sidebar link — it has no effect on this subdomain.
 
 ## API Endpoints
 

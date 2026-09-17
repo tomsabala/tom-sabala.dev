@@ -7,12 +7,6 @@
       "permanent": false
     },
     {
-      "source": "/",
-      "has": [{ "type": "host", "value": "apps.tom-sabala.dev" }],
-      "destination": "/apps.html",
-      "permanent": false
-    },
-    {
       "source": "/apps.html",
       "has": [{ "type": "host", "value": "tom-sabala.dev" }],
       "destination": "https://apps.tom-sabala.dev/apps.html",
@@ -51,11 +45,6 @@
     }
   ],
   "rewrites": [
-    {
-      "source": "/:path((?!hosted/).*)",
-      "has": [{ "type": "host", "value": "apps.tom-sabala.dev" }],
-      "destination": "/apps.html"
-    },
     {
       "source": "/:path((?!hosted/).*)",
       "has": [{ "type": "host", "value": "terminal.tom-sabala.dev" }],

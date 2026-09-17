@@ -1,0 +1,30 @@
+{
+  "apps": [
+    {
+      "kind": "bundle",
+      "slug": "sandbox-check",
+      "name": "Sandbox Check",
+      "tagline": "Verifies a hosted bundle gets its assets, storage and input inside the launcher frame",
+      "tech": ["HTML", "JavaScript"],
+      "status": "live",
+      "access": "public"
+    },
+    {
+      "kind": "service",
+      "slug": "resume-matcher",
+      "name": "Resume Matcher",
+      "tagline": "Tailor a resume to a job description, then export PDF or LaTeX",
+      "tech": ["Next.js", "FastAPI", "SQLite", "LLM"],
+      "status": "live",
+      "access": "public",
+      "image": "ghcr.io/tomsabala/resume-matcher:apps-mount",
+      "port": 3000,
+      "memoryMb": 1536,
+      "shmSizeMb": 512,
+      "dataPath": "/app/backend/data",
+      "dataTmpfsMb": 512,
+      "readyPath": "/",
+      "capAdd": []
+    }
+  ]
+}

@@ -18,6 +18,7 @@ import '../commands/cd';
 // (they depend on browser APIs, fetch, or dynamic imports)
 
 import { buildFilesystem } from '../filesystem';
+import { PERSONAL_INFO } from '../data';
 
 function createMockContext(overrides?: Partial<TerminalContext>): TerminalContext {
   const fs = buildFilesystem();
@@ -142,12 +143,14 @@ describe('help command', () => {
 });
 
 describe('about command', () => {
+  // Asserted against the data module, not literals: the command's contract is "surfaces
+  // PERSONAL_INFO", and pinning the values made editing data.ts fail an unrelated test.
   it('displays personal info', async () => {
     const result = await execute('about', createMockContext());
     const text = result.output.map(l => l.text).join('\n');
-    expect(text).toContain('Tom Sabala');
-    expect(text).toContain('Poland');
-    expect(text).toContain('contact@tom-sabala.dev');
+    expect(text).toContain(PERSONAL_INFO.name);
+    expect(text).toContain(PERSONAL_INFO.location);
+    expect(text).toContain(PERSONAL_INFO.email);
   });
 });
 

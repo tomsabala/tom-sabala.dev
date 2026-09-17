@@ -6,6 +6,7 @@ import {
   appHash,
   filterApps,
   parseAppHash,
+  parseManifest,
   resolveApp,
 } from './registry.ts';
 import type { HostedApp } from './registry.ts';
@@ -58,7 +59,11 @@ function ThemeToggle() {
 
 function AppFrame({ app }: { app: HostedApp }) {
   const [reloadKey, setReloadKey] = useState(0);
+  const [loaded, setLoaded] = useState(false);
   const entry = appEntryUrl(app);
+  // A service app is a container the broker may still be creating; the frame stays blank for
+  // one to three seconds on a cold start, which reads as "broken" without an explicit overlay.
+  const starting = app.kind === 'service' && !loaded;
 
   return (
     <div className="flex flex-col h-screen">
@@ -81,7 +86,10 @@ function AppFrame({ app }: { app: HostedApp }) {
 
         <button
           type="button"
-          onClick={() => setReloadKey(key => key + 1)}
+          onClick={() => {
+            setLoaded(false);
+            setReloadKey(key => key + 1);
+          }}
           aria-label="Reload app"
           className="p-2 rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
         >
@@ -108,14 +116,24 @@ function AppFrame({ app }: { app: HostedApp }) {
         <ThemeToggle />
       </header>
 
-      <iframe
-        key={reloadKey}
-        src={entry}
-        title={app.name}
-        sandbox={FRAME_SANDBOX}
-        allow="fullscreen; clipboard-write"
-        className="flex-1 w-full border-0 bg-white dark:bg-[#111111]"
-      />
+      <div className="relative flex-1 min-h-0">
+        {starting && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-white dark:bg-[#111111] text-sm text-gray-500 dark:text-gray-400">
+            <span className="h-5 w-5 rounded-full border-2 border-gray-300 dark:border-gray-600 border-t-transparent animate-spin" />
+            Starting your private instance…
+          </div>
+        )}
+        <iframe
+          key={reloadKey}
+          src={entry}
+          title={app.name}
+          sandbox={FRAME_SANDBOX}
+          allow="fullscreen; clipboard-write"
+          onLoad={() => setLoaded(true)}
+          onError={() => setLoaded(true)}
+          className="h-full w-full border-0 bg-white dark:bg-[#111111]"
+        />
+      </div>
     </div>
   );
 }
@@ -172,9 +190,18 @@ function AppCard({ app }: { app: HostedApp }) {
   );
 }
 
-function AppsIndex({ missingSlug }: { missingSlug: string | null }) {
+/** `apps === null` means the manifest is still in flight; only the header renders. */
+function AppsIndex({
+  apps,
+  admin,
+  missingSlug,
+}: {
+  apps: HostedApp[] | null;
+  admin: boolean;
+  missingSlug: string | null;
+}) {
   const [query, setQuery] = useState('');
-  const matches = filterApps(HOSTED_APPS, query);
+  const matches = filterApps(apps ?? [], query);
 
   return (
     <div className="min-h-screen px-4 sm:px-8 py-10">
@@ -183,9 +210,16 @@ function AppsIndex({ missingSlug }: { missingSlug: string | null }) {
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Apps</h1>
             <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-              Small client-side apps I built and run in the browser. No install, no backend.
+              Small apps I built and run here. Some are pure browser builds; others start a
+              private instance just for your session.
             </p>
           </div>
+          <a
+            href={admin ? '/oauth2/sign_out?rd=%2F' : '/oauth2/start?rd=%2F'}
+            className="mt-1.5 text-sm whitespace-nowrap text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+          >
+            {admin ? 'Sign out' : 'Admin sign in'}
+          </a>
           <ThemeToggle />
         </header>
 
@@ -195,7 +229,7 @@ function AppsIndex({ missingSlug }: { missingSlug: string | null }) {
           </p>
         )}
 
-        {HOSTED_APPS.length > 4 && (
+        {apps && apps.length > 4 && (
           <input
             type="search"
             value={query}
@@ -206,7 +240,7 @@ function AppsIndex({ missingSlug }: { missingSlug: string | null }) {
           />
         )}
 
-        {HOSTED_APPS.length === 0 ? (
+        {apps === null ? null : apps.length === 0 ? (
           <p className="mt-8 text-sm text-gray-500 dark:text-gray-400">No apps published yet.</p>
         ) : matches.length === 0 ? (
           <p className="mt-8 text-sm text-gray-500 dark:text-gray-400">Nothing matches that filter.</p>
@@ -231,9 +265,51 @@ function AppsIndex({ missingSlug }: { missingSlug: string | null }) {
   );
 }
 
+/**
+ * The gateway serves `/manifest.json`: every public app, plus admin-only ones when the
+ * oauth2-proxy session identifies a whitelisted admin. With no gateway in front (plain
+ * `npm run dev`) the request fails and the bundled public entries stand in, so the launcher
+ * still works from Vercel alone. Admin-only apps are never part of that fallback.
+ */
+function useManifest(): { apps: HostedApp[] | null; admin: boolean } {
+  const [state, setState] = useState<{ apps: HostedApp[] | null; admin: boolean }>({
+    apps: null,
+    admin: false,
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const response = await fetch('/manifest.json', { credentials: 'same-origin' });
+        if (!response.ok) throw new Error(`manifest responded ${response.status}`);
+        const body: unknown = await response.json();
+        if (cancelled) return;
+        const admin =
+          typeof body === 'object' && body !== null && 'admin' in body && body.admin === true;
+        setState({ apps: parseManifest(body), admin });
+      } catch {
+        if (cancelled) return;
+        setState({ apps: HOSTED_APPS.filter(app => app.access === 'public'), admin: false });
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return state;
+}
+
 function AppsLauncher() {
   const slug = useHashSlug();
-  const app = slug ? resolveApp(slug) : null;
+  const { apps, admin } = useManifest();
+
+  // Resolved against the gateway's list, never the bundled one: an anonymous visitor
+  // deep-linking an admin-only app must get the same "No app called X" as an unknown slug.
+  const app = slug && apps ? resolveApp(slug, apps) : null;
 
   // Keyed on slug: switching apps must mount a fresh iframe. Reusing the element would
   // navigate it instead, pushing a history entry and desyncing Back from the header.
@@ -242,7 +318,7 @@ function AppsLauncher() {
   // Fall back to the raw hash so malformed requests (#/Sandbox-Check, #/a_b) still say why
   // nothing opened; only the validated slug ever reaches resolveApp/appEntryUrl.
   const requested = slug ?? window.location.hash.replace(/^#\/?/, '').replace(/\/$/, '');
-  return <AppsIndex missingSlug={requested || null} />;
+  return <AppsIndex apps={apps} admin={admin} missingSlug={(apps && requested) || null} />;
 }
 
 export default AppsLauncher;
