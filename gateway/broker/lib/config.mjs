@@ -21,6 +21,12 @@ const NUMERIC_DEFAULTS = {
   READY_TIMEOUT_SECONDS: 90,
   MAX_ANON_INSTANCES: 2,
   MAX_ADMIN_INSTANCES: 2,
+  /**
+   * Ceiling across both kinds, which is what the box's RAM actually constrains: the two
+   * caps above are independent, so anon=1 + admin=1 can still put two instances on a
+   * machine that fits one. 0 means "anon + admin", i.e. no extra limit.
+   */
+  MAX_TOTAL_INSTANCES: 0,
   /** How long an oauth2-proxy verdict is reused; one page load fires dozens of requests. */
   IDENTITY_TTL_SECONDS: 15,
   REAP_INTERVAL_SECONDS: 30,
@@ -49,8 +55,10 @@ export function loadConfig(env = process.env) {
       continue;
     }
     const value = Number(raw);
-    if (!Number.isInteger(value) || value <= 0) {
-      throw new Error(`broker: ${key} must be a positive integer, got ${raw}`);
+    // MAX_TOTAL_INSTANCES alone accepts 0, its documented "no extra limit".
+    const floor = key === 'MAX_TOTAL_INSTANCES' ? 0 : 1;
+    if (!Number.isInteger(value) || value < floor) {
+      throw new Error(`broker: ${key} must be an integer >= ${floor}, got ${raw}`);
     }
     numbers[key] = value;
   }
@@ -76,6 +84,10 @@ export function loadConfig(env = process.env) {
     readyTimeoutMs: numbers.READY_TIMEOUT_SECONDS * 1000,
     reapIntervalMs: numbers.REAP_INTERVAL_SECONDS * 1000,
     identityTtlMs: numbers.IDENTITY_TTL_SECONDS * 1000,
-    maxInstances: { anon: numbers.MAX_ANON_INSTANCES, admin: numbers.MAX_ADMIN_INSTANCES },
+    maxInstances: {
+      anon: numbers.MAX_ANON_INSTANCES,
+      admin: numbers.MAX_ADMIN_INSTANCES,
+      total: numbers.MAX_TOTAL_INSTANCES || numbers.MAX_ANON_INSTANCES + numbers.MAX_ADMIN_INSTANCES,
+    },
   };
 }

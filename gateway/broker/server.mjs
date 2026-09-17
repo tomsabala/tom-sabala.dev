@@ -195,7 +195,7 @@ async function main() {
   server.listen(config.port, () => {
     log.info(`listening on ${config.port}; docker at ${config.dockerApi}`);
     log.info(
-      `idle TTL ${config.idleTtlMs / 1000}s, caps anon=${config.maxInstances.anon} admin=${config.maxInstances.admin}`
+      `idle TTL ${config.idleTtlMs / 1000}s, caps anon=${config.maxInstances.anon} admin=${config.maxInstances.admin} total=${config.maxInstances.total}`
     );
   });
 

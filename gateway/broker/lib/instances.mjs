@@ -18,8 +18,8 @@ import { LABELS, containerName, keyKind, volumeName } from './identity.mjs';
 const ENV_LINE = /^[A-Za-z_][A-Za-z0-9_]*=/;
 
 export class CapacityError extends Error {
-  constructor(kind, limit) {
-    super(`no free ${kind} slot (limit ${limit})`);
+  constructor(scope, limit) {
+    super(`no free ${scope} slot (limit ${limit})`);
     this.code = 'capacity';
   }
 }
@@ -95,10 +95,21 @@ export function createInstanceManager({ docker, config, log, now = () => Date.no
     };
   }
 
+  /**
+   * Refused before any container is created or started. Both ceilings matter: the per-kind
+   * caps keep one kind from starving the other, and the total is what the box's RAM can
+   * actually hold — without it, anon=1 plus admin=1 puts two instances on a machine sized
+   * for one, and the kernel decides which dies instead of the visitor getting a 503.
+   */
   async function assertCapacity(kind) {
+    const running = await docker.list({ label: [LABELS.slug], status: ['running'] });
+    if (running.length >= config.maxInstances.total) {
+      throw new CapacityError('instance', config.maxInstances.total);
+    }
+
     const limit = config.maxInstances[kind];
-    const running = await docker.list({ label: [`${LABELS.kind}=${kind}`], status: ['running'] });
-    if (running.length >= limit) throw new CapacityError(kind, limit);
+    const ofKind = running.filter(c => c.Labels?.[LABELS.kind] === kind).length;
+    if (ofKind >= limit) throw new CapacityError(kind, limit);
   }
 
   function endpointOf(detail, runtime) {

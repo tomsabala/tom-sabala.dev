@@ -46,10 +46,38 @@ Resume-Matcher's own `X-Workspace-Id` is **not** part of this: its `api_keys`,
 `improvements` and `tailoring_previews` tables have no `workspace_id`, and an unknown id
 falls back to the default workspace. The container is the boundary.
 
-## VPS bootstrap
+## Sizing
 
-Sized for two anonymous instances plus one admin instance at `memoryMb: 1536` each:
-**Hetzner CX32-class, 4 vCPU / 8 GB, ≈€7/mo**. A 4 GB box fits one instance, not three.
+Measured, not estimated — one `resume-matcher` container with the manifest's limits
+(`memoryMb: 1280`, `shmSizeMb: 512`, tmpfs 256 MB):
+
+| | RSS |
+|---|---|
+| instance, idle and healthy | **289 MB** |
+| instance, peak during a PDF export (Chromium) | **581 MB** |
+| whole gateway (caddy + broker + oauth2-proxy + socket-proxy) | **55 MB** |
+
+`memoryMb` is a ceiling, not a reservation, so budget by the ceiling: an instance can grow to
+1280 MB before the kernel kills it, and tmpfs content counts inside that same limit. With
+~0.6 GB for the OS, Docker and the gateway:
+
+| RAM | `MAX_TOTAL_INSTANCES` | Notes |
+|---|---|---|
+| 2 GB | 1 | Works. Set `MAX_ANON_INSTANCES=1`, `MAX_ADMIN_INSTANCES=1` and `IDLE_TTL_SECONDS=300` — one visitor otherwise holds the only slot for 20 minutes. Do **not** build the app image here (needs ~4 GB); pull it. `launcher-build` peaks around 1 GB, so run it with no instance up. |
+| 4 GB | 2 | Comfortable: a visitor and you at the same time. |
+| 8 GB | 4 | Headroom for a second service app. |
+
+`MAX_TOTAL_INSTANCES` is the cap that matters. The per-kind caps are independent, so
+`anon=1` + `admin=1` still allows two containers — on a 2 GB box that is an OOM kill instead
+of a 503. Leave it `0` only when `anon + admin` already fits.
+
+CPU is not the binding constraint, but it sets the wait: a cold start is ~6 s on 12 cores and
+a PDF export ~2.9 s. On 1–2 shared vCPUs expect both to be several times that;
+`READY_TIMEOUT_SECONDS=90` still covers it. A host swapfile protects the OS and the gateway,
+not the instances — their cgroup has swap disabled on purpose, so an over-limit instance is
+killed rather than dragging the box down.
+
+## VPS bootstrap
 
 ```bash
 # 1. Docker + unattended upgrades
@@ -184,7 +212,7 @@ timeouts, reaps, and dropped manifest entries.
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `503` "at capacity" | `MAX_*_INSTANCES` reached | raise it (and the RAM), or lower `memoryMb` |
+| `503` "at capacity" | `MAX_TOTAL_INSTANCES` or a per-kind cap reached — the broker log names which | raise it *and* the RAM, lower `memoryMb`, or shorten `IDLE_TTL_SECONDS` so idle slots free up sooner |
 | `503` "did not start in time" | image missing locally, crash on boot, or `READY_TIMEOUT_SECONDS` too low for a cold image | `docker logs` the instance; anonymous instances are removed on timeout, admin ones kept for inspection |
 | App loads but its API 404s | image built without the right `basePath` | rebuild with `--build-arg NEXT_PUBLIC_BASE_PATH=/a/<slug>` |
 | PDF export renders a login page | `FRONTEND_BASE_URL` escaped to the gateway | the broker sets it to `http://127.0.0.1:<port>/a/<slug>`; do not override it in the instance env file |
