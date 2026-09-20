@@ -112,7 +112,7 @@ inside the same limit. With ~0.6 GB for the OS, Docker and the gateway:
 | RAM | `MAX_TOTAL_INSTANCES` | Means |
 |---|---|---|
 | 2 GB | 1 | One `session` visitor at a time, or ~5 small `shared` apps warm. Set `IDLE_TTL_SECONDS=300` so one visitor does not hold the only slot for 20 minutes. Do **not** build the app image here (needs ~4 GB) — pull it. `launcher-build` peaks around 1 GB, so run it with no instance up. |
-| 4 GB | 4 | Four concurrent `session` visitors, or one plus a dozen small `shared` apps. |
+| 4 GB | 4 | Four concurrent `session` visitors, or one plus a dozen small `shared` apps. Set **3** if you ever run `launcher-build` or `docker pull` while the box is serving: that wants ~1 GB, which the fourth slot has already spent. |
 | 8 GB | 9 | Headroom to stop thinking about it. |
 
 `MAX_TOTAL_INSTANCES` is the cap that matters. The per-kind caps are independent, so
@@ -140,32 +140,58 @@ for an app that already has users:
 
 ## VPS bootstrap
 
+Host first. None of this is a default, and all of it bites later:
+
 ```bash
-# 1. Docker + unattended upgrades
-curl -fsSL https://get.docker.com | sh
+apt-get update && apt-get -y full-upgrade
 apt-get install -y unattended-upgrades && dpkg-reconfigure -plow unattended-upgrades
 
-# 2. This repo
+# Swap. Most small VPS images ship none, and 4 GB has no headroom to lose to a spike. It
+# protects the OS and the gateway only — instance cgroups set MemorySwap == Memory, so an
+# over-limit instance is still OOM-killed instead of thrashing the whole box. Intended:
+# the visitor gets one dead instance, not a dead server.
+fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
+echo '/swapfile none swap sw 0 0' >> /etc/fstab
+sysctl -w vm.swappiness=10 && echo 'vm.swappiness=10' > /etc/sysctl.d/99-swap.conf
+
+curl -fsSL https://get.docker.com | sh
+
+# Log rotation. The default json-file driver NEVER rotates, so one chatty instance fills
+# the disk over a few months.
+cat > /etc/docker/daemon.json <<'JSON'
+{ "log-driver": "json-file", "log-opts": { "max-size": "10m", "max-file": "3" } }
+JSON
+systemctl restart docker
+
+# Reclaim old layers: every pull of a moving tag leaves the previous image dangling, and
+# the app repo pushes :apps-mount on every merge.
+echo '30 4 * * 0 root docker image prune -f >/dev/null 2>&1' > /etc/cron.d/apps-docker-prune
+```
+
+Then the stack:
+
+```bash
+# 1. This repo
 git clone https://github.com/<you>/tom-sabala.dev.git /srv/apps && cd /srv/apps
 
-# 3. Secrets
+# 2. Secrets
 cp gateway/.env.example gateway/.env                      # fill every blank
 cp gateway/oauth2/emails.txt.example gateway/oauth2/emails.txt   # the admin whitelist
 cp gateway/instances/resume-matcher.anon.env.example  gateway/instances/resume-matcher.anon.env
 cp gateway/instances/resume-matcher.admin.env.example gateway/instances/resume-matcher.admin.env
 
-# 4. App images (the broker never pulls; it only starts what is already local)
+# 3. App images (the broker never pulls; it only starts what is already local)
 docker pull ghcr.io/tomsabala/resume-matcher:apps-mount
 
-# 5. The launcher itself: builds frontend/ into the volume Caddy serves.
+# 4. The launcher itself: builds frontend/ into the volume Caddy serves.
 #    Reads the checkout read-only and writes nothing back into it.
 docker compose -f gateway/docker-compose.yml run --rm launcher-build
 
-# 6. Up
+# 5. Up
 docker compose -f gateway/docker-compose.yml up -d
 ```
 
-Step 5 is the one that is easy to forget: skip it and Caddy serves an empty directory — the
+Step 4 is the one that is easy to forget: skip it and Caddy serves an empty directory — the
 apps subdomain 404s while `/a/*` and `/manifest.json` work fine. Repeat it after every
 `git pull` that touches `frontend/`.
 
@@ -173,10 +199,17 @@ Then, in this order:
 
 1. Add `https://apps.tom-sabala.dev/oauth2/callback` to the existing Google OAuth client's
    authorised redirect URIs.
-2. Point the `apps` A/AAAA record at the VPS.
+2. Point the `apps` A/AAAA records at the VPS, **DNS-only**: an orange-cloud Cloudflare
+   proxy in front of port 80 breaks the HTTP-01 challenge. Delete any CNAME first.
 3. `docker compose -f gateway/docker-compose.yml logs caddy` and confirm it issued a
    certificate (`certificate obtained successfully`).
 4. `curl -s https://apps.tom-sabala.dev/manifest.json` → `{"admin":false,...}`.
+5. Open `https://apps.tom-sabala.dev/#resume-matcher` once and watch
+   `docker compose -f gateway/docker-compose.yml logs -f broker` create the instance. This
+   is the only measurement that matters on a box you have not used before: time the cold
+   start, then `docker stats --no-stream` the instance and compare its RSS against the
+   manifest's `memoryMb`. On 1–2 shared vCPUs expect a cold start several times the ~6 s
+   measured on 12 cores — 15–25 s is normal, and `READY_TIMEOUT_SECONDS=90` covers it.
 
 `SESSION_SECRET` is what separates visitors. Rotating it invalidates every anonymous session
 (their containers are orphaned and reaped on idle); admin instances are keyed by email and
