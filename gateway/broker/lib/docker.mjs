@@ -6,6 +6,25 @@
  * handful of endpoints the proxy is configured to pass through.
  */
 
+/**
+ * Demultiplexes the Engine API's log stream: 8-byte header (stream type, three zero bytes,
+ * big-endian payload length) then the payload, repeated. A container started with a TTY
+ * sends raw bytes instead, which is what the unframed fallbacks below cover.
+ */
+function demuxLogs(buffer) {
+  let text = '';
+  let offset = 0;
+  while (offset + 8 <= buffer.length) {
+    if (buffer[offset] > 2 || buffer[offset + 1] || buffer[offset + 2] || buffer[offset + 3]) {
+      return buffer.toString('utf8');
+    }
+    const size = buffer.readUInt32BE(offset + 4);
+    text += buffer.toString('utf8', offset + 8, offset + 8 + size);
+    offset += 8 + size;
+  }
+  return offset === 0 ? buffer.toString('utf8') : text;
+}
+
 export function createDockerClient({ baseUrl, fetchImpl = fetch }) {
   async function request(method, path, body) {
     const response = await fetchImpl(`${baseUrl}${path}`, {
@@ -71,6 +90,24 @@ export function createDockerClient({ baseUrl, fetchImpl = fetch }) {
     /** `v=true` reaps only anonymous volumes; a named admin volume survives. */
     async remove(id, { force = false } = {}) {
       await request('DELETE', `/containers/${encodeURIComponent(id)}?v=true&force=${force}`);
+    },
+
+    /**
+     * The tail of a container's own output. A failed anonymous instance is removed
+     * immediately — its tmpfs makes a half-started container worthless — so this is the
+     * only moment the app's account of why it died can still be read. Never throws: this
+     * runs on an error path whose real error must survive.
+     */
+    async logs(id, { tail = 40 } = {}) {
+      try {
+        const response = await fetchImpl(
+          `${baseUrl}/containers/${encodeURIComponent(id)}/logs?stdout=1&stderr=1&tail=${tail}`,
+        );
+        if (!response.ok) return '';
+        return demuxLogs(Buffer.from(await response.arrayBuffer())).trim();
+      } catch {
+        return '';
+      }
     },
   };
 }

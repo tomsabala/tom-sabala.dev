@@ -238,6 +238,13 @@ export function createInstanceManager({ docker, config, log, now = () => Date.no
     try {
       return { name, endpoint: await waitReady(name, app.runtime, deadline) };
     } catch (error) {
+      // Read before anything is torn down. "exited while starting" says only that the app
+      // died, not why; the why is in the container's own output, and for an anon instance
+      // the next line deletes it. Without this an app that crashes on boot is invisible
+      // from the box as well as from outside.
+      const output = await docker.logs(name);
+      if (output) log.error(`${name} output before it failed:\n${output}`);
+
       // A wedged anonymous instance is worth less than a fresh attempt; an admin or shared
       // one is kept for inspection because its volume holds real work.
       if (kind === 'anon') {

@@ -69,6 +69,15 @@ and they are stable for as long as the identity is. An app keyed on them gets fr
 anonymous visit and persistent state for the admin — the same guarantee `mode: "session"`
 buys with a container each, at one container total.
 
+An app may also need *telling* which of the two it is in. Resume-Matcher's 2026-09 builds
+refuse to start on an empty `TENANT_MODE` — `single` for a private, one-visitor instance,
+`header` for an app reading `X-Apps-Tenant` behind this gateway — rather than default to a
+guess about who may read whose data. It is set in `gateway/instances/<slug>.<kind>.env`,
+which is why that file is part of the deploy and not an afterthought: an app that adds a
+required setting takes its instances down at the next `docker pull`, with the container
+exiting during startup and no clue in the broker log until the broker prints the
+container's own output (it does now — see `instances.mjs`).
+
 For Resume-Matcher specifically, the work to get there is written up in that repo:
 `docs/agent/features/multi-tenancy.md`.
 

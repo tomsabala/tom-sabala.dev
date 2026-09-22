@@ -33,8 +33,8 @@ function config({ anon = 2, admin = 2, total = 4 }) {
 }
 
 /** Records what the manager tried to do; nothing here reaches a real Docker daemon. */
-function fakeDocker(running = [], { existing = null, imageId = 'sha256:current' } = {}) {
-  const calls = { created: [], started: [], removed: [], imageLookups: 0 };
+function fakeDocker(running = [], { existing = null, imageId = 'sha256:current', logs = '' } = {}) {
+  const calls = { created: [], started: [], removed: [], logged: [], imageLookups: 0 };
   return {
     calls,
     async list() {
@@ -56,6 +56,10 @@ function fakeDocker(running = [], { existing = null, imageId = 'sha256:current' 
     },
     async remove(id) {
       calls.removed.push(id);
+    },
+    async logs(name) {
+      calls.logged.push({ name, removedSoFar: calls.removed.length });
+      return logs;
     },
   };
 }
@@ -153,6 +157,27 @@ test('an anonymous instance gets tmpfs, so its data dies with it', async () => {
   const { HostConfig } = docker.calls.created[0].spec;
   assert.deepEqual(HostConfig.Tmpfs, { '/data': 'rw,size=128m,mode=1777' });
   assert.equal(HostConfig.Mounts, undefined);
+});
+
+test('a crashed instance has its own output read before it is destroyed', async () => {
+  // The app's account of why it died is inside the container, and an anon failure removes
+  // the container immediately. Read it late and the broker log says only "exited while
+  // starting" - which is what made a boot-crashing image impossible to diagnose from the box.
+  const docker = fakeDocker([], { logs: 'Error: ENOSPC: no space left on device' });
+  const lines = [];
+  const instances = createInstanceManager({
+    docker,
+    config: config({}),
+    log: { info() {}, warn() {}, error: line => lines.push(line) },
+  });
+
+  await assert.rejects(instances.ensure(APP, 'anon-9999'));
+
+  assert.deepEqual(docker.calls.logged, [{ name: 'apps-demo-anon-9999', removedSoFar: 0 }]);
+  assert.ok(
+    lines.some(line => line.includes('ENOSPC: no space left on device')),
+    `the crash output never reached the log: ${JSON.stringify(lines)}`,
+  );
 });
 
 test('admin and shared instances get a named volume, so their data survives', async () => {

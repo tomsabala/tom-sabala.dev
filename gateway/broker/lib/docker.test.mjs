@@ -50,3 +50,62 @@ test('inspect still reads an absent container as null', async () => {
   const { docker } = client([{ status: 404, body: null }]);
   assert.equal(await docker.inspect('apps-demo-shared'), null);
 });
+
+/** One framed chunk as the Engine API writes it: type, three zero bytes, BE length, payload. */
+function frame(type, payload) {
+  const body = Buffer.from(payload, 'utf8');
+  const header = Buffer.alloc(8);
+  header[0] = type;
+  header.writeUInt32BE(body.length, 4);
+  return Buffer.concat([header, body]);
+}
+
+/** fetch stub for the binary log endpoint, which returns bytes rather than JSON. */
+function bytesFetch(status, buffer) {
+  const calls = [];
+  return {
+    calls,
+    async fetch(url) {
+      calls.push(url);
+      return {
+        status,
+        ok: status >= 200 && status < 300,
+        async arrayBuffer() {
+          return buffer;
+        },
+      };
+    },
+  };
+}
+
+test('logs demultiplexes the stream into the text the app actually wrote', async () => {
+  const stub = bytesFetch(200, Buffer.concat([frame(1, 'booting\n'), frame(2, 'ENOSPC: no space left\n')]));
+  const docker = createDockerClient({ baseUrl: 'http://proxy', fetchImpl: stub.fetch });
+
+  assert.equal(await docker.logs('apps-demo-anon-1'), 'booting\nENOSPC: no space left');
+  assert.match(stub.calls[0], /\/containers\/apps-demo-anon-1\/logs\?stdout=1&stderr=1&tail=40$/);
+});
+
+test('logs reads a TTY container, which sends no frames at all', async () => {
+  const stub = bytesFetch(200, Buffer.from('plain tty output\n', 'utf8'));
+  const docker = createDockerClient({ baseUrl: 'http://proxy', fetchImpl: stub.fetch });
+  assert.equal(await docker.logs('apps-demo-anon-1'), 'plain tty output');
+});
+
+test('logs stays quiet when the daemon refuses, so it cannot mask the real error', async () => {
+  // It runs on an error path. A throw here would replace "exited while starting" with
+  // whatever went wrong fetching the logs - losing the failure it was called to explain.
+  const refused = createDockerClient({
+    baseUrl: 'http://proxy',
+    fetchImpl: bytesFetch(500, Buffer.alloc(0)).fetch,
+  });
+  assert.equal(await refused.logs('apps-demo-anon-1'), '');
+
+  const broken = createDockerClient({
+    baseUrl: 'http://proxy',
+    fetchImpl: async () => {
+      throw new Error('socket proxy is down');
+    },
+  });
+  assert.equal(await broken.logs('apps-demo-anon-1'), '');
+});
