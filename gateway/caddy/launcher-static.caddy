@@ -5,6 +5,22 @@
 #   docker compose -f gateway/docker-compose.yml run --rm launcher-build
 root * /srv/launcher
 
+# Cache policy. Without it Caddy sends no Cache-Control at all and browsers fall back to
+# heuristic freshness (a fraction of the file's age), so a launcher deploy can stay
+# invisible for days on a machine that already loaded the page — the served HTML is new,
+# the screen is not. The HTML is the only mutable document here: it names the hashed asset
+# for this build, so revalidating it (304 against the ETag, one cheap round trip) is what
+# makes a deploy land. Everything under /assets/ carries a content hash in its filename
+# and can never change meaning, so it is immutable for a year.
+#
+# The two rules are mutually exclusive on purpose: two `header` directives that set the
+# same field are applied in wrapping order, so a bare default plus a narrower override
+# silently keeps the default. Matchers make the outcome independent of that ordering.
+@assets path /assets/*
+@document not path /assets/*
+header @assets Cache-Control "public, max-age=31536000, immutable"
+header @document Cache-Control "no-cache"
+
 # `/` is the launcher, not the portfolio SPA.
 rewrite / /apps.html
 
