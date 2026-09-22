@@ -13,13 +13,23 @@
  */
 
 import { readFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { LABELS, containerName, keyKind, volumeName } from './identity.mjs';
 
 const ENV_LINE = /^[A-Za-z_][A-Za-z0-9_]*=/;
 /** How long a resolved image id is reused; a `docker pull` takes effect within this. */
 const IMAGE_ID_TTL_MS = 30_000;
-/** Same idea for the gateway secret: an edited env file takes effect within this. */
-const SECRET_TTL_MS = 30_000;
+/** Same idea for the instance env file: an edit takes effect within this. */
+const ENV_TTL_MS = 30_000;
+
+/**
+ * Identifies the env file a container was created from. Short: it is compared for equality
+ * against a label, never used as a secret, and a full digest only makes `docker inspect`
+ * harder to read.
+ */
+export function envFingerprint(lines) {
+  return createHash('sha256').update(lines.join('\n')).digest('hex').slice(0, 16);
+}
 
 export class CapacityError extends Error {
   constructor(scope, limit) {
@@ -42,8 +52,8 @@ export function createInstanceManager({ docker, config, log, now = () => Date.no
   const lastSeen = new Map();
   /** image reference → { id, expires }; see imageMatches(). */
   const imageIds = new Map();
-  /** `${slug}.${kind}` → { value, expires }; see proxySecret(). */
-  const secrets = new Map();
+  /** `${slug}.${kind}` → { lines, secret, hash, expires }; see instanceEnv(). */
+  const envCache = new Map();
   let reaperTimer = null;
 
   async function envLines(slug, kind) {
@@ -67,30 +77,45 @@ export function createInstanceManager({ docker, config, log, now = () => Date.no
   }
 
   /**
-   * The shared secret that proves to the app that `X-Apps-Tenant` came from this broker
-   * and not from a client. Read from the instance's own env file — the same file the app
-   * reads `GATEWAY_SECRET` from — so the two sides cannot drift apart. Empty when the app
-   * does not use header tenancy, in which case no secret header is sent at all.
+   * The instance's env file, with the two things derived from it:
+   *
+   *  - `secret`: the app's own `GATEWAY_SECRET`, sent back to it as `X-Apps-Proxy-Secret`
+   *    so it can tell this broker from a client typing the header itself. Empty when the
+   *    app does not use header tenancy, and then no secret header is sent at all.
+   *  - `hash`: what the container was created from. A container's environment is fixed at
+   *    creation, so an edited env file reaches an anon instance (recreated each session)
+   *    and never reaches an admin or shared one, which is restarted instead — the operator
+   *    edits the file, deploys, and the app keeps running with the old settings with
+   *    nothing to see. Labelling the hash lets `ensureNow` recreate on a change, exactly
+   *    as it already does for a moved image tag.
+   *
+   * Cached briefly: `ensure` runs on every proxied request and must not read a file each
+   * time. The TTL is also how long an edit takes to land.
    */
-  async function proxySecret(slug, kind) {
+  async function instanceEnvState(slug, kind) {
     const cacheKey = `${slug}.${kind}`;
-    const cached = secrets.get(cacheKey);
-    if (cached && cached.expires > now()) return cached.value;
+    const cached = envCache.get(cacheKey);
+    if (cached && cached.expires > now()) return cached;
 
+    const lines = await envLines(slug, kind);
     const prefix = 'GATEWAY_SECRET=';
-    const line = (await envLines(slug, kind)).find(entry => entry.startsWith(prefix));
-    const value = line ? line.slice(prefix.length) : '';
-    secrets.set(cacheKey, { value, expires: now() + SECRET_TTL_MS });
-    return value;
+    const secretLine = lines.find(entry => entry.startsWith(prefix));
+    const state = {
+      lines,
+      secret: secretLine ? secretLine.slice(prefix.length) : '',
+      hash: envFingerprint(lines),
+      expires: now() + ENV_TTL_MS,
+    };
+    envCache.set(cacheKey, state);
+    return state;
   }
 
   async function instanceEnv(slug, kind, runtime) {
-    const lines = await envLines(slug, kind);
+    const { lines } = await instanceEnvState(slug, kind);
 
     // Keeps the app's Playwright print pass inside the container instead of looping back
     // out through the authenticated gateway, which would render a login page into the PDF.
-    lines.push(`FRONTEND_BASE_URL=http://127.0.0.1:${runtime.port}/a/${slug}`);
-    return lines;
+    return [...lines, `FRONTEND_BASE_URL=http://127.0.0.1:${runtime.port}/a/${slug}`];
   }
 
   async function containerSpec(app, key, kind) {
@@ -128,6 +153,7 @@ export function createInstanceManager({ docker, config, log, now = () => Date.no
         [LABELS.key]: key,
         [LABELS.kind]: kind,
         [LABELS.image]: runtime.image,
+        [LABELS.env]: (await instanceEnvState(app.slug, kind)).hash,
       },
       HostConfig: hostConfig,
     };
@@ -229,22 +255,29 @@ export function createInstanceManager({ docker, config, log, now = () => Date.no
     const deadline = now() + config.readyTimeoutMs;
 
     let detail = await docker.inspect(name);
+    const env = await instanceEnvState(app.slug, kind);
 
     if (detail) {
       const staleImage =
         detail.Config?.Labels?.[LABELS.image] !== app.runtime.image ||
         !(await imageMatches(detail, app.runtime.image));
+      // A container's environment is fixed at creation: editing the env file and restarting
+      // leaves the app running its old settings, which looks exactly like an edit that did
+      // nothing. Recreating is the only way to apply one, and it is safe — admin and shared
+      // state lives in a named volume that outlives the container.
+      const staleEnv = detail.Config?.Labels?.[LABELS.env] !== env.hash;
       const running = detail.State?.Running === true;
 
-      if (running && !staleImage) {
-        return { name, endpoint: endpointOf(detail, app.runtime), secret: await proxySecret(app.slug, kind) };
+      if (running && !staleImage && !staleEnv) {
+        return { name, endpoint: endpointOf(detail, app.runtime), secret: env.secret };
       }
 
       // A stopped anonymous container has already lost its tmpfs, so restarting it would
       // hand the visitor a half-initialised instance. Recreate instead — clean slate is the
-      // contract. A stale image is recreated whatever the kind.
-      if (staleImage || (!running && kind === 'anon')) {
-        log.info(`recreating ${name} (${staleImage ? 'image changed' : 'stopped anon instance'})`);
+      // contract. A stale image or env is recreated whatever the kind.
+      if (staleImage || staleEnv || (!running && kind === 'anon')) {
+        const reason = staleImage ? 'image changed' : staleEnv ? 'env file changed' : 'stopped anon instance';
+        log.info(`recreating ${name} (${reason})`);
         await docker.remove(detail.Id, { force: true });
         detail = null;
       }
@@ -263,7 +296,7 @@ export function createInstanceManager({ docker, config, log, now = () => Date.no
 
     try {
       const endpoint = await waitReady(name, app.runtime, deadline);
-      return { name, endpoint, secret: await proxySecret(app.slug, kind) };
+      return { name, endpoint, secret: env.secret };
     } catch (error) {
       // Read before anything is torn down. "exited while starting" says only that the app
       // died, not why; the why is in the container's own output, and for an anon instance

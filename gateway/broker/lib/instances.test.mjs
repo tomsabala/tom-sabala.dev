@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createInstanceManager } from './instances.mjs';
+import { createInstanceManager, envFingerprint } from './instances.mjs';
 import { LABELS } from './identity.mjs';
 
 const silent = { info() {}, warn() {}, error() {} };
@@ -67,13 +67,23 @@ function fakeDocker(running = [], { existing = null, imageId = 'sha256:current',
   };
 }
 
-/** A running container as the Docker inspect endpoint reports it. */
-function existingContainer({ imageId = 'sha256:current', reference = APP.runtime.image } = {}) {
+/**
+ * A running container as the Docker inspect endpoint reports it. `envLines` must match the
+ * env file the manager will read, or the container counts as created from a stale env file
+ * and is recreated — which is the point of the label.
+ */
+function existingContainer({
+  imageId = 'sha256:current',
+  reference = APP.runtime.image,
+  envLines = [],
+} = {}) {
   return {
     Id: 'existing',
     Image: imageId,
     Name: '/apps-demo-shared',
-    Config: { Labels: { [LABELS.image]: reference } },
+    Config: {
+      Labels: { [LABELS.image]: reference, [LABELS.env]: envFingerprint(envLines) },
+    },
     State: { Running: true },
     NetworkSettings: { Networks: { 'apps-instances': { IPAddress: '127.0.0.1' } } },
   };
@@ -189,7 +199,8 @@ test('the gateway secret comes from the instance env file the app itself reads',
   const dir = await mkdtemp(join(tmpdir(), 'apps-env-'));
   await writeFile(join(dir, 'demo.anon.env'), 'LOG_LEVEL=INFO\nGATEWAY_SECRET=s3cr3t\n');
 
-  const docker = fakeDocker([], { existing: existingContainer() });
+  const envLines = ['LOG_LEVEL=INFO', 'GATEWAY_SECRET=s3cr3t'];
+  const docker = fakeDocker([], { existing: existingContainer({ envLines }) });
   const instances = createInstanceManager({
     docker,
     config: { ...config({}), instanceEnvDir: dir },
@@ -204,7 +215,7 @@ test('an app with no gateway secret reports none, so no secret header is sent', 
   const dir = await mkdtemp(join(tmpdir(), 'apps-env-'));
   await writeFile(join(dir, 'demo.anon.env'), 'LOG_LEVEL=INFO\n');
 
-  const docker = fakeDocker([], { existing: existingContainer() });
+  const docker = fakeDocker([], { existing: existingContainer({ envLines: ['LOG_LEVEL=INFO'] }) });
   const instances = createInstanceManager({
     docker,
     config: { ...config({}), instanceEnvDir: dir },
@@ -213,6 +224,51 @@ test('an app with no gateway secret reports none, so no secret header is sent', 
 
   const { secret } = await instances.ensure(APP, 'anon-8888');
   assert.equal(secret, '');
+});
+
+test('an edited env file recreates a running admin instance, which restarting cannot apply', async () => {
+  // A container's environment is fixed at creation. Before this, editing the env file and
+  // reloading left the app running its old settings with nothing to see: the operator's
+  // change appeared to do nothing, and the only clue was inside the container.
+  const dir = await mkdtemp(join(tmpdir(), 'apps-env-'));
+  await writeFile(join(dir, 'demo.admin.env'), 'TENANT_MODE=header\nGATEWAY_SECRET=new\n');
+
+  const stale = existingContainer({ envLines: ['TENANT_MODE=single'] });
+  const docker = fakeDocker([], { existing: stale });
+  const instances = createInstanceManager({
+    docker,
+    config: { ...config({}), instanceEnvDir: dir },
+    log: silent,
+  });
+
+  await assert.rejects(instances.ensure(APP, 'admin-1234'));
+  assert.deepEqual(docker.calls.removed, ['existing'], 'the stale container must be replaced');
+  assert.equal(docker.calls.created.length, 1);
+  assert.ok(
+    docker.calls.created[0].spec.Env.includes('GATEWAY_SECRET=new'),
+    'the new container must carry the edited environment',
+  );
+});
+
+test('an unchanged env file leaves a running instance alone', async () => {
+  // The other half: recreating on every request would throw away an admin instance, and
+  // its warm state, for nothing.
+  const dir = await mkdtemp(join(tmpdir(), 'apps-env-'));
+  await writeFile(join(dir, 'demo.admin.env'), 'TENANT_MODE=header\nGATEWAY_SECRET=new\n');
+
+  const current = existingContainer({ envLines: ['TENANT_MODE=header', 'GATEWAY_SECRET=new'] });
+  const docker = fakeDocker([], { existing: current });
+  const instances = createInstanceManager({
+    docker,
+    config: { ...config({}), instanceEnvDir: dir },
+    log: silent,
+  });
+
+  const { endpoint, secret } = await instances.ensure(APP, 'admin-1234');
+  assert.equal(endpoint, 'http://127.0.0.1:3000');
+  assert.equal(secret, 'new');
+  assert.deepEqual(docker.calls.removed, []);
+  assert.deepEqual(docker.calls.created, []);
 });
 
 test('admin and shared instances get a named volume, so their data survives', async () => {

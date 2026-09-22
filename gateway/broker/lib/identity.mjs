@@ -14,6 +14,8 @@ export const LABELS = {
   key: `${LABEL_PREFIX}.key`,
   kind: `${LABEL_PREFIX}.kind`,
   image: `${LABEL_PREFIX}.image`,
+  /** Hash of the instance env file the container was created from; see instances.mjs. */
+  env: `${LABEL_PREFIX}.env`,
 };
 
 export const SHARED_KEY = 'shared';
