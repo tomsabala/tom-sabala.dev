@@ -269,7 +269,8 @@ launcher-build` on the VPS — a Vercel deploy alone does not update it. Full ru
 - [ ] Leave `apps.tom-sabala.dev` off the Vercel project's domains
 - [ ] Verify `https://apps.tom-sabala.dev` lands on the launcher, a bundle opens in-frame, and
       a service app starts its own instance
-- [ ] Verify `https://tom-sabala.dev/hosted/sandbox-check/index.html` redirects to the apps subdomain
+- [ ] Verify any `/hosted/**` URL on the apex redirects to the apps subdomain (the rule is
+      path-prefix based; `https://tom-sabala.dev/hosted/` is enough, no bundle need exist)
 - [ ] Do **not** add `apps.tom-sabala.dev` to `CORS_ORIGINS` — that would hand any hosted bundle
       or app instance credentialed API access
 - [ ] Hide the sidebar link any time via Settings → Tabs → Apps (tab key `apps`); this hides the

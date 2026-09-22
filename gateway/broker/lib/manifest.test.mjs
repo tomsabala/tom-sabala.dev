@@ -125,6 +125,26 @@ test('the wire manifest never names an image or a container setting', () => {
   }
 });
 
+test('a credit note reaches the browser on both kinds', () => {
+  const credit = { text: 'Forked from x/y', url: 'https://github.com/x/y' };
+  const { apps, dropped } = parseManifest({
+    apps: [{ ...bundle, credit }, { ...service, credit: { text: 'Based on x/y' } }],
+  });
+  assert.deepEqual(dropped, []);
+  const wire = publicManifest(apps, true).apps;
+  assert.deepEqual(wire[0].credit, credit);
+  assert.deepEqual(wire[1].credit, { text: 'Based on x/y' });
+  assert.equal(wire[1].runtime, undefined);
+});
+
+test('a credit note that is not https drops the entry', () => {
+  const { apps, dropped } = parseManifest({
+    apps: [{ ...bundle, credit: { text: 'Forked from x/y', url: 'http://github.com/x/y' } }],
+  });
+  assert.deepEqual(apps, []);
+  assert.deepEqual(dropped, ['sandbox-check: invalid credit note']);
+});
+
 test('the wire manifest keeps what the launcher renders, mode included', () => {
   const { apps } = parseManifest({ apps: [service] });
   assert.deepEqual(publicManifest(apps, true).apps[0], {

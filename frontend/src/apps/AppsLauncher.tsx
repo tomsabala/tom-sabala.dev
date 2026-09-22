@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTheme } from '../contexts/ThemeContext.tsx';
+import TerminalBackground from '../components/TerminalBackground.tsx';
+import RobotBackground from '../components/RobotBackground.tsx';
 import {
   HOSTED_APPS,
   appEntryUrl,
@@ -32,6 +34,22 @@ function useHashSlug(): string | null {
   }, []);
 
   return slug;
+}
+
+/**
+ * Admin sign-in is deliberately invisible here: an anonymous visitor must see no evidence
+ * that an admin exists. Same gesture as the portfolio's hidden login — 7 clicks in 2 s.
+ */
+function useSecretClick(onTrigger: () => void): () => void {
+  const stamps = useRef<number[]>([]);
+  return () => {
+    const now = Date.now();
+    stamps.current = [...stamps.current, now].filter(ts => now - ts <= 2000);
+    if (stamps.current.length >= 7) {
+      stamps.current = [];
+      onTrigger();
+    }
+  };
 }
 
 function ThemeToggle() {
@@ -170,6 +188,23 @@ function AppCard({ app }: { app: HostedApp }) {
         </div>
       )}
 
+      {app.credit && (
+        <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+          {app.credit.url ? (
+            <a
+              href={app.credit.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline decoration-dotted hover:text-gray-700 dark:hover:text-gray-200"
+            >
+              {app.credit.text}
+            </a>
+          ) : (
+            app.credit.text
+          )}
+        </p>
+      )}
+
       <div className="mt-4 flex items-center gap-2">
         <a
           href={appHash(app.slug)}
@@ -206,25 +241,41 @@ function AppsIndex({
   missingSlug: string | null;
 }) {
   const [query, setQuery] = useState('');
+  const onSecretClick = useSecretClick(() => {
+    window.location.href = '/oauth2/start?rd=%2F';
+  });
   const matches = filterApps(apps ?? [], query);
 
   return (
     <div className="min-h-screen px-4 sm:px-8 py-10">
+      <TerminalBackground />
+      <RobotBackground />
       <div className="max-w-5xl mx-auto">
-        <header className="flex items-start gap-4">
+        <header className="flex items-start gap-4 bg-white dark:bg-[#252525] rounded-lg shadow-md border border-transparent dark:border-gray-700 p-4 sm:p-6">
           <div className="flex-1">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Apps</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              <button
+                type="button"
+                tabIndex={-1}
+                onClick={admin ? undefined : onSecretClick}
+                className="select-none cursor-default focus:outline-none"
+              >
+                Apps
+              </button>
+            </h1>
             <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
               Small apps I built and run here. Some are pure browser builds; others start a
               private instance just for your session.
             </p>
           </div>
-          <a
-            href={admin ? '/oauth2/sign_out?rd=%2F' : '/oauth2/start?rd=%2F'}
-            className="mt-1.5 text-sm whitespace-nowrap text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
-          >
-            {admin ? 'Sign out' : 'Admin sign in'}
-          </a>
+          {admin && (
+            <a
+              href="/oauth2/sign_out?rd=%2F"
+              className="mt-1.5 text-sm whitespace-nowrap text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+            >
+              Sign out
+            </a>
+          )}
           <ThemeToggle />
         </header>
 
@@ -246,9 +297,13 @@ function AppsIndex({
         )}
 
         {apps === null ? null : apps.length === 0 ? (
-          <p className="mt-8 text-sm text-gray-500 dark:text-gray-400">No apps published yet.</p>
+          <p className="mt-8 text-sm text-gray-500 dark:text-gray-400 bg-white dark:bg-[#252525] rounded-lg shadow-sm border border-transparent dark:border-gray-700 px-4 py-3">
+            No apps published yet.
+          </p>
         ) : matches.length === 0 ? (
-          <p className="mt-8 text-sm text-gray-500 dark:text-gray-400">Nothing matches that filter.</p>
+          <p className="mt-8 text-sm text-gray-500 dark:text-gray-400 bg-white dark:bg-[#252525] rounded-lg shadow-sm border border-transparent dark:border-gray-700 px-4 py-3">
+            Nothing matches that filter.
+          </p>
         ) : (
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {matches.map(app => (
@@ -260,7 +315,7 @@ function AppsIndex({
         <footer className="mt-12 text-sm">
           <a
             href="https://tom-sabala.dev"
-            className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+            className="inline-block px-3 py-1.5 rounded-lg bg-white dark:bg-[#252525] shadow-sm border border-transparent dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
           >
             ← tom-sabala.dev
           </a>

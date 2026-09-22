@@ -43,13 +43,21 @@ This file lives outside `public/` on purpose — everything under `public/` is a
      "tech": ["React", "WASM"],
      "status": "live",
      "access": "public",
-     "sourceUrl": "https://github.com/tomsabalu/my-app"
+     "sourceUrl": "https://github.com/tomsabalu/my-app",
+     "credit": { "text": "Forked from someone/my-app", "url": "https://github.com/someone/my-app" }
    }
    ```
 
    `status: "wip"` shows a work-in-progress badge. `access: "admin"` hides the app from
    anonymous visitors entirely (enforced by the gateway, not here). `sourceUrl` is optional
    and must be https.
+
+   `credit` is optional attribution, rendered verbatim on the card under the tech chips —
+   `text` is the whole note (no "Forked from" is added for you), `url` is optional and must
+   be https; when present the whole `text` becomes the link. An invalid note drops the entry,
+   same as a bad `sourceUrl`, and `npm run test` catches that before a deploy. The broker
+   re-reads the bind-mounted `apps.json` when it changes, so editing a credit note on the VPS
+   takes effect without rebuilding the launcher.
 
 4. `npm run test` (registry invariants) and `npm run build`, then commit. On the VPS:
    `git pull && docker compose -f gateway/docker-compose.yml run --rm launcher-build`.
@@ -88,5 +96,3 @@ sees the same data — say so in the tagline if it stores anything).
   service/bundle entries listed through the gateway's manifest, never for the static files.
 - Bundles are committed to git. Keep them small (no `node_modules`, no source maps, no
   multi-MB media) — everything here is downloaded by the deploy.
-- `sandbox-check/` is a diagnostic app: open it after adding a new bundle to confirm scripts,
-  relative assets and storage all work in the frame. Safe to delete.

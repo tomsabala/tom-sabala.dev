@@ -35,6 +35,21 @@ function nonEmptyString(value) {
   return typeof value === 'string' && value.trim().length > 0 ? value : null;
 }
 
+/**
+ * `undefined` when absent, `null` when present but unusable. Only text/url are copied,
+ * so an unknown key in the manifest can never reach the wire.
+ */
+function parseCredit(value) {
+  if (value === undefined) return undefined;
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
+  const text = nonEmptyString(value.text);
+  if (!text) return null;
+  if (value.url === undefined) return { text };
+  const url = nonEmptyString(value.url);
+  if (!url || !url.startsWith('https://')) return null;
+  return { text, url };
+}
+
 function positiveInt(value, fallback) {
   if (value === undefined && fallback !== undefined) return fallback;
   return typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : null;
@@ -105,6 +120,11 @@ function parseEntry(entry, dropped) {
     dropped.push(`${slug}: sourceUrl must be https`);
     return null;
   }
+  const credit = parseCredit(entry.credit);
+  if (credit === null) {
+    dropped.push(`${slug}: invalid credit note`);
+    return null;
+  }
 
   const app = {
     kind: entry.kind,
@@ -116,6 +136,7 @@ function parseEntry(entry, dropped) {
     access: entry.access,
   };
   if (entry.sourceUrl !== undefined) app.sourceUrl = entry.sourceUrl;
+  if (credit) app.credit = credit;
 
   if (entry.kind === 'bundle') return app;
 

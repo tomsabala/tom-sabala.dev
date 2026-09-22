@@ -1,15 +1,6 @@
 {
   "apps": [
     {
-      "kind": "bundle",
-      "slug": "sandbox-check",
-      "name": "Sandbox Check",
-      "tagline": "Verifies a hosted bundle gets its assets, storage and input inside the launcher frame",
-      "tech": ["HTML", "JavaScript"],
-      "status": "live",
-      "access": "public"
-    },
-    {
       "kind": "service",
       "slug": "resume-matcher",
       "name": "Resume Matcher",
@@ -17,6 +8,10 @@
       "tech": ["Next.js", "FastAPI", "SQLite", "LLM"],
       "status": "live",
       "access": "public",
+      "credit": {
+        "text": "Forked from srbhr/Resume-Matcher",
+        "url": "https://github.com/srbhr/Resume-Matcher"
+      },
       "image": "ghcr.io/tomsabala/resume-matcher:apps-mount",
       "port": 3000,
       "mode": "session",
@@ -35,6 +30,10 @@
       "tech": ["React", "NestJS", "SQLite", "PWA"],
       "status": "live",
       "access": "public",
+      "credit": {
+        "text": "Forked from liketrek/TREK",
+        "url": "https://github.com/liketrek/TREK"
+      },
       "image": "ghcr.io/tomsabala/trek:apps-mount",
       "port": 3000,
       "mode": "shared",

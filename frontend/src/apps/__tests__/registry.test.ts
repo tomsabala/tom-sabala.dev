@@ -196,6 +196,37 @@ describe('parseManifest', () => {
     expect(parseQuietly({ apps: [{ ...service, sourceUrl: 'http://example.test' }] })).toEqual([]);
   });
 
+  it('keeps a credit note with a link', () => {
+    const credit = { text: 'Forked from x/y', url: 'https://github.com/x/y' };
+    const [app] = parseManifest({ apps: [{ ...service, credit }] });
+    expect(app.credit).toEqual(credit);
+  });
+
+  it('keeps a credit note without a link', () => {
+    const [app] = parseManifest({ apps: [{ ...service, credit: { text: 'Based on x/y' } }] });
+    expect(app.credit).toEqual({ text: 'Based on x/y' });
+    expect(app.credit?.url).toBeUndefined();
+  });
+
+  it('copies only text and url out of a credit note', () => {
+    const credit = { text: 'Forked from x/y', url: 'https://github.com/x/y', note: 'x' };
+    const [app] = parseManifest({ apps: [{ ...service, credit }] });
+    expect(app.credit).toEqual({ text: 'Forked from x/y', url: 'https://github.com/x/y' });
+  });
+
+  it('drops an entry whose credit note has no text', () => {
+    expect(parseQuietly({ apps: [{ ...service, credit: { url: 'https://github.com/x/y' } }] })).toEqual([]);
+  });
+
+  it('drops an entry whose credit link is not https', () => {
+    const credit = { text: 'Forked from x/y', url: 'http://github.com/x/y' };
+    expect(parseQuietly({ apps: [{ ...service, credit }] })).toEqual([]);
+  });
+
+  it('drops an entry whose credit is not an object', () => {
+    expect(parseQuietly({ apps: [{ ...service, credit: 'Forked from x/y' }] })).toEqual([]);
+  });
+
   it('keeps the valid entries around a broken one', () => {
     const apps = parseQuietly({ apps: [{ kind: 'nope' }, service] });
     expect(apps.map(app => app.slug)).toEqual(['svc']);

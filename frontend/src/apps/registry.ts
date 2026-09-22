@@ -18,6 +18,11 @@ type HostedAppStatus = 'live' | 'wip';
 export type AppKind = 'bundle' | 'service';
 /** `admin` apps are absent from the manifest the gateway serves anonymous visitors. */
 export type AppAccess = 'public' | 'admin';
+/** Optional attribution line, rendered verbatim on the app's card. `text` is the whole note. */
+export interface AppCredit {
+  text: string;
+  url?: string;
+}
 /**
  * What one container is shared by.
  *
@@ -38,6 +43,7 @@ interface AppBase {
   status: HostedAppStatus;
   access: AppAccess;
   sourceUrl?: string;
+  credit?: AppCredit;
 }
 
 export interface BundleApp extends AppBase {
@@ -104,6 +110,22 @@ function drop(reason: string, value: unknown): null {
 
 function nonEmptyString(value: unknown): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value : null;
+}
+
+/**
+ * `undefined` when absent, `null` when present but unusable. Only text/url are copied,
+ * so an unknown key in the manifest can never reach the wire.
+ */
+function parseCredit(value: unknown): AppCredit | null | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
+  const entry = value as RawEntry;
+  const text = nonEmptyString(entry.text);
+  if (!text) return null;
+  if (entry.url === undefined) return { text };
+  const url = nonEmptyString(entry.url);
+  if (!url || !url.startsWith('https://')) return null;
+  return { text, url };
 }
 
 /** Integer > 0, or `fallback` when the key is absent; null means "present but unusable". */
@@ -178,7 +200,19 @@ function parseEntry(raw: unknown): HostedApp | null {
     return drop(`sourceUrl must be https for ${slug}`, entry.sourceUrl);
   }
 
-  const base = { slug, name, tagline, tech, status, access, ...(sourceUrl ? { sourceUrl } : {}) };
+  const credit = parseCredit(entry.credit);
+  if (credit === null) return drop(`invalid credit note for ${slug}`, entry.credit);
+
+  const base = {
+    slug,
+    name,
+    tagline,
+    tech,
+    status,
+    access,
+    ...(sourceUrl ? { sourceUrl } : {}),
+    ...(credit ? { credit } : {}),
+  };
 
   if (kind === 'bundle') return { kind, ...base };
 
