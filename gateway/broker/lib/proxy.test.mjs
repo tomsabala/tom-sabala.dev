@@ -17,6 +17,32 @@ test('the viewer identity is injected for the app to scope on', () => {
   assert.equal(headers['x-apps-role'], 'anon');
 });
 
+test('the gateway secret is sent so the app can trust that identity', () => {
+  const headers = requestHeaders(inbound({ host: 'apps.test' }), {
+    cookieName: 'apps_sid',
+    tenant: { ...TENANT, secret: 'a1b2c3' },
+  });
+  assert.equal(headers['x-apps-proxy-secret'], 'a1b2c3');
+});
+
+test('an app with no gateway secret gets no secret header, not an empty one', () => {
+  // An app in single-tenant mode rejects a request carrying identity headers it cannot
+  // attribute to a gateway. An empty secret is a value, and would be presented as one.
+  const headers = requestHeaders(inbound({ host: 'apps.test' }), {
+    cookieName: 'apps_sid',
+    tenant: { ...TENANT, secret: '' },
+  });
+  assert.ok(!('x-apps-proxy-secret' in headers));
+});
+
+test('a client-supplied gateway secret is replaced by the broker value', () => {
+  const headers = requestHeaders(inbound({ 'x-apps-proxy-secret': 'guessed-by-client' }), {
+    cookieName: 'apps_sid',
+    tenant: { ...TENANT, secret: 'a1b2c3' },
+  });
+  assert.equal(headers['x-apps-proxy-secret'], 'a1b2c3');
+});
+
 test('a client-supplied identity is overwritten, never trusted', () => {
   const headers = requestHeaders(
     inbound({ 'x-apps-tenant': 'admin-deadbeefdeadbeef', 'x-apps-role': 'admin' }),

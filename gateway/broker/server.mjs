@@ -108,8 +108,11 @@ async function main() {
     const key = instanceKey({ mode: app.mode, ...identity });
 
     try {
-      const { endpoint } = await instances.ensure(app, key);
-      proxy.web(req, res, endpoint, { setCookie: sessionState.setCookie, tenant });
+      const { endpoint, secret } = await instances.ensure(app, key);
+      proxy.web(req, res, endpoint, {
+        setCookie: sessionState.setCookie,
+        tenant: { ...tenant, secret },
+      });
     } catch (error) {
       if (error.code === 'capacity') {
         log.warn(`capacity reached for ${app.slug}: ${error.message}`);
@@ -197,8 +200,8 @@ async function main() {
             ? { id: tenantKey(identity), role: viewer.admin ? 'admin' : 'anon' }
             : undefined;
         const key = instanceKey({ mode: app.mode, ...identity });
-        const { endpoint } = await instances.ensure(app, key);
-        proxy.upgrade(req, socket, head, endpoint, { tenant });
+        const { endpoint, secret } = await instances.ensure(app, key);
+        proxy.upgrade(req, socket, head, endpoint, { tenant: tenant && { ...tenant, secret } });
       } catch (error) {
         log.error(`upgrade for ${app.slug} failed: ${error.message}`);
         socket.destroy();

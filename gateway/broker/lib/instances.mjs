@@ -18,6 +18,8 @@ import { LABELS, containerName, keyKind, volumeName } from './identity.mjs';
 const ENV_LINE = /^[A-Za-z_][A-Za-z0-9_]*=/;
 /** How long a resolved image id is reused; a `docker pull` takes effect within this. */
 const IMAGE_ID_TTL_MS = 30_000;
+/** Same idea for the gateway secret: an edited env file takes effect within this. */
+const SECRET_TTL_MS = 30_000;
 
 export class CapacityError extends Error {
   constructor(scope, limit) {
@@ -40,13 +42,14 @@ export function createInstanceManager({ docker, config, log, now = () => Date.no
   const lastSeen = new Map();
   /** image reference → { id, expires }; see imageMatches(). */
   const imageIds = new Map();
+  /** `${slug}.${kind}` → { value, expires }; see proxySecret(). */
+  const secrets = new Map();
   let reaperTimer = null;
 
-  async function instanceEnv(slug, kind, runtime) {
+  async function envLines(slug, kind) {
     const file = `${config.instanceEnvDir}/${slug}.${kind}.env`;
-    let lines = [];
     try {
-      lines = (await readFile(file, 'utf8'))
+      return (await readFile(file, 'utf8'))
         .split('\n')
         .map(line => line.trim())
         .filter(line => ENV_LINE.test(line));
@@ -59,7 +62,30 @@ export function createInstanceManager({ docker, config, log, now = () => Date.no
       }
       if (error.code !== 'ENOENT') throw error;
       log.warn(`no env file at ${file}; starting ${slug} (${kind}) with defaults only`);
+      return [];
     }
+  }
+
+  /**
+   * The shared secret that proves to the app that `X-Apps-Tenant` came from this broker
+   * and not from a client. Read from the instance's own env file — the same file the app
+   * reads `GATEWAY_SECRET` from — so the two sides cannot drift apart. Empty when the app
+   * does not use header tenancy, in which case no secret header is sent at all.
+   */
+  async function proxySecret(slug, kind) {
+    const cacheKey = `${slug}.${kind}`;
+    const cached = secrets.get(cacheKey);
+    if (cached && cached.expires > now()) return cached.value;
+
+    const prefix = 'GATEWAY_SECRET=';
+    const line = (await envLines(slug, kind)).find(entry => entry.startsWith(prefix));
+    const value = line ? line.slice(prefix.length) : '';
+    secrets.set(cacheKey, { value, expires: now() + SECRET_TTL_MS });
+    return value;
+  }
+
+  async function instanceEnv(slug, kind, runtime) {
+    const lines = await envLines(slug, kind);
 
     // Keeps the app's Playwright print pass inside the container instead of looping back
     // out through the authenticated gateway, which would render a login page into the PDF.
@@ -211,7 +237,7 @@ export function createInstanceManager({ docker, config, log, now = () => Date.no
       const running = detail.State?.Running === true;
 
       if (running && !staleImage) {
-        return { name, endpoint: endpointOf(detail, app.runtime) };
+        return { name, endpoint: endpointOf(detail, app.runtime), secret: await proxySecret(app.slug, kind) };
       }
 
       // A stopped anonymous container has already lost its tmpfs, so restarting it would
@@ -236,7 +262,8 @@ export function createInstanceManager({ docker, config, log, now = () => Date.no
     }
 
     try {
-      return { name, endpoint: await waitReady(name, app.runtime, deadline) };
+      const endpoint = await waitReady(name, app.runtime, deadline);
+      return { name, endpoint, secret: await proxySecret(app.slug, kind) };
     } catch (error) {
       // Read before anything is torn down. "exited while starting" says only that the app
       // died, not why; the why is in the container's own output, and for an anon instance

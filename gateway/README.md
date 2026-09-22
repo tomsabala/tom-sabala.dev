@@ -57,26 +57,38 @@ is asking, on every proxied request and upgrade:
 | `X-Apps-Tenant` | `anon-<16 hex>` | hash of the gateway session cookie — a cleared cookie is a new tenant, which is what makes an anonymous visit fresh |
 | `X-Apps-Tenant` | `admin-<16 hex>` | hash of the lowercased admin email — stable across browsers and sessions |
 | `X-Apps-Role` | `anon` \| `admin` | whether oauth2-proxy authenticated the viewer |
+| `X-Apps-Proxy-Secret` | the instance's own `GATEWAY_SECRET` | proof the two above came from the broker; sent only when that env file sets one |
 
-Neither can be forged: `server.mjs` deletes every inbound `X-Apps-*` and `X-Auth-Request-*`
-header before anything reads them, `proxy.mjs` sets them from the broker's own identity
-resolution, and the instance has no published port — the broker is the only route to it.
-Verified: a request carrying `X-Apps-Tenant: forged-by-client` and `X-Apps-Role: admin`
-arrives at the app as `anon-…` / `anon`.
+None of them can be forged: `server.mjs` deletes every inbound `X-Apps-*` and
+`X-Auth-Request-*` header before anything reads them, `proxy.mjs` sets them from the
+broker's own identity resolution, and the instance has no published port — the broker is the
+only route to it. Verified: a request carrying `X-Apps-Tenant: forged-by-client`,
+`X-Apps-Role: admin` and a guessed `X-Apps-Proxy-Secret` arrives at the app as `anon-…` /
+`anon` with the broker's real secret.
+
+The secret closes the gap the other two leave open from the *app's* side: an app cannot
+tell a header this gateway set from one a client typed, so an app that takes tenancy from a
+header must refuse an unsigned one. It lives in `gateway/instances/<slug>.<kind>.env`, which
+the broker reads for the container's environment anyway — the app validates
+`X-Apps-Proxy-Secret` against `GATEWAY_SECRET` from that same file, so there is one value in
+one place and no way for the two sides to drift. `openssl rand -hex 32`, per instance.
 
 The values are hashes, so nothing downstream ever sees an email address or a live session id,
 and they are stable for as long as the identity is. An app keyed on them gets fresh state per
 anonymous visit and persistent state for the admin — the same guarantee `mode: "session"`
 buys with a container each, at one container total.
 
-An app may also need *telling* which of the two it is in. Resume-Matcher's 2026-09 builds
-refuse to start on an empty `TENANT_MODE` — `single` for a private, one-visitor instance,
-`header` for an app reading `X-Apps-Tenant` behind this gateway — rather than default to a
-guess about who may read whose data. It is set in `gateway/instances/<slug>.<kind>.env`,
-which is why that file is part of the deploy and not an afterthought: an app that adds a
-required setting takes its instances down at the next `docker pull`, with the container
-exiting during startup and no clue in the broker log until the broker prints the
-container's own output (it does now — see `instances.mjs`).
+An app must also be *told* which of the two worlds it is in. Resume-Matcher's 2026-09 builds
+refuse to start on an empty `TENANT_MODE`, and behind this gateway the answer is `header`,
+never `single` — a `single` instance treats any request carrying the identity headers as a
+proxy bypass and answers **404**, so the app boots, passes its healthcheck (`/api/v1/health`
+is exempt) and then fails every single call. That failure mode is worth remembering: a
+container that is up and a UI that loads are not evidence that the tenancy config is right.
+
+This is also why the env file is part of the deploy and not an afterthought: an app that
+adds a required setting takes its instances down at the next `docker pull`, with the
+container exiting during startup and no clue in the broker log — until the broker prints the
+container's own output, which it now does (`instances.mjs`).
 
 For Resume-Matcher specifically, the work to get there is written up in that repo:
 `docs/agent/features/multi-tenancy.md`.

@@ -1,5 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { mkdtemp, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { createInstanceManager } from './instances.mjs';
 import { LABELS } from './identity.mjs';
 
@@ -178,6 +181,38 @@ test('a crashed instance has its own output read before it is destroyed', async 
     lines.some(line => line.includes('ENOSPC: no space left on device')),
     `the crash output never reached the log: ${JSON.stringify(lines)}`,
   );
+});
+
+test('the gateway secret comes from the instance env file the app itself reads', async () => {
+  // One value, one file: the broker presents X-Apps-Proxy-Secret and the app validates it
+  // against GATEWAY_SECRET out of the same env file, so the two sides cannot drift apart.
+  const dir = await mkdtemp(join(tmpdir(), 'apps-env-'));
+  await writeFile(join(dir, 'demo.anon.env'), 'LOG_LEVEL=INFO\nGATEWAY_SECRET=s3cr3t\n');
+
+  const docker = fakeDocker([], { existing: existingContainer() });
+  const instances = createInstanceManager({
+    docker,
+    config: { ...config({}), instanceEnvDir: dir },
+    log: silent,
+  });
+
+  const { secret } = await instances.ensure(APP, 'anon-7777');
+  assert.equal(secret, 's3cr3t');
+});
+
+test('an app with no gateway secret reports none, so no secret header is sent', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'apps-env-'));
+  await writeFile(join(dir, 'demo.anon.env'), 'LOG_LEVEL=INFO\n');
+
+  const docker = fakeDocker([], { existing: existingContainer() });
+  const instances = createInstanceManager({
+    docker,
+    config: { ...config({}), instanceEnvDir: dir },
+    log: silent,
+  });
+
+  const { secret } = await instances.ensure(APP, 'anon-8888');
+  assert.equal(secret, '');
 });
 
 test('admin and shared instances get a named volume, so their data survives', async () => {

@@ -49,6 +49,12 @@ export function filterResponseHeaders(upstreamHeaders, cookieName, setCookie) {
  * session cookie is removed (an app may neither read nor replay it), and the viewer's
  * identity is *added* — the broker is the only thing that can set `X-Apps-*`, since
  * server.mjs deletes any inbound copy before this runs.
+ *
+ * `tenant.secret` is the app's own `GATEWAY_SECRET`, sent back to it as proof that the
+ * identity headers came from the broker: without it an app cannot tell the difference
+ * between this gateway and a client that typed the header itself, so an app that takes
+ * tenancy from a header refuses to trust an unsigned one. Absent for an app that does not
+ * use header tenancy, and then the header is not sent at all rather than sent empty.
  */
 export function requestHeaders(req, { cookieName, tenant, keepUpgrade = false }) {
   const headers = { ...req.headers };
@@ -64,6 +70,7 @@ export function requestHeaders(req, { cookieName, tenant, keepUpgrade = false })
   if (tenant) {
     headers['x-apps-tenant'] = tenant.id;
     headers['x-apps-role'] = tenant.role;
+    if (tenant.secret) headers['x-apps-proxy-secret'] = tenant.secret;
   }
   return headers;
 }
