@@ -103,16 +103,19 @@ One `resume-matcher` container under the manifest's limits (`memoryMb: 768`, tmp
 | stopped | **0**, and ~6 s to bring back |
 | whole gateway (caddy + broker + oauth2-proxy + socket-proxy) | **55 MB** |
 
-A trivial `shared` app for comparison: **21 MB**. Most apps are far closer to that than to
-Resume-Matcher, which carries Chromium and a LaTeX engine.
+One `trek` container (`mode: "shared"`, `memoryMb: 768`, no tmpfs) for the other shape — a
+Node server with SQLite and no browser: **253 MB** on a cold boot, **327 MB** after browsing
+the dashboard, atlas, journeys and settings. A trivial `shared` app for comparison: **21 MB**.
+Most apps are far closer to those than to Resume-Matcher, which carries Chromium and a LaTeX
+engine.
 
 `memoryMb` is a ceiling, not a reservation, so budget by the ceiling — tmpfs content counts
 inside the same limit. With ~0.6 GB for the OS, Docker and the gateway:
 
 | RAM | `MAX_TOTAL_INSTANCES` | Means |
 |---|---|---|
-| 2 GB | 1 | One `session` visitor at a time, or ~5 small `shared` apps warm. Set `IDLE_TTL_SECONDS=300` so one visitor does not hold the only slot for 20 minutes. Do **not** build the app image here (needs ~4 GB) — pull it. `launcher-build` peaks around 1 GB, so run it with no instance up. |
-| 4 GB | 4 | Four concurrent `session` visitors, or one plus a dozen small `shared` apps. Set **3** if you ever run `launcher-build` or `docker pull` while the box is serving: that wants ~1 GB, which the fourth slot has already spent. |
+| 2 GB | 1 | One `session` visitor at a time, or ~5 small `shared` apps warm. Set `IDLE_TTL_SECONDS=300` so one visitor does not hold the only slot for 20 minutes. Do **not** build the app image here (needs ~4 GB) — pull it. |
+| 4 GB | 3 | Three concurrent `session` visitors — 2.25 GB of ceilings plus 0.6 GB overhead leaves ~1 GB spare, which is what `launcher-build` (405 MB peak, measured) and a `docker pull` want. 4 fits only if you never rebuild while the box is busy. |
 | 8 GB | 9 | Headroom to stop thinking about it. |
 
 `MAX_TOTAL_INSTANCES` is the cap that matters. The per-kind caps are independent, so
@@ -140,67 +143,93 @@ for an app that already has users:
 
 ## VPS bootstrap
 
-Host first. None of this is a default, and all of it bites later:
+Reference box: **Hetzner CX23** (Cost-Optimized, x86) — 2 vCPU, 4 GB, 40 GB SSD, Nuremberg,
+$6.49/mo plus the separately billed primary IPv4. Ubuntu 24.04 LTS.
+
+### Host
 
 ```bash
+# 1a. Packages and unattended security updates
 apt-get update && apt-get -y full-upgrade
 apt-get install -y unattended-upgrades && dpkg-reconfigure -plow unattended-upgrades
 
-# Swap. Most small VPS images ship none, and 4 GB has no headroom to lose to a spike. It
-# protects the OS and the gateway only — instance cgroups set MemorySwap == Memory, so an
-# over-limit instance is still OOM-killed instead of thrashing the whole box. Intended:
-# the visitor gets one dead instance, not a dead server.
+# 1b. Swap. Hetzner ships none, and this box has no headroom to lose to a spike.
+#     It protects the OS and the gateway only: instance cgroups have swap disabled on
+#     purpose, so an over-limit instance is still killed rather than dragged out.
 fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
 echo '/swapfile none swap sw 0 0' >> /etc/fstab
 sysctl -w vm.swappiness=10 && echo 'vm.swappiness=10' > /etc/sysctl.d/99-swap.conf
 
+# 1c. Docker, with log rotation. The default json-file driver never rotates, and one
+#     chatty instance can otherwise fill 40 GB over a few months.
 curl -fsSL https://get.docker.com | sh
-
-# Log rotation. The default json-file driver NEVER rotates, so one chatty instance fills
-# the disk over a few months.
 cat > /etc/docker/daemon.json <<'JSON'
-{ "log-driver": "json-file", "log-opts": { "max-size": "10m", "max-file": "3" } }
+{
+  "log-driver": "json-file",
+  "log-opts": { "max-size": "10m", "max-file": "3" }
+}
 JSON
 systemctl restart docker
 
-# Reclaim old layers: every pull of a moving tag leaves the previous image dangling, and
-# the app repo pushes :apps-mount on every merge.
-echo '30 4 * * 0 root docker image prune -f >/dev/null 2>&1' > /etc/cron.d/apps-docker-prune
+# 1d. Reclaim old image layers. Every `docker pull` of a moving tag leaves the previous
+#     1.9 GB image dangling, and CI pushes on every merge to the app repo.
+cat > /etc/cron.d/apps-docker-prune <<'CRON'
+30 4 * * 0 root docker image prune -f >/dev/null 2>&1
+CRON
 ```
 
-Then the stack:
+### Stack
 
 ```bash
-# 1. This repo
+# 2. This repo
 git clone https://github.com/<you>/tom-sabala.dev.git /srv/apps && cd /srv/apps
 
-# 2. Secrets
+# 3. Secrets
 cp gateway/.env.example gateway/.env                      # fill every blank
 cp gateway/oauth2/emails.txt.example gateway/oauth2/emails.txt   # the admin whitelist
 cp gateway/instances/resume-matcher.anon.env.example  gateway/instances/resume-matcher.anon.env
 cp gateway/instances/resume-matcher.admin.env.example gateway/instances/resume-matcher.admin.env
+cp gateway/instances/trek.shared.env.example          gateway/instances/trek.shared.env
 
-# 3. App images (the broker never pulls; it only starts what is already local)
+# 4. App images (the broker never pulls; it only starts what is already local)
 docker pull ghcr.io/tomsabala/resume-matcher:apps-mount
+docker pull ghcr.io/tomsabala/trek:apps-mount
 
-# 4. The launcher itself: builds frontend/ into the volume Caddy serves.
+# 5. The launcher itself: builds frontend/ into the volume Caddy serves.
 #    Reads the checkout read-only and writes nothing back into it.
 docker compose -f gateway/docker-compose.yml run --rm launcher-build
 
-# 5. Up
+# 6. Up
 docker compose -f gateway/docker-compose.yml up -d
 ```
 
-Step 4 is the one that is easy to forget: skip it and Caddy serves an empty directory — the
+Step 5 is the one that is easy to forget: skip it and Caddy serves an empty directory — the
 apps subdomain 404s while `/a/*` and `/manifest.json` work fine. Repeat it after every
 `git pull` that touches `frontend/`.
+
+### Network
+
+Use the **Hetzner Cloud Firewall**, not `ufw`: it sits outside the VM, so it filters Docker's
+published ports. `ufw` does not — Docker writes its own iptables rules and bypasses it, which
+is the classic way a "firewalled" Docker host ends up wide open.
+
+| direction | port | source |
+|---|---|---|
+| in | 22 | your IP, if it is static; otherwise anywhere |
+| in | 80 | anywhere — ACME HTTP-01 needs it, and Caddy redirects to 443 |
+| in | 443 | anywhere (TCP **and** UDP, for HTTP/3) |
+
+Keep the primary IPv4: ACME works over either family, but an IPv6-only box is unreachable for
+a large slice of visitors. No Hetzner Volume is needed — the local 40 GB holds the OS, a
+1.9 GB app image, the launcher build (~2 MB of assets plus a few hundred MB of `node_modules`
+cache) and instance volumes with room to spare. Add one only when an app's data grows.
 
 Then, in this order:
 
 1. Add `https://apps.tom-sabala.dev/oauth2/callback` to the existing Google OAuth client's
    authorised redirect URIs.
-2. Point the `apps` A/AAAA records at the VPS, **DNS-only**: an orange-cloud Cloudflare
-   proxy in front of port 80 breaks the HTTP-01 challenge. Delete any CNAME first.
+2. Point the `apps` A (and AAAA) record at the VPS. On Cloudflare set it to **DNS only** —
+   the orange cloud terminates TLS itself and Caddy's HTTP-01 challenge never completes.
 3. `docker compose -f gateway/docker-compose.yml logs caddy` and confirm it issued a
    certificate (`certificate obtained successfully`).
 4. `curl -s https://apps.tom-sabala.dev/manifest.json` → `{"admin":false,...}`.
