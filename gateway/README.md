@@ -326,6 +326,7 @@ docker rm -f $(docker ps -aq --filter label=dev.tom-sabala.apps.kind=anon)
 # what the tag points at now, so a pull is the whole deploy: running instances are recreated
 # on their next request (within 30 s, the digest cache TTL). Nothing to restart.
 docker pull ghcr.io/tomsabala/resume-matcher:apps-mount
+docker pull ghcr.io/tomsabala/trek:apps-mount
 
 # Rebuild the launcher after a frontend change (safe while the stack is up: Caddy picks up
 # the new files immediately, and the volume is only swapped at the end of the build)
@@ -337,21 +338,27 @@ timeouts, reaps, and dropped manifest entries.
 
 ### Continuous delivery for an app
 
-The app repo builds and pushes its own image; the VPS only pulls. For Resume-Matcher that is
-`.github/workflows/apps-image.yml` in its repo: on push to `main` it builds with
-`--build-arg NEXT_PUBLIC_BASE_PATH=/a/resume-matcher` (the mount prefix is inlined at build
-time, so this image is deployment-specific) and pushes two tags —
+The app repo builds and pushes its own image; the VPS only pulls. Each has an
+`.github/workflows/apps-image.yml` of its own that builds the mount prefix in — the prefix is
+inlined at build time, so these images are deployment-specific — and pushes two tags,
 `:apps-mount`, which moves, and `:apps-mount-<sha>`, which does not.
+
+| app | build arg | trigger |
+|---|---|---|
+| Resume-Matcher | `NEXT_PUBLIC_BASE_PATH=/a/resume-matcher` | push to `main` |
+| TREK | `TREK_BASE_PATH=/a/trek` | push to `apps-mount` (the fork's patch branch; `main` tracks upstream) |
 
 Getting it onto the box, cheapest first:
 
 ```bash
-# Manual: one command, and the broker does the rest.
+# Manual: one command per image, and the broker does the rest.
 docker pull ghcr.io/tomsabala/resume-matcher:apps-mount
+docker pull ghcr.io/tomsabala/trek:apps-mount
 
 # Automatic: a timer, so nothing needs inbound access to the VPS.
 #   /etc/cron.d/apps-image-pull
 0 * * * * root docker pull -q ghcr.io/tomsabala/resume-matcher:apps-mount
+5 * * * * root docker pull -q ghcr.io/tomsabala/trek:apps-mount
 ```
 
 A cron beats wiring CI to SSH in: no deploy key, no secret in GitHub, and nothing that can
