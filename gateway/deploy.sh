@@ -39,8 +39,15 @@ note() { printf '   %s\n' "$*"; }
 #
 # One `slug<TAB>mode<TAB>image` line per service app. Deliberately awk and not jq: jq is
 # not installed by the bootstrap, and a deploy script that works on one box and dies on
-# the next is worse than one that parses the two fields it needs itself. RS="}" splits the
-# pretty-printed manifest into one record per object, which is all the structure this needs.
+# the next is worse than one that parses the two fields it needs itself.
+#
+# It tracks brace depth instead of splitting on "}" because an app entry may contain a
+# nested object (`credit`), and splitting on the first closing brace tore one entry into
+# two half-records: the half holding `image` had no `kind`, so it was skipped, and every
+# app silently reported "no image in the manifest". That froze the whole CD path — the
+# hourly `--images-only` cron stopped pulling — without failing. Only the entry's own
+# keys are collected (chars are kept at depth 2), so a nested object can never supply a
+# field: `credit.text` containing the word image is still just text.
 manifest_services() {
   awk '
     function field(rec, name,   v) {
@@ -52,11 +59,19 @@ manifest_services() {
       }
       return ""
     }
-    BEGIN { RS = "}" }
+    function emit(rec,   mode) {
+      if (field(rec, "kind") != "service") return
+      mode = field(rec, "mode")
+      print field(rec, "slug") "\t" (mode == "" ? "session" : mode) "\t" field(rec, "image")
+    }
+    BEGIN { depth = 0; rec = "" }
     {
-      if (field($0, "kind") != "service") next
-      mode = field($0, "mode")
-      print field($0, "slug") "\t" (mode == "" ? "session" : mode) "\t" field($0, "image")
+      for (i = 1; i <= length($0); i++) {
+        c = substr($0, i, 1)
+        if (c == "{") { depth++; if (depth == 2) rec = "" }
+        else if (c == "}") { depth--; if (depth == 1) emit(rec) }
+        else if (depth == 2) rec = rec c
+      }
     }
   ' "$MANIFEST"
 }
