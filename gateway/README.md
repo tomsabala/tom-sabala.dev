@@ -266,7 +266,9 @@ survive.
 3. Write the instance env file(s) from the `.example` twins in `gateway/instances/`. The
    broker reads `<slug>.<kind>.env`, where kind is `anon`, `admin` or `shared` — a
    `session` app wants the first two, a `shared` app only the last.
-4. Commit, then on the VPS:
+4. Commit, then on the VPS run `gateway/deploy.sh` — it pulls the checkout, pulls every
+   image the manifest names, rebuilds the launcher if `frontend/` changed and reloads Caddy
+   if the routing did. By hand, the same thing is:
 
    ```bash
    git pull
@@ -322,11 +324,15 @@ docker volume ls --filter name=apps-
 # Force a clean slate for everyone
 docker rm -f $(docker ps -aq --filter label=dev.tom-sabala.apps.kind=anon)
 
-# Deploy a new app build. The broker compares each container's resolved image digest against
-# what the tag points at now, so a pull is the whole deploy: running instances are recreated
-# on their next request (within 30 s, the digest cache TTL). Nothing to restart.
-docker pull ghcr.io/tomsabala/resume-matcher:apps-mount
-docker pull ghcr.io/tomsabala/trek:apps-mount
+# Deploy everything: git pull, pull every image the manifest names, rebuild the launcher if
+# frontend/ changed, reload Caddy if the routing did, converge the stack. Idempotent, and
+# the expensive steps are skipped when nothing relevant changed.
+gateway/deploy.sh
+
+# Just the images. The broker compares each container's resolved image digest against what
+# the tag points at now, so a pull IS the deploy: running instances are recreated on their
+# next request (within 30 s, the digest cache TTL). Nothing to restart, nothing to remove.
+gateway/deploy.sh --images-only
 
 # Rebuild the launcher after a frontend change (safe while the stack is up: Caddy picks up
 # the new files immediately, and the volume is only swapped at the end of the build)
@@ -346,23 +352,34 @@ inlined at build time, so these images are deployment-specific — and pushes tw
 | app | build arg | trigger |
 |---|---|---|
 | Resume-Matcher | `NEXT_PUBLIC_BASE_PATH=/a/resume-matcher` | push to `main` |
-| TREK | `TREK_BASE_PATH=/a/trek` | push to `apps-mount` (the fork's patch branch; `main` tracks upstream) |
+| TREK | `TREK_BASE_PATH=/a/trek` | push to `main` of the fork (`tomsabala/TREK`) |
 
-Getting it onto the box, cheapest first:
+`deploy.sh` reads `apps.json` itself, so an app added there is picked up by both forms below
+without editing anything here. Getting a new build onto the box, cheapest first:
 
 ```bash
-# Manual: one command per image, and the broker does the rest.
-docker pull ghcr.io/tomsabala/resume-matcher:apps-mount
-docker pull ghcr.io/tomsabala/trek:apps-mount
+# Manual, from the VPS checkout:
+/srv/apps/gateway/deploy.sh --images-only     # new app build only
+/srv/apps/gateway/deploy.sh                   # new app build + anything committed here
 
-# Automatic: a timer, so nothing needs inbound access to the VPS.
-#   /etc/cron.d/apps-image-pull
-0 * * * * root docker pull -q ghcr.io/tomsabala/resume-matcher:apps-mount
-5 * * * * root docker pull -q ghcr.io/tomsabala/trek:apps-mount
+# Automatic: a timer, so nothing needs inbound access to the VPS. cron.d files take a user
+# field, must be mode 0644 and root-owned, and the filename must contain no dot.
+cat > /etc/cron.d/apps-deploy <<'CRON'
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+# m h dom mon dow user command
+17 * * * * root /srv/apps/gateway/deploy.sh --images-only >> /var/log/apps-deploy.log 2>&1
+CRON
+chmod 0644 /etc/cron.d/apps-deploy
 ```
 
+`--images-only` on the timer and the full script by hand is the right split: an image pull is
+safe unattended (worst case an instance restarts), while `git pull` + launcher build is a
+change you want to watch. Run it at :17 rather than :00 — every other cron on the internet
+fires on the hour, and GHCR rate-limits anonymous pulls.
+
 A cron beats wiring CI to SSH in: no deploy key, no secret in GitHub, and nothing that can
-reach the box from outside. The cost is up to an hour's delay — `docker pull` by hand when
+reach the box from outside. The cost is up to an hour's delay — run the script by hand when
 that matters.
 
 Pin `:apps-mount-<sha>` in `apps.json` instead if you would rather deploys be explicit: the

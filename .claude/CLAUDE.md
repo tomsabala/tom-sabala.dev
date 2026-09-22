@@ -235,6 +235,8 @@ The iframe `sandbox` is not a security boundary (`allow-same-origin` lets a bund
 
 **Apps gateway** (`gateway/`): Caddy + oauth2-proxy + a zero-dependency Node broker on one VPS, serving `apps.tom-sabala.dev` end to end. Caddy routes `/oauth2/*` to oauth2-proxy, `/manifest.json` and `/a/*` to the broker, and everything else to the frontend build on disk — Vercel is not in this subdomain's request path, so the launcher and the bundles are published by `docker compose -f gateway/docker-compose.yml run --rm launcher-build` on the VPS after a `git pull`. The broker starts/reaps one container per (app, session), proxies to it, and never sees the Docker socket (a scoped socket proxy does). Hiding the `apps` tab in Settings only removes the sidebar link — it has no effect on this subdomain.
 
+`gateway/deploy.sh` is the VPS entry point for all of that: `git pull`, pull every image `apps.json` names, rebuild the launcher only if `frontend/` changed, reload Caddy only if the routing did, `up -d`. `--images-only` is the unattended form an hourly `cron.d` job runs — a pull is a full app deploy, because the broker compares each container's resolved image id against what the tag points at now and recreates on the next request. Each app repo publishes its own `:apps-mount` (moving) and `:apps-mount-<sha>` (immutable) tags from its `main`; the mount prefix is a build arg, so the images are deployment-specific and rollback is an `apps.json` edit.
+
 ## API Endpoints
 
 **Public (may return 404 if tab hidden):**
