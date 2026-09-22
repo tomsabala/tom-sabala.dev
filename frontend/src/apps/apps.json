@@ -26,6 +26,24 @@
       "dataTmpfsMb": 128,
       "readyPath": "/",
       "capAdd": []
+    },
+    {
+      "kind": "service",
+      "slug": "trek",
+      "name": "TREK",
+      "tagline": "Plan trips, routes and packing lists, then take them offline",
+      "tech": ["React", "NestJS", "SQLite", "PWA"],
+      "status": "live",
+      "access": "public",
+      "image": "ghcr.io/tomsabala/trek:apps-mount",
+      "port": 3000,
+      "mode": "shared",
+      "memoryMb": 768,
+      "shmSizeMb": 64,
+      "dataPath": "/app/data",
+      "dataTmpfsMb": 256,
+      "readyPath": "/a/trek/api/health",
+      "capAdd": ["CHOWN", "SETUID", "SETGID"]
     }
   ]
 }

@@ -31,7 +31,10 @@
 	# whose image is built with basePath=/a/<slug>.
 	handle /a/* {
 		# The one real header win on this origin: only this site may frame an app.
-		header Content-Security-Policy "frame-ancestors 'self'"
+		# `+` appends: an app that sends a full policy of its own (TREK does) keeps
+		# it, and two CSP headers are enforced as their intersection, so the framing
+		# guarantee is unchanged either way.
+		header +Content-Security-Policy "frame-ancestors 'self'"
 		reverse_proxy {$BROKER_UPSTREAM} {
 			flush_interval -1
 			transport http {
