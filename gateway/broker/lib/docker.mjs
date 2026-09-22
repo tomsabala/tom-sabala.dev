@@ -49,6 +49,14 @@ export function createDockerClient({ baseUrl, fetchImpl = fetch }) {
 
     async create(name, spec) {
       const { body } = await request('POST', `/containers/create?name=${encodeURIComponent(name)}`, spec);
+      // A 404 here is the *image*, not the container - the daemon refuses to create from
+      // one that is not on the box. request() flattens every 404 to a null body so an
+      // absent container reads as null in inspect(); without this, that null surfaces as
+      // "Cannot read properties of null (reading 'Id')", which names neither the image nor
+      // the fix. The broker never pulls by design, so this is a real operational state.
+      if (!body?.Id) {
+        throw new Error(`image ${spec.Image} is not present on this host - pull it (gateway/deploy.sh --images-only)`);
+      }
       return body.Id;
     },
 

@@ -51,6 +51,12 @@ export function createInstanceManager({ docker, config, log, now = () => Date.no
         .map(line => line.trim())
         .filter(line => ENV_LINE.test(line));
     } catch (error) {
+      // The file is bind-mounted read-only from the host, and this process is the image's
+      // unprivileged `node` user. A host-side `chmod 600` on a root-owned env file is
+      // therefore invisible until a visitor asks for the app and every request 503s.
+      if (error.code === 'EACCES') {
+        throw new Error(`${file} is not readable by the broker (uid 1000): chown root:1000 and chmod 640 it on the host`);
+      }
       if (error.code !== 'ENOENT') throw error;
       log.warn(`no env file at ${file}; starting ${slug} (${kind}) with defaults only`);
     }

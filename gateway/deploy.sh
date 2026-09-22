@@ -85,25 +85,44 @@ pull_images() {
 }
 
 # ── Instance env files ──────────────────────────────────────────────────────────────
-#
 # The broker reads gateway/instances/<slug>.<kind>.env and logs `no env file at …` when one
 # is missing, which is easy to miss in a log and shows up as an app that behaves oddly
 # rather than one that fails. Say it here instead, where somebody is looking.
+#
+# Readability is checked the same way and for the same reason: the file is bind-mounted
+# read-only into a container whose process is uid 1000, so a root-owned `chmod 600` here
+# reads fine to whoever wrote it and is EACCES to the broker — a state that only surfaces
+# when a visitor asks for the app and gets a 503.
+broker_can_read() {
+  local bits owner group
+  bits=$(stat -c '%a' "$1") || return 1
+  owner=$(stat -c '%u' "$1")
+  group=$(stat -c '%g' "$1")
+  [ "$(( 0${bits} & 0004 ))" -ne 0 ] && return 0                       # other-readable
+  [ "$owner" = 1000 ] && [ "$(( 0${bits} & 0400 ))" -ne 0 ] && return 0 # owned by uid 1000
+  [ "$group" = 1000 ] && [ "$(( 0${bits} & 0040 ))" -ne 0 ] && return 0 # group 1000
+  return 1
+}
+
 check_instance_envs() {
-  local missing=0 slug mode image f
+  local missing=0 slug mode image f path
   while IFS=$'\t' read -r slug mode image; do
     case "$mode" in
       shared) set -- "$slug.shared.env" ;;
       *)      set -- "$slug.anon.env" "$slug.admin.env" ;;
     esac
     for f in "$@"; do
-      if [ ! -f "$REPO/gateway/instances/$f" ]; then
+      path="$REPO/gateway/instances/$f"
+      if [ ! -f "$path" ]; then
         note "MISSING gateway/instances/$f — copy the .example and fill it in"
+        missing=1
+      elif ! broker_can_read "$path"; then
+        note "UNREADABLE gateway/instances/$f ($(stat -c '%a %U:%G' "$path")) — the broker runs as uid 1000: chown root:1000 && chmod 640"
         missing=1
       fi
     done
   done < <(manifest_services)
-  [ "$missing" = 0 ] && note 'all present'
+  [ "$missing" = 0 ] && note 'all present and readable'
   return 0
 }
 

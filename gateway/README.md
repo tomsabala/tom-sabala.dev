@@ -265,7 +265,12 @@ survive.
 
 3. Write the instance env file(s) from the `.example` twins in `gateway/instances/`. The
    broker reads `<slug>.<kind>.env`, where kind is `anon`, `admin` or `shared` — a
-   `session` app wants the first two, a `shared` app only the last.
+   `session` app wants the first two, a `shared` app only the last. The directory is
+   bind-mounted read-only into the broker, which runs as **uid 1000**, so the file has to be
+   readable by it — `chown root:1000 && chmod 640`. A root-owned `chmod 600` looks right to
+   whoever wrote it and is `EACCES` to the broker, which surfaces only when a visitor asks
+   for the app. `deploy.sh` checks this and says `UNREADABLE …` rather than letting you find
+   out from a 503.
 4. Commit, then on the VPS run `gateway/deploy.sh` — it pulls the checkout, pulls every
    image the manifest names, rebuilds the launcher if `frontend/` changed and reloads Caddy
    if the routing did. By hand, the same thing is:
@@ -395,7 +400,8 @@ pull fails and instances 503 with "did not start in time".
 | Symptom | Cause | Fix |
 |---|---|---|
 | `503` "at capacity" | `MAX_TOTAL_INSTANCES` or a per-kind cap reached — the broker log names which | raise it *and* the RAM, lower `memoryMb`, or shorten `IDLE_TTL_SECONDS` so idle slots free up sooner |
-| `503` "did not start in time" | image missing locally, crash on boot, or `READY_TIMEOUT_SECONDS` too low for a cold image | `docker logs` the instance; anonymous instances are removed on timeout, admin ones kept for inspection |
+| `503` "did not start in time" | image missing locally, env file unreadable, crash on boot, or `READY_TIMEOUT_SECONDS` too low for a cold image | the broker log line `could not start <slug> …` names which; then `docker logs` the instance — anonymous instances are removed on timeout, admin and shared ones kept for inspection |
+| Broker logs `EACCES … instances/<slug>.<kind>.env` | the env file is not readable by uid 1000 | `chown root:1000 && chmod 640` it, then `docker rm -f apps-<slug>-<key>` — env is baked into a container at create time |
 | App loads but its API 404s | image built without the right `basePath` | rebuild with `--build-arg NEXT_PUBLIC_BASE_PATH=/a/<slug>` |
 | PDF export renders a login page | `FRONTEND_BASE_URL` escaped to the gateway | the broker sets it to `http://127.0.0.1:<port>/a/<slug>`; do not override it in the instance env file |
 | Chromium fails to launch | `CapDrop: ALL` too tight for that image | add `"capAdd": ["SYS_ADMIN"]`. Not needed for Resume-Matcher — verified working with all capabilities dropped |
