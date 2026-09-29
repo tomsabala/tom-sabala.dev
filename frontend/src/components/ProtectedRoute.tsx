@@ -1,6 +1,6 @@
 /**
  * ProtectedRoute - Route guard for authenticated users only
- * Redirects to login page if user is not authenticated
+ * Redirects to the public home page if user is not authenticated
  */
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.tsx';
@@ -22,9 +22,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     );
   }
 
-  // Redirect to login if not authenticated
+  // Redirect home if not authenticated
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/" replace />;
   }
 
   // Render protected content

@@ -5,6 +5,7 @@
 import axios from 'axios';
 import type { AxiosInstance, InternalAxiosRequestConfig, AxiosError } from 'axios';
 import { readCsrfTokenFromCookie } from './csrfTokenRepository';
+import { emitSessionExpired } from './authEvents';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
@@ -31,7 +32,7 @@ function addCsrfToken(config: InternalAxiosRequestConfig): InternalAxiosRequestC
 /**
  * Handle 401 errors by attempting token refresh
  */
-function createAuthErrorHandler(client: AxiosInstance) {
+export function createAuthErrorHandler(client: AxiosInstance) {
   return async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
@@ -45,6 +46,7 @@ function createAuthErrorHandler(client: AxiosInstance) {
         await apiClient.post('/auth/refresh');
         return client(originalRequest);
       } catch {
+        emitSessionExpired();
         return Promise.reject(error);
       }
     }

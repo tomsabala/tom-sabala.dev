@@ -5,6 +5,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import * as authRepository from '../repositories/authRepository';
+import { onSessionExpired } from '../repositories/authEvents';
 
 interface User {
   id: number;
@@ -62,6 +63,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setAuthState({ user: null, isAuthenticated: false, isLoading: false });
     });
   }, []);
+
+  // The server refused our refresh token — drop the session in this tab immediately
+  useEffect(() => onSessionExpired(() => {
+    try { localStorage.removeItem(HAS_SESSION_KEY); } catch { /* ignore */ }
+    setAuthState({ user: null, isAuthenticated: false, isLoading: false });
+  }), []);
 
   /**
    * Check if user is authenticated
