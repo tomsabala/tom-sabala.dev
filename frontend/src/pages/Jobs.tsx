@@ -8,6 +8,7 @@ import AgentFindingsList from '../components/AgentFindingsList.tsx';
 import AgentRunsHistory from '../components/AgentRunsHistory.tsx';
 import type { AgentFinding, AgentRun, Company, JobApplication } from '../types/index.ts';
 import { useTheme } from '../contexts/ThemeContext.tsx';
+import { filterApplicationsByStatus, filterCompaniesByCategories, searchApplications, searchCompanies, searchFindings } from './jobsSearch.ts';
 
 const CAT_COLORS_DARK: { bg: string; text: string }[] = [
   { bg: '#312e81', text: '#a5b4fc' },
@@ -88,6 +89,9 @@ function Jobs() {
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [categoryFilters, setCategoryFilters] = useState<Set<string>>(new Set());
+  const [companySearch, setCompanySearch] = useState('');
+  const [applicationSearch, setApplicationSearch] = useState('');
+  const [agentSearch, setAgentSearch] = useState('');
 
   const [runs, setRuns] = useState<AgentRun[]>([]);
   const [latestRun, setLatestRun] = useState<AgentRun | null>(null);
@@ -261,17 +265,16 @@ function Jobs() {
   }, [allCategories, CAT_COLORS]);
 
   const filteredCompanies = useMemo(
-    () =>
-      categoryFilters.size === 0
-        ? companies
-        : companies.filter(c => (c.categories || []).some(cat => categoryFilters.has(cat))),
-    [companies, categoryFilters]
+    () => searchCompanies(filterCompaniesByCategories(companies, categoryFilters), companySearch),
+    [companies, categoryFilters, companySearch]
   );
 
-  const filteredApplications =
-    statusFilter === 'all'
-      ? applications
-      : applications.filter(a => a.status === statusFilter);
+  const filteredApplications = useMemo(
+    () => searchApplications(filterApplicationsByStatus(applications, statusFilter), applicationSearch),
+    [applications, statusFilter, applicationSearch]
+  );
+
+  const filteredFindings = useMemo(() => searchFindings(findings, agentSearch), [findings, agentSearch]);
 
   if (loading) {
     return (
@@ -441,6 +444,16 @@ function Jobs() {
             aria-labelledby="tab-jobs-companies"
             tabIndex={0}
           >
+            {companies.length > 0 && (
+              <input
+                type="search"
+                value={companySearch}
+                onChange={e => setCompanySearch(e.target.value)}
+                placeholder="Search companies"
+                aria-label="Search companies"
+                className="mb-5 w-full sm:w-72 px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#252525] text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+              />
+            )}
             {companies.length === 0 ? (
               <div className="text-center py-16 text-gray-400 dark:text-gray-500">
                 <svg className="w-12 h-12 mx-auto mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -504,12 +517,12 @@ function Jobs() {
                 <div className="flex-1 min-w-0">
                   {filteredCompanies.length === 0 ? (
                     <div className="text-center py-16 text-gray-400 dark:text-gray-500">
-                      <p className="text-sm">No companies match the selected filters.</p>
+                      <p className="text-sm">No companies match the current search and filters.</p>
                       <button
-                        onClick={() => setCategoryFilters(new Set())}
+                        onClick={() => { setCategoryFilters(new Set()); setCompanySearch(''); }}
                         className="mt-2 text-xs underline hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                       >
-                        Clear filters
+                        Clear search and filters
                       </button>
                     </div>
                   ) : (
@@ -613,6 +626,16 @@ function Jobs() {
             aria-labelledby="tab-jobs-applications"
             tabIndex={0}
           >
+            {applications.length > 0 && (
+              <input
+                type="search"
+                value={applicationSearch}
+                onChange={e => setApplicationSearch(e.target.value)}
+                placeholder="Search applications"
+                aria-label="Search applications"
+                className="mb-5 w-full sm:w-72 px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#252525] text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+              />
+            )}
             {/* Status filter pills */}
             <div className="flex flex-wrap gap-2 mb-5">
               <button
@@ -653,9 +676,19 @@ function Jobs() {
                 <svg className="w-12 h-12 mx-auto mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                <p className="text-sm">
-                  {statusFilter === 'all' ? 'No applications yet. Add one to get started.' : `No applications with status "${STATUS_LABELS[statusFilter]}".`}
-                </p>
+                {applications.length === 0 ? (
+                  <p className="text-sm">No applications yet. Add one to get started.</p>
+                ) : (
+                  <>
+                    <p className="text-sm">No applications match the current search and filter.</p>
+                    <button
+                      onClick={() => { setStatusFilter('all'); setApplicationSearch(''); }}
+                      className="mt-2 text-xs underline hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                    >
+                      Clear search and filter
+                    </button>
+                  </>
+                )}
               </div>
             ) : (
               <div className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -796,12 +829,35 @@ function Jobs() {
               </p>
             )}
 
-            <AgentFindingsList
-              findings={findings}
-              onRemoved={findingId => setFindings(prev => prev.filter(f => f.id !== findingId))}
-              onSuccess={async msg => { showSuccess(msg); await fetchData(); }}
-              onError={showError}
-            />
+            {findings.length > 0 && (
+              <input
+                type="search"
+                value={agentSearch}
+                onChange={e => setAgentSearch(e.target.value)}
+                placeholder="Search findings"
+                aria-label="Search findings"
+                className="mb-5 w-full sm:w-72 px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#252525] text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+              />
+            )}
+
+            {findings.length > 0 && filteredFindings.length === 0 ? (
+              <div className="text-center py-16 text-gray-400 dark:text-gray-500">
+                <p className="text-sm">No findings match your search.</p>
+                <button
+                  onClick={() => setAgentSearch('')}
+                  className="mt-2 text-xs underline hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                >
+                  Clear search
+                </button>
+              </div>
+            ) : (
+              <AgentFindingsList
+                findings={filteredFindings}
+                onRemoved={findingId => setFindings(prev => prev.filter(f => f.id !== findingId))}
+                onSuccess={async msg => { showSuccess(msg); await fetchData(); }}
+                onError={showError}
+              />
+            )}
 
             <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-700">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">
