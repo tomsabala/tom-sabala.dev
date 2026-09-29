@@ -7,6 +7,7 @@ interface ModalProps {
   titleId: string;
   children: React.ReactNode;
   maxWidth?: string;
+  dismissOnBackdrop?: boolean;
 }
 
 const Modal: React.FC<ModalProps> = ({
@@ -15,6 +16,7 @@ const Modal: React.FC<ModalProps> = ({
   titleId,
   children,
   maxWidth = 'max-w-2xl',
+  dismissOnBackdrop = true,
 }) => {
   const dialogRef = useRef<HTMLDivElement>(null);
   useFocusTrap(dialogRef, isOpen);
@@ -43,7 +45,7 @@ const Modal: React.FC<ModalProps> = ({
       <div
         className="absolute inset-0 backdrop-blur-lg"
         aria-hidden="true"
-        onClick={onClose}
+        onClick={dismissOnBackdrop ? onClose : undefined}
       />
       {/* Dialog */}
       <div

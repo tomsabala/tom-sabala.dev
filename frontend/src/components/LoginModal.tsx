@@ -52,7 +52,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
   }, [isOpen]);
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} titleId="login-modal-title" maxWidth="max-w-md">
+    <Modal isOpen={isOpen} onClose={onClose} titleId="login-modal-title" maxWidth="max-w-md" dismissOnBackdrop={false}>
       <div className="p-8">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
