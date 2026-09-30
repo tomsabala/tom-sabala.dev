@@ -85,6 +85,16 @@ Railway provides managed PostgreSQL via a single-click plugin. It auto-injects `
    for an ad-hoc upgrade.
 4. Seed data via admin UI or restore from backup
 
+**Driver scheme:** the image installs `psycopg2-binary` only (`requirements.txt`),
+but SQLAlchemy honours whatever driver `DATABASE_URL` names — a
+`postgresql+psycopg://` URL selects psycopg3 and `create_app()` dies with
+`ModuleNotFoundError: No module named 'psycopg'` before gunicorn binds `$PORT`,
+so every route 502s on both the web and worker services. `normalizeDatabaseUrl()`
+in `app/__init__.py` repoints any psycopg URL at a driver that is actually
+installed (and canonicalises the legacy `postgres://` form SQLAlchemy 2.x
+rejects), so the platform's spelling of the scheme can no longer take the site
+down.
+
 **Database Migration from Render (if needed):**
 ```bash
 # Dump from Render Postgres

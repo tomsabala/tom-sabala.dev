@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 import os
 import sys
 import logging
+import importlib.util
 import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
 
@@ -43,12 +44,42 @@ limiter = Limiter(
 )
 
 
+_PSYCOPG_DRIVERS = ('psycopg2', 'psycopg')
+
+
+def _driverIsInstalled(name):
+    return importlib.util.find_spec(name) is not None
+
+
+def normalizeDatabaseUrl(url):
+    """Repoint a Postgres URL at a psycopg driver that is actually installed.
+
+    Railway served DATABASE_URL as `postgresql+psycopg://` (psycopg3) while
+    requirements.txt pins psycopg2-binary. SQLAlchemy honours whatever driver
+    the scheme names, so create_app() raised ModuleNotFoundError and gunicorn
+    never bound $PORT — every route 502ed. Honour the named driver when it
+    imports, otherwise fall back to one that does, and canonicalise the
+    legacy `postgres://` form SQLAlchemy 2.x no longer accepts. A non-psycopg
+    driver (asyncpg, pg8000) is left untouched.
+    """
+    scheme, separator, rest = (url or '').partition('://')
+    base, _, named = scheme.partition('+')
+    if not separator or base not in ('postgresql', 'postgres'):
+        return url
+    named = named or 'psycopg2'
+    if named not in _PSYCOPG_DRIVERS:
+        return url
+    if not _driverIsInstalled(named):
+        named = next((d for d in _PSYCOPG_DRIVERS if _driverIsInstalled(d)), named)
+    return f'postgresql+{named}://{rest}'
+
+
 def create_app():
     app = Flask(__name__)
 
     # Configuration
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
+    app.config['SQLALCHEMY_DATABASE_URI'] = normalizeDatabaseUrl(os.getenv('DATABASE_URL'))
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     # Database connection pooling for better performance
