@@ -43,6 +43,28 @@
       "dataTmpfsMb": 256,
       "readyPath": "/a/trek/api/health",
       "capAdd": ["CHOWN", "SETUID", "SETGID"]
+    },
+    {
+      "kind": "service",
+      "slug": "familycfo",
+      "name": "FamilyCFO",
+      "tagline": "A household CFO for Israeli families: connect your banks, or explore the demo",
+      "tech": ["React", "Fastify", "SQLite", "Hebrew RTL"],
+      "status": "live",
+      "access": "public",
+      "credit": {
+        "text": "Forked from nmazuz/familycfo",
+        "url": "https://github.com/nmazuz/familycfo"
+      },
+      "image": "ghcr.io/tomsabala/familycfo:apps-mount",
+      "port": 4310,
+      "mode": "session",
+      "memoryMb": 1024,
+      "shmSizeMb": 256,
+      "dataPath": "/data",
+      "dataTmpfsMb": 128,
+      "readyPath": "/a/familycfo/api/meta",
+      "capAdd": []
     }
   ]
 }

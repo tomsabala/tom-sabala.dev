@@ -379,6 +379,7 @@ inlined at build time, so these images are deployment-specific — and pushes tw
 |---|---|---|
 | Resume-Matcher | `NEXT_PUBLIC_BASE_PATH=/a/resume-matcher` | push to `main` |
 | TREK | `TREK_BASE_PATH=/a/trek` | push to `main` of the fork (`tomsabala/TREK`) |
+| FamilyCFO | `FAMILYCFO_BASE_PATH=/a/familycfo` | push to `main` |
 
 `deploy.sh` reads `apps.json` itself, so an app added there is picked up by both forms below
 without editing anything here. Getting a new build onto the box, cheapest first:
