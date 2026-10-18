@@ -26,15 +26,7 @@ const FIELD_SELECTOR = '[data-field]';
 /** …and elements that swallow the click instead. */
 const EXCLUDE_SELECTOR = 'a,button,input,textarea,label,select,form,[data-panel]';
 
-export interface FieldCanvasProps {
-  /**
-   * Element whose visibility gates rendering — the hero, by default. Below the
-   * fold the page panels are 93% opaque anyway, so there is nothing to see.
-   */
-  gateSelector?: string;
-}
-
-export default function FieldCanvas({ gateSelector = FIELD_SELECTOR }: FieldCanvasProps) {
+export default function FieldCanvas() {
   const field = useField();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -176,20 +168,15 @@ export default function FieldCanvas({ gateSelector = FIELD_SELECTOR }: FieldCanv
       needsDraw = true;
     };
 
-    let io: IntersectionObserver | null = null;
-    const gate = document.querySelector(gateSelector);
-    if (gate && typeof IntersectionObserver !== 'undefined') {
-      visible = false;
-      io = new IntersectionObserver(
-        (entries) => {
-          const was = visible;
-          visible = entries.some((entry) => entry.isIntersecting);
-          if (visible && !was) needsDraw = true;
-        },
-        { threshold: 0 },
-      );
-      io.observe(gate);
-    }
+    // The canvas is fixed behind the whole page and every section floats on it at 93%
+    // opacity, so the simulation stays live and steerable for the entire scroll — it used
+    // to freeze once the hero left the viewport, which made the sections look like a
+    // screenshot. The only reason to stop is a page nobody is looking at.
+    const onVisibility = () => {
+      visible = !document.hidden;
+      if (visible) needsDraw = true;
+    };
+    document.addEventListener('visibilitychange', onVisibility);
 
     window.addEventListener('pointermove', onPointerMove);
     document.addEventListener('mouseout', onMouseOut);
@@ -198,12 +185,12 @@ export default function FieldCanvas({ gateSelector = FIELD_SELECTOR }: FieldCanv
 
     return () => {
       cancelAnimationFrame(raf);
-      io?.disconnect();
       window.removeEventListener('pointermove', onPointerMove);
       document.removeEventListener('mouseout', onMouseOut);
       window.removeEventListener('click', onClick);
+      document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [gateSelector]);
+  }, []);
 
   return (
     <canvas

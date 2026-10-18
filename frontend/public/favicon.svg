@@ -1,4 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="10" fill="hsl(210, 65%, 60%)"/>
-  <text x="32" y="46" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="40" font-weight="bold" fill="white">T</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- The site's logo mark: square, zero radius, accent on ink. Solid fill rather than
+       the header's outlined version, which disappears at 16px. -->
+  <rect width="64" height="64" fill="#0d150f"/>
+  <rect x="5" y="5" width="54" height="54" fill="none" stroke="#c8f53c" stroke-width="3"/>
+  <text x="32" y="43" text-anchor="middle" font-family="'DM Mono', ui-monospace, SFMono-Regular, monospace"
+        font-size="26" font-weight="500" letter-spacing="1" fill="#c8f53c">TS</text>
 </svg>
