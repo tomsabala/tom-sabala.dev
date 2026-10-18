@@ -31,8 +31,6 @@ export interface FieldContextValue {
 
   /** The current algorithm's slider/toggle values. */
   cfg: FieldCfg;
-  /** Every algorithm's values, so switching back restores what you set. */
-  allCfg: Record<FieldKind, FieldCfg>;
   setCfg: (key: string, value: number | boolean, regen?: boolean) => void;
 
   tool: FieldTool;
@@ -43,7 +41,6 @@ export interface FieldContextValue {
   disarm: () => void;
 
   paused: boolean;
-  setPaused: (paused: boolean) => void;
   togglePause: () => void;
 
   learnOpen: boolean;
@@ -51,7 +48,6 @@ export interface FieldContextValue {
   closeLearn: () => void;
 
   dockOpen: boolean;
-  setDockOpen: (open: boolean) => void;
   toggleDock: () => void;
 
   /** Bumped whenever the simulation state must be dropped and re-initialised. */
@@ -90,7 +86,7 @@ export function useMediaQuery(query: string): boolean {
 
 export const MOBILE_QUERY = '(max-width: 767px)';
 export const COARSE_QUERY = '(pointer: coarse)';
-export const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
+const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 
 export function FieldProvider({ children }: { children: ReactNode }) {
   const [algo, setAlgoState] = useState<FieldKind>('planner');
@@ -144,7 +140,6 @@ export function FieldProvider({ children }: { children: ReactNode }) {
       algo,
       setAlgo,
       cfg: allCfg[algo],
-      allCfg,
       setCfg,
       tool,
       setTool,
@@ -152,13 +147,11 @@ export function FieldProvider({ children }: { children: ReactNode }) {
       armTool,
       disarm: () => setArmed(false),
       paused,
-      setPaused,
       togglePause: () => setPaused((p) => !p),
       learnOpen,
       openLearn: () => setLearnOpen(true),
       closeLearn: () => setLearnOpen(false),
       dockOpen,
-      setDockOpen,
       toggleDock: () => setDockOpen((o) => !o),
       resetSeq,
       reset,

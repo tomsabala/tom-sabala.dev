@@ -1,12 +1,14 @@
 import { useState, useRef } from 'react';
 import * as resumeRepository from '../repositories/resumeRepository.ts';
 import { apiErrorMessage } from '../repositories/apiError.ts';
-import { BTN_MUTED, BTN_PRIMARY, HINT } from './formStyles.ts';
+import { HINT, MonoButton, formatMegabytes } from './console.tsx';
 
 interface PdfUploadFormProps {
   onUploadSuccess?: () => void;
   onUploadError?: (error: string) => void;
 }
+
+const MAX_BYTES = 10 * 1024 * 1024;
 
 const PdfUploadForm: React.FC<PdfUploadFormProps> = ({
   onUploadSuccess,
@@ -18,47 +20,34 @@ const PdfUploadForm: React.FC<PdfUploadFormProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (files && files.length > 0) {
-      validateAndSetFile(files[0]);
-    }
+    const file = event.target.files?.[0];
+    if (file) validateAndSetFile(file);
   };
 
   const validateAndSetFile = (file: File) => {
-    // Validate file type
     if (file.type !== 'application/pdf') {
       onUploadError?.('Please select a PDF file');
       return;
     }
-
-    // Validate file size (10MB max)
-    const maxSize = 10 * 1024 * 1024;
-    if (file.size > maxSize) {
+    if (file.size > MAX_BYTES) {
       onUploadError?.('File too large. Maximum size is 10MB');
       return;
     }
-
     setSelectedFile(file);
   };
 
   const handleDrag = (event: React.DragEvent) => {
     event.preventDefault();
     event.stopPropagation();
-    if (event.type === 'dragenter' || event.type === 'dragover') {
-      setDragActive(true);
-    } else if (event.type === 'dragleave') {
-      setDragActive(false);
-    }
+    setDragActive(event.type === 'dragenter' || event.type === 'dragover');
   };
 
   const handleDrop = (event: React.DragEvent) => {
     event.preventDefault();
     event.stopPropagation();
     setDragActive(false);
-
-    if (event.dataTransfer.files && event.dataTransfer.files.length > 0) {
-      validateAndSetFile(event.dataTransfer.files[0]);
-    }
+    const [file] = event.dataTransfer.files;
+    if (file) validateAndSetFile(file);
   };
 
   const handleUpload = async () => {
@@ -92,7 +81,6 @@ const PdfUploadForm: React.FC<PdfUploadFormProps> = ({
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Drag & Drop Area */}
       <div
         className={`relative border border-dashed p-8 text-center transition-colors ${
           dragActive ? 'border-acct bg-s1' : 'border-ln2 hover:border-ink'
@@ -131,19 +119,18 @@ const PdfUploadForm: React.FC<PdfUploadFormProps> = ({
               ● {selectedFile.name}
             </p>
             <p className="m-0 font-mono text-[11px] leading-none text-mut">
-              {(selectedFile.size / 1024 / 1024).toFixed(2)} MB — ready to upload
+              {formatMegabytes(selectedFile.size)} — ready to upload
             </p>
           </div>
         )}
       </div>
 
-      {/* Action Buttons */}
       {selectedFile && (
         <div className="flex gap-3 justify-end">
-          <button onClick={handleCancel} type="button" disabled={uploading} className={BTN_MUTED}>
+          <MonoButton onClick={handleCancel} tone="muted" size="md" disabled={uploading}>
             Cancel
-          </button>
-          <button onClick={handleUpload} type="button" disabled={uploading} className={BTN_PRIMARY}>
+          </MonoButton>
+          <MonoButton onClick={handleUpload} tone="accent" size="md" disabled={uploading}>
             {uploading ? (
               <span role="status" aria-label="Uploading PDF">
                 ● Uploading
@@ -151,7 +138,7 @@ const PdfUploadForm: React.FC<PdfUploadFormProps> = ({
             ) : (
               'Upload PDF'
             )}
-          </button>
+          </MonoButton>
         </div>
       )}
     </div>

@@ -11,6 +11,7 @@ import { useKonamiCode } from './hooks/useKonamiCode';
 import { getPrompt } from './constants';
 import { populateProjects } from './filesystem';
 import { getPortfolio } from '../repositories/portfolioRepository';
+import { ACCENT, DIM } from './commands/output';
 import type { ProjectsSnapshot } from './commands/types';
 import './commands/clear';
 import './commands/help';
@@ -110,10 +111,10 @@ export default function TerminalApp() {
     addOutput({
       lines: [
         { text: '' },
-        { text: '  \u2191 \u2191 \u2193 \u2193 \u2190 \u2192 \u2190 \u2192 B A', bold: true, color: 'var(--term-accent)' },
+        { text: '  \u2191 \u2191 \u2193 \u2193 \u2190 \u2192 \u2190 \u2192 B A', bold: true, color: ACCENT },
         { text: '' },
         { text: '  You found the secret!', bold: true },
-        { text: '  Switching to Dracula theme...', color: 'var(--term-fg-dim)' },
+        { text: '  Switching to Dracula theme...', color: DIM },
         { text: '' },
       ],
     });

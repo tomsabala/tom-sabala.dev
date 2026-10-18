@@ -5,7 +5,8 @@
  */
 import { useEffect, useRef } from 'react';
 import { useTheme } from '../contexts/ThemeContext.tsx';
-import { A, PAL } from '../field/draw.ts';
+import { PAL } from '../field/draw.ts';
+import { dotGrid, prepareCanvas } from './canvas.ts';
 import { ANIMATED_SPECIMENS } from './specimens-animated.ts';
 
 interface AnimatedSpecimenProps {
@@ -33,22 +34,12 @@ export default function AnimatedSpecimen({ specimen, className = '' }: AnimatedS
     const frame = (ts: number) => {
       raf = requestAnimationFrame(frame);
       if (!visible) return;
-      const w = canvas.clientWidth;
-      const h = canvas.clientHeight;
-      if (!w || !h) return;
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      if (canvas.width !== Math.round(w * dpr)) {
-        canvas.width = Math.round(w * dpr);
-        canvas.height = Math.round(h * dpr);
-      }
-      const g = canvas.getContext('2d');
-      if (!g) return;
-      g.setTransform(dpr, 0, 0, dpr, 0, 0);
-      g.clearRect(0, 0, w, h);
+      const surface = prepareCanvas(canvas);
+      if (!surface) return;
+      const { g, w, h } = surface;
       if (t0 == null) t0 = ts;
       const P = PAL[theme];
-      g.fillStyle = A(P.mut, 0.22);
-      for (let x = 24; x < w; x += 24) for (let y = 24; y < h; y += 24) g.fillRect(x - 0.5, y - 0.5, 1, 1);
+      dotGrid(g, w, h, P, 24, 0.22);
       paint?.(g, w, h, P, (ts - t0) / 1000);
       if (reduced) {
         cancelAnimationFrame(raf);

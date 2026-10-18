@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { asRecord } from './json.ts';
 
 /**
  * The broker's admin-gated `GET /instances`, fetched straight from this origin because the
@@ -24,8 +25,7 @@ function parseInstances(value: unknown): BrokerInstance[] {
   if (!Array.isArray(value)) return [];
   const parsed: BrokerInstance[] = [];
   for (const raw of value) {
-    if (typeof raw !== 'object' || raw === null) continue;
-    const entry = raw as Record<string, unknown>;
+    const entry = asRecord(raw);
     if (typeof entry.slug !== 'string') continue;
     parsed.push({
       slug: entry.slug,
@@ -55,8 +55,7 @@ export function useBrokerInstances(enabled: boolean): BrokerInstance[] | null {
         if (!response.ok) throw new Error(`instances responded ${response.status}`);
         const body: unknown = await response.json();
         if (cancelled) return;
-        const record = typeof body === 'object' && body !== null ? (body as Record<string, unknown>) : {};
-        setInstances(parseInstances(record.instances));
+        setInstances(parseInstances(asRecord(body).instances));
       } catch {
         if (!cancelled) setInstances(null);
       }

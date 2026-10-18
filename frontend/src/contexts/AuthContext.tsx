@@ -6,15 +6,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import * as authRepository from '../repositories/authRepository';
 import { onSessionExpired } from '../repositories/authEvents';
-
-interface User {
-  id: number;
-  username: string;
-  email: string;
-  profilePicture?: string;
-  createdAt: string;
-  lastLogin: string | null;
-}
+import type { User } from '../types/index.ts';
 
 interface AuthState {
   user: User | null;

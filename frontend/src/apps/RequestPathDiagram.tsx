@@ -40,6 +40,10 @@ interface Box {
 
 type Point = [number, number];
 
+/** Every node — infrastructure or unit — is a bordered box centred on its spot. */
+const NODE_CLASS =
+  'absolute box-border -translate-x-1/2 -translate-y-1/2 border border-ink font-mono text-[11px]';
+
 const INFRA: { id: string; label: string; note: string; invert: boolean }[] = [
   { id: 'you', label: 'YOU', note: 'browser', invert: false },
   { id: 'gw', label: 'GATEWAY', note: 'manifest.json', invert: true },
@@ -238,7 +242,7 @@ function RequestPathDiagram({
             key={node.id}
             data-node={node.id}
             style={spot}
-            className={`absolute box-border -translate-x-1/2 -translate-y-1/2 border border-ink px-2.5 py-[13px] text-center font-mono text-[11px] leading-[1.45] ${
+            className={`${NODE_CLASS} px-2.5 py-[13px] text-center leading-[1.45] ${
               node.invert ? 'bg-ink text-bg' : 'bg-bg text-ink'
             }`}
           >
@@ -260,7 +264,7 @@ function RequestPathDiagram({
             style={spot}
             onClick={() => onSelect(i)}
             aria-pressed={on}
-            className={`absolute box-border flex -translate-x-1/2 -translate-y-1/2 flex-col gap-1 border border-ink p-3 text-left font-mono text-[11px] leading-[1.4] ${
+            className={`${NODE_CLASS} flex flex-col gap-1 p-3 text-left leading-[1.4] ${
               on ? 'bg-acc text-onacc' : 'bg-bg text-ink hover:border-acct'
             }`}
           >

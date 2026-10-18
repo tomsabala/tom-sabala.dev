@@ -175,7 +175,7 @@ export const themes: Theme[] = [
 
 const STORAGE_KEY = 'terminal-theme';
 
-export const DEFAULT_THEME_NAME = 'field';
+const DEFAULT_THEME_NAME = 'field';
 
 /**
  * The green-on-black `default` theme was replaced by `field` in the redesign; a visitor

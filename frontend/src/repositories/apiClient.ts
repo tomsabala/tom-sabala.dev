@@ -10,6 +10,13 @@ import { emitSessionExpired } from './authEvents';
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
 /**
+ * Backend origin without the `/api` suffix: file URLs the API hands back (deep-dive images,
+ * the About portrait) are already rooted at `/api/...`, so joining them to `API_BASE_URL`
+ * would double the segment.
+ */
+export const API_ORIGIN = ((import.meta.env.VITE_API_URL as string) ?? '').replace(/\/api$/, '');
+
+/**
  * Add CSRF token to mutating requests (POST, PUT, DELETE, PATCH)
  * Excludes auth endpoints which have separate CSRF handling
  */
@@ -83,4 +90,3 @@ export const fileUploadClient = axios.create({
 applyInterceptors(apiClient);
 applyInterceptors(fileUploadClient);
 
-export default apiClient;

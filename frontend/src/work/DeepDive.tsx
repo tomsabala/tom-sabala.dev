@@ -16,6 +16,7 @@ import rehypeSlug from 'rehype-slug';
 import rehypeHighlight from 'rehype-highlight';
 import remarkGfm from 'remark-gfm';
 import type { Root, Element } from 'hast';
+import { API_ORIGIN } from '../repositories/apiClient.ts';
 
 export interface TocItem {
   id: string;
@@ -54,10 +55,6 @@ function extractText(node: ReactNode): string {
     return extractText((node as ReactElement<{ children?: ReactNode }>).props.children);
   return '';
 }
-
-// Strip the /api suffix from VITE_API_URL to get the backend origin
-// e.g. "https://api.tom-sabala.dev/api" → "https://api.tom-sabala.dev"
-const API_ORIGIN = (import.meta.env.VITE_API_URL as string ?? '').replace(/\/api$/, '');
 
 const mdComponents: Components = {
   img({ src, alt, ...props }) {

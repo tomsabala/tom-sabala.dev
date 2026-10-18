@@ -9,8 +9,15 @@ import type { JSX } from 'react';
 import * as contactRepository from '../../repositories/contactRepository.ts';
 import { apiErrorMessage } from '../../repositories/apiError.ts';
 import type { ContactSubmission } from '../../types/index.ts';
-import { useAdminChrome, usePrimaryAction } from './chrome.tsx';
-import { ConsolePanel, MonoButton, MutedLine, formatWhen } from './ui.tsx';
+import { useAdminAction, useAdminChrome, usePrimaryAction } from './chrome.tsx';
+import {
+  ConsolePanel,
+  EmptyState,
+  MonoButton,
+  MutedLine,
+  formatWhen,
+  monoButtonClass,
+} from '../../components/console.tsx';
 
 type ReadFilter = 'all' | 'unread' | 'read';
 
@@ -26,11 +33,7 @@ function MessageList({
   onOpen: (message: ContactSubmission) => void;
 }) {
   if (messages.length === 0) {
-    return (
-      <div className="px-5 py-6">
-        <MutedLine>No messages match this filter.</MutedLine>
-      </div>
-    );
+    return <EmptyState>No messages match this filter.</EmptyState>;
   }
   return (
     <>
@@ -92,7 +95,7 @@ function MessageDetail({
       <div className="flex gap-2 flex-wrap mt-auto pt-4">
         <a
           href={`mailto:${message.email}?subject=${encodeURIComponent('Re: your message on tom-sabala.dev')}`}
-          className="bg-acc text-onacc no-underline font-mono text-[12px] leading-none font-medium uppercase tracking-[0.06em] px-3.5 py-3"
+          className={`${monoButtonClass('accent', 'md')} no-underline`}
         >
           Reply by email
         </a>
@@ -109,6 +112,7 @@ function MessageDetail({
 
 export default function AdminInbox(): JSX.Element {
   const { notify, refreshStats } = useAdminChrome();
+  const act = useAdminAction();
   const [messages, setMessages] = useState<ContactSubmission[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
@@ -141,20 +145,14 @@ export default function AdminInbox(): JSX.Element {
 
   const markAllRead = async () => {
     setBusy(true);
-    try {
-      const res = await contactRepository.markAllRead();
-      if (!res.success) {
-        notify('err', res.error || 'Could not mark everything read');
-        return;
-      }
-      notify('ok', `${res.data?.updated ?? 0} messages marked read`);
-      await load();
-      refreshStats();
-    } catch (err) {
-      notify('err', apiErrorMessage(err, 'Could not mark everything read'));
-    } finally {
-      setBusy(false);
-    }
+    const result = await act<{ updated?: number }>(() => contactRepository.markAllRead(), {
+      failure: 'Could not mark everything read',
+    });
+    setBusy(false);
+    if (!result) return;
+    notify('ok', `${result.data?.updated ?? 0} messages marked read`);
+    await load();
+    refreshStats();
   };
 
   usePrimaryAction({ label: 'Mark all read', onClick: markAllRead, disabled: busy }, [busy, page, filter, includeArchived]);
@@ -191,21 +189,15 @@ export default function AdminInbox(): JSX.Element {
     if (!selected) return;
     if (!confirm('Archive this message? It stays available under “archived”.')) return;
     setBusy(true);
-    try {
-      const res = await contactRepository.archiveSubmission(selected.id);
-      if (!res.success) {
-        notify('err', res.error || 'Could not archive the message');
-        return;
-      }
-      notify('ok', 'Message archived');
-      setSelected(null);
-      await load();
-      refreshStats();
-    } catch (err) {
-      notify('err', apiErrorMessage(err, 'Could not archive the message'));
-    } finally {
-      setBusy(false);
-    }
+    const result = await act(() => contactRepository.archiveSubmission(selected.id), {
+      failure: 'Could not archive the message',
+      success: 'Message archived',
+    });
+    setBusy(false);
+    if (!result) return;
+    setSelected(null);
+    await load();
+    refreshStats();
   };
 
   const filters: Array<{ key: ReadFilter; label: string }> = [
@@ -257,9 +249,7 @@ export default function AdminInbox(): JSX.Element {
               onMarkUnread={markUnread}
             />
           ) : (
-            <div className="p-7">
-              <MutedLine>Select a message to read it.</MutedLine>
-            </div>
+            <EmptyState>Select a message to read it.</EmptyState>
           )}
         </div>
       </ConsolePanel>

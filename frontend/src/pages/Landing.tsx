@@ -6,12 +6,9 @@
  * `data-field="1"`. Sections the visitor cannot see are not rendered at all — the tab guard
  * is enforced again on the backend, so this is cosmetic, not a security boundary.
  */
-import { useEffect, useState } from 'react';
 import { FieldCanvas, FieldDock, FieldProvider, LearnModal, useField } from '../field/index.ts';
-import { useAuth } from '../contexts/AuthContext.tsx';
 import { useIsTabVisible } from '../contexts/TabConfigContext.tsx';
-import { getPortfolio } from '../repositories/portfolioRepository.ts';
-import type { PortfolioItem } from '../types/index.ts';
+import { useProjects } from '../work/useProjects.ts';
 import SiteHeader, { type NavLink } from '../components/site/SiteHeader.tsx';
 import SiteFooter from '../components/site/SiteFooter.tsx';
 import WorkSection from '../components/site/sections/WorkSection.tsx';
@@ -28,33 +25,13 @@ export default function Landing() {
 }
 
 function LandingBody() {
-  const { isAuthenticated, isLoading } = useAuth();
   const { openLearn } = useField();
-  const [projects, setProjects] = useState<PortfolioItem[]>([]);
-  const [loadingProjects, setLoadingProjects] = useState(true);
-  const [projectsError, setProjectsError] = useState('');
+  const { projects, loading: loadingProjects, error: projectsError } = useProjects();
 
   const showWork = useIsTabVisible('work');
   const showHangar = useIsTabVisible('hangar');
   const showAbout = useIsTabVisible('about');
   const showContact = useIsTabVisible('contact');
-
-  useEffect(() => {
-    if (isLoading) return;
-    let cancelled = false;
-    getPortfolio(isAuthenticated)
-      .then(resp => {
-        if (cancelled) return;
-        setProjects(Array.isArray(resp?.data) ? resp.data : []);
-      })
-      .catch(() => {
-        if (!cancelled) setProjectsError('Projects are unavailable right now.');
-      })
-      .finally(() => {
-        if (!cancelled) setLoadingProjects(false);
-      });
-    return () => { cancelled = true; };
-  }, [isAuthenticated, isLoading]);
 
   const links: NavLink[] = [
     showWork && { href: '#work', label: 'Work' },

@@ -4,13 +4,13 @@ export interface ProjectFact { k: string; v: string }
 export interface ProjectStep { t: string; d: string }
 
 /** Specimen painter key — matches `projects.specimen` on the backend. */
-export type SpecimenKey = 'chain' | 'hull' | 'equity' | 'graph' | 'board';
+type SpecimenKey = 'chain' | 'hull' | 'equity' | 'graph' | 'board';
 
 /**
  * Detail-page content lives on the project row, so every field below is optional:
  * a project added before the redesign renders hero + whatever it has.
  */
-export interface ProjectContentFields {
+interface ProjectContentFields {
   slug?: string | null;
   field?: string | null;
   lede?: string | null;
@@ -58,35 +58,6 @@ export interface ProjectOrderUpdate {
   displayOrder: number;
 }
 
-export interface CVData {
-  personal_info: {
-    name: string;
-    title: string;
-    email: string;
-    location: string;
-    summary: string;
-  };
-  experience: Array<{
-    company: string;
-    position: string;
-    start_date: string;
-    end_date: string;
-    description: string;
-    technologies: string[];
-  }>;
-  education: Array<{
-    institution: string;
-    degree: string;
-    start_date: string;
-    end_date: string;
-  }>;
-  skills: {
-    languages: string[];
-    frameworks: string[];
-    tools: string[];
-  };
-}
-
 export interface ContactFormData {
   name: string;
   email: string;
@@ -109,13 +80,6 @@ export interface ContactSubmission {
   archivedAt?: string | null;
 }
 
-export interface ContactSubmissionsResponse {
-  submissions: ContactSubmission[];
-  total: number;
-  limit: number;
-  offset: number;
-}
-
 // Authentication Types
 export interface User {
   id: number;
@@ -136,10 +100,10 @@ export interface AuthResponse {
 // Dashboard Types
 
 /** Counts keyed by `job_applications.status`; every status is always present. */
-export type ApplicationsByStatus = Record<string, number>;
+type ApplicationsByStatus = Record<string, number>;
 
 /** Compact summary of the most recent agent sweep. `null` when no run exists yet. */
-export interface LatestRunSummary {
+interface LatestRunSummary {
   id: number;
   status: AgentRunStatus;
   findings_count: number;
@@ -166,7 +130,7 @@ export interface DashboardStats {
 }
 
 // Hangar Types — mirrors the broker's `GET /instances` payload, proxied by the backend.
-export interface HangarInstance {
+interface HangarInstance {
   slug: string;
   name: string;
   kind: string;
@@ -210,7 +174,7 @@ export interface PdfUploadResponse {
 }
 
 // GitHub Stats Types
-export interface GitHubLanguage {
+interface GitHubLanguage {
   name: string;
   pct: number;
   color: string;
@@ -235,11 +199,14 @@ export interface GitHubStats {
 export interface AboutData {
   id: number | null;
   content: string;
+  profilePhotoUrl: string | null;
   updatedAt: string | null;
 }
 
 export interface AboutFormData {
   content: string;
+  /** Empty string clears the portrait; omit the field to leave it untouched. */
+  profilePhotoUrl?: string;
 }
 
 // Job Tracking Types
@@ -259,13 +226,6 @@ export interface Company {
   updated_at: string;
 }
 
-export interface CompanyFormData {
-  name: string;
-  url: string;
-  notes: string;
-  careers_url: string;
-}
-
 export type TabConfigs = Record<string, boolean>;
 
 export interface JobApplication {
@@ -282,36 +242,8 @@ export interface JobApplication {
   updated_at: string;
 }
 
-export interface JobApplicationFormData {
-  company_name: string;
-  position: string;
-  status: string;
-  job_url: string;
-  date_applied: string;
-  notes: string;
-}
-
-export interface IdeaItem {
-  id: number;
-  title: string;
-  description: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface IdeaFormData {
-  title: string;
-  description: string;
-}
-
 // Job-search agent types
-export interface JobSearchProfile {
-  interests: string;
-  min_score: number;
-  updated_at: string;
-}
-
-export type AgentRunStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled';
+type AgentRunStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled';
 
 export interface AgentRun {
   id: number;
@@ -337,7 +269,7 @@ export interface AgentRun {
   duration_seconds: number | null;
 }
 
-export interface AgentRunCompanyResult {
+interface AgentRunCompanyResult {
   id: number;
   company_id: number;
   company_name: string;
@@ -352,7 +284,7 @@ export interface AgentRunDetail extends AgentRun {
   company_results: AgentRunCompanyResult[];
 }
 
-export interface AgentPosting {
+interface AgentPosting {
   id: number;
   company_id: number;
   source: string;

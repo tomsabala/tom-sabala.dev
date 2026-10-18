@@ -10,6 +10,7 @@ from app.utils.csrf_protection import generateCsrfToken, attachCsrfCookieToRespo
 from app.utils.tab_guard import require_tab_visible
 import sys
 import threading
+import traceback
 
 contact_bp = Blueprint('contact', __name__)
 
@@ -232,7 +233,7 @@ def submitContactForm():
 
         # Save submission to database
         try:
-            submission = ContactSubmissionDAO(db.session).createSubmission(
+            ContactSubmissionDAO(db.session).createSubmission(
                 name=name,
                 email=email,
                 message=message,
@@ -256,7 +257,9 @@ def submitContactForm():
             'message': 'Thank you for your message! I will get back to you soon.'
         }), 200
 
-    except Exception as e:
+    except Exception:
+        # The visitor gets a generic failure; the cause belongs in the logs, not the response.
+        print(traceback.format_exc(), file=sys.stderr)
         return jsonify({'success': False, 'error': 'Failed to submit form'}), 500
 
 

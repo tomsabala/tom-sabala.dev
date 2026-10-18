@@ -1,29 +1,9 @@
 /**
  * Resume Repository
- * Handles all resume/CV-related API calls (public and admin)
+ * Handles the CV PDF: the active version, its URLs, and admin version management.
  */
 import { apiClient, fileUploadClient } from './apiClient.ts';
-import type { CVData, PdfUploadResponse } from '../types/index.ts';
-
-/**
- * Get CV/Resume data (public)
- */
-export async function getCV() {
-  const response = await apiClient.get('/cv');
-  return response.data;
-}
-
-/**
- * Update CV/Resume data (admin - requires auth)
- */
-export async function updateCV(cvData: Partial<CVData>) {
-  const response = await apiClient.put('/cv', cvData);
-  return response.data;
-}
-
-// ========================================
-// PDF RESUME FUNCTIONS
-// ========================================
+import type { PdfUploadResponse } from '../types/index.ts';
 
 /**
  * Get active PDF metadata (public)

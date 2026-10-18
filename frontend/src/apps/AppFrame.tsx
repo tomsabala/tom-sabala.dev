@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { appEntryUrl } from './registry.ts';
 import type { HostedApp } from './registry.ts';
 import ThemeToggle from './ThemeToggle.tsx';
-import { unitIndex } from './units.ts';
+import { bootLabel, unitIndex } from './units.ts';
 import { useBootPhases } from './useBootPhases.ts';
 
 /**
@@ -14,8 +14,21 @@ import { useBootPhases } from './useBootPhases.ts';
  * admin session is usable. `allow-same-origin` is required for their localStorage/IndexedDB.
  * Never drop a third-party or generated bundle in here.
  */
-export const FRAME_SANDBOX =
+const FRAME_SANDBOX =
   'allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads';
+
+/** One step of the request path, drawn as a chip in the frame header. */
+interface StripChip {
+  label: string;
+  lit: boolean;
+  /** The unit itself — the end of the path, so it lights in the accent, not in ink. */
+  unit?: boolean;
+}
+
+function chipTone(chip: StripChip): string {
+  if (!chip.lit) return 'bg-transparent text-mut';
+  return chip.unit ? 'bg-acc text-onacc' : 'bg-ink text-bg';
+}
 
 function AppFrame({ app, index }: { app: HostedApp; index: number }) {
   const [attempt, setAttempt] = useState(0);
@@ -27,17 +40,14 @@ function AppFrame({ app, index }: { app: HostedApp; index: number }) {
   const starting = app.kind === 'service' && !loaded;
   const boot = useBootPhases(app.slug, starting, attempt);
   // A shared app is one instance for everybody; calling it private would be a lie.
-  const bootStatus =
-    app.kind === 'service' && app.mode === 'shared'
-      ? 'Waking the app…'
-      : 'Starting your private instance…';
+  const bootStatus = bootLabel(app);
 
   const idx = unitIndex(index);
-  const strip: { label: string; lit: boolean }[] = [
+  const strip: StripChip[] = [
     { label: 'YOU', lit: true },
     { label: 'GATEWAY', lit: loaded || boot.answered },
     { label: 'BROKER', lit: loaded || boot.reached >= 1 },
-    { label: `UNIT ${idx}`, lit: loaded || boot.reached >= boot.phaseCount },
+    { label: `UNIT ${idx}`, lit: loaded || boot.reached >= boot.phaseCount, unit: true },
   ];
 
   const retry = () => {
@@ -64,18 +74,10 @@ function AppFrame({ app, index }: { app: HostedApp; index: number }) {
         <div className="flex basis-full items-center gap-1.5 overflow-x-auto font-mono text-[10px] uppercase leading-none tracking-[0.08em] max-sm:order-last sm:basis-auto">
           {strip.map((chip, i) => (
             <span key={chip.label} className="flex shrink-0 items-center gap-1.5">
-              <span
-                className={`whitespace-nowrap border border-ink px-[7px] py-1.5 ${
-                  chip.lit
-                    ? i === 3
-                      ? 'bg-acc text-onacc'
-                      : 'bg-ink text-bg'
-                    : 'bg-transparent text-mut'
-                }`}
-              >
+              <span className={`whitespace-nowrap border border-ink px-[7px] py-1.5 ${chipTone(chip)}`}>
                 {chip.label}
               </span>
-              {i < 3 && <span className="text-mut">→</span>}
+              {i < strip.length - 1 && <span className="text-mut">→</span>}
             </span>
           ))}
         </div>

@@ -6,7 +6,8 @@
  * renders it. Dashboard stats are fetched once by the shell (the rail badges need them) and
  * handed down here so no screen re-fetches them.
  */
-import { createContext, useContext, useEffect } from 'react';
+import { createContext, useCallback, useContext, useEffect } from 'react';
+import { apiErrorMessage } from '../../repositories/apiError.ts';
 import type { DashboardStats } from '../../types/index.ts';
 
 export type AdminScreenKey = 'overview' | 'pipeline' | 'content' | 'inbox' | 'hangar' | 'visibility';
@@ -94,4 +95,43 @@ export function usePrimaryAction(action: PrimaryAction | null, deps: unknown[]):
     return () => setPrimary(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
+}
+
+/** The `{ success, data, error }` envelope every repository call resolves to. */
+interface ApiResult<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+}
+
+/**
+ * Runs one repository mutation and funnels both failure shapes — a rejected request and a
+ * `success: false` body — into a single console notice. Resolves to the envelope on success
+ * and to `null` on failure, so a screen's happy path is one `if`.
+ */
+export function useAdminAction(): <T>(
+  call: () => Promise<ApiResult<T>>,
+  messages: { failure: string; success?: string },
+) => Promise<ApiResult<T> | null> {
+  const { notify } = useAdminChrome();
+  return useCallback(
+    async <T,>(
+      call: () => Promise<ApiResult<T>>,
+      messages: { failure: string; success?: string },
+    ): Promise<ApiResult<T> | null> => {
+      try {
+        const result = await call();
+        if (!result.success) {
+          notify('err', result.error || messages.failure);
+          return null;
+        }
+        if (messages.success) notify('ok', messages.success);
+        return result;
+      } catch (error) {
+        notify('err', apiErrorMessage(error, messages.failure));
+        return null;
+      }
+    },
+    [notify],
+  );
 }

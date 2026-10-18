@@ -10,7 +10,7 @@ import type { Pal } from '../field/draw.ts';
 import { A, MONO } from '../field/draw.ts';
 import { rng } from './specimens.ts';
 
-export type SpecimenPainter = (
+type SpecimenPainter = (
   g: CanvasRenderingContext2D,
   w: number,
   h: number,

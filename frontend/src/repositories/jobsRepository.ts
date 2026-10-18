@@ -51,11 +51,6 @@ export async function updateApplication(id: number, data: object) {
   return response.data;
 }
 
-export async function updateApplicationStatus(id: number, status: string) {
-  const response = await apiClient.patch(`/jobs/applications/${id}/status`, { status });
-  return response.data;
-}
-
 export async function deleteApplication(id: number) {
   const response = await apiClient.delete(`/jobs/applications/${id}`);
   return response.data;

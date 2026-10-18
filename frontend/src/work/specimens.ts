@@ -5,10 +5,9 @@
  */
 import type { Pal } from '../field/draw.ts';
 import { A, PAL } from '../field/draw.ts';
+import { dotGrid, prepareCanvas } from './canvas.ts';
 
-export type GlyphKey = 'chain' | 'hull' | 'equity' | 'graph' | 'board';
-
-export type GlyphPainter = (
+type GlyphPainter = (
   g: CanvasRenderingContext2D,
   w: number,
   h: number,
@@ -28,7 +27,7 @@ export function rng(seed: number): () => number {
 }
 
 /** Monotone chain convex hull; returns the hull vertices in order. */
-export function hull<T extends { x: number; y: number }>(P: T[]): T[] {
+function hull<T extends { x: number; y: number }>(P: T[]): T[] {
   const p = P.slice().sort((a, b) => a.x - b.x || a.y - b.y);
   const cr = (o: T, a: T, b: T) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
   const lo: T[] = [];
@@ -208,7 +207,8 @@ const glyphBoard: GlyphPainter = (g, w, h, P) => {
   g.textBaseline = 'alphabetic';
 };
 
-export const GLYPHS: Record<GlyphKey, GlyphPainter> = {
+/** Keyed by `projects.specimen`; a project whose key is not here gets the dot grid alone. */
+const GLYPHS: Record<string, GlyphPainter> = {
   chain: glyphChain,
   hull: glyphHull,
   equity: glyphEquity,
@@ -217,9 +217,8 @@ export const GLYPHS: Record<GlyphKey, GlyphPainter> = {
 };
 
 /**
- * Paints one list glyph into a canvas, sizing its backing store to the element and the
- * device pixel ratio. A `glyph` that is null or unknown leaves the dot grid alone, which is
- * what a project without a specimen should look like.
+ * Paints one list glyph into a canvas. A `glyph` that is null or unknown leaves the dot
+ * grid alone, which is what a project without a specimen should look like.
  */
 export function paintGlyph(
   canvas: HTMLCanvasElement,
@@ -227,21 +226,13 @@ export function paintGlyph(
   seed: number,
   theme: 'light' | 'dark',
 ): void {
-  const w = canvas.clientWidth;
-  const h = canvas.clientHeight;
-  if (!w || !h) return;
+  const surface = prepareCanvas(canvas);
+  if (!surface) return;
+  const { g, w, h } = surface;
   const P = PAL[theme];
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  canvas.width = w * dpr;
-  canvas.height = h * dpr;
-  const g = canvas.getContext('2d');
-  if (!g) return;
-  g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  g.clearRect(0, 0, w, h);
-  g.fillStyle = A(P.mut, 0.25);
-  for (let x = 16; x < w; x += 16) for (let y = 16; y < h; y += 16) g.fillRect(x - 0.5, y - 0.5, 1, 1);
-  const fn = glyph ? GLYPHS[glyph as GlyphKey] : undefined;
-  if (fn) fn(g, w, h, P, rng(seed || 1));
+  dotGrid(g, w, h, P, 16, 0.25);
+  const paint = glyph ? GLYPHS[glyph] : undefined;
+  paint?.(g, w, h, P, rng(seed || 1));
 }
 
 /**

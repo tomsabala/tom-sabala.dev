@@ -6,7 +6,7 @@
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext.tsx';
-import { useTheme } from '../../contexts/ThemeContext.tsx';
+import ThemeToggle from './ThemeToggle.tsx';
 import LoginModal from '../LoginModal.tsx';
 
 export interface NavLink {
@@ -19,7 +19,6 @@ interface SiteHeaderProps {
 }
 
 export default function SiteHeader({ links }: SiteHeaderProps) {
-  const { theme, toggleTheme } = useTheme();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const clicks = useRef<number[]>([]);
@@ -59,7 +58,7 @@ export default function SiteHeader({ links }: SiteHeaderProps) {
             </span>
           </div>
           <div className="flex items-center gap-2 md:hidden shrink-0">
-            <ThemeButton theme={theme} onClick={toggleTheme} />
+            <ThemeToggle />
             <TerminalChip />
           </div>
         </div>
@@ -71,7 +70,7 @@ export default function SiteHeader({ links }: SiteHeaderProps) {
             </a>
           ))}
           <div className="hidden md:flex items-center gap-[clamp(14px,2.2vw,30px)]">
-            <ThemeButton theme={theme} onClick={toggleTheme} />
+            <ThemeToggle />
             <TerminalChip />
           </div>
         </nav>
@@ -79,19 +78,6 @@ export default function SiteHeader({ links }: SiteHeaderProps) {
 
       <LoginModal isOpen={loginOpen} onClose={() => setLoginOpen(false)} />
     </header>
-  );
-}
-
-function ThemeButton({ theme, onClick }: { theme: string; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label="Toggle theme"
-      className="bg-transparent border border-ln2 text-ink font-mono text-[12px] leading-none tracking-[0.06em] uppercase px-[11px] py-[9px] cursor-pointer hover:border-acct shrink-0"
-    >
-      {theme === 'dark' ? '◐ Light' : '◑ Dark'}
-    </button>
   );
 }
 

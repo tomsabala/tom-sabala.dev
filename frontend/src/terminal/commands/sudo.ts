@@ -1,5 +1,6 @@
 import { registerCommand } from './registry';
 import { PERSONAL_INFO } from '../data';
+import { DIM, ERROR, PROMPT } from './output';
 import type { CommandResult, OutputLine } from './types';
 
 registerCommand({
@@ -17,14 +18,14 @@ registerCommand({
 
     if (subcommand === 'hire-me' || subcommand === 'hire me') {
       const lines: OutputLine[] = [
-        { text: '[sudo] password for visitor: ********', color: 'var(--term-fg-dim)' },
+        { text: '[sudo] password for visitor: ********', color: DIM },
         { text: '' },
-        { text: "Permission granted! Here's how to reach me:", bold: true, color: 'var(--term-prompt)' },
+        { text: "Permission granted! Here's how to reach me:", bold: true, color: PROMPT },
         { text: '' },
         { text: `  Email:    ${PERSONAL_INFO.email}` },
         { text: `  Website:  ${PERSONAL_INFO.website}` },
         { text: '' },
-        { text: "  I'm always open to interesting opportunities.", color: 'var(--term-fg-dim)' },
+        { text: "  I'm always open to interesting opportunities.", color: DIM },
         { text: "  Let's build something great together!" },
       ];
       return { output: lines };
@@ -32,8 +33,8 @@ registerCommand({
 
     return {
       output: [
-        { text: `[sudo] password for visitor: ********`, color: 'var(--term-fg-dim)' },
-        { text: "Nice try. You don't have sudo privileges here.", color: 'var(--term-error)' },
+        { text: '[sudo] password for visitor: ********', color: DIM },
+        { text: "Nice try. You don't have sudo privileges here.", color: ERROR },
       ],
     };
   },

@@ -15,11 +15,10 @@
 import manifestJson from './apps.json';
 
 type HostedAppStatus = 'live' | 'wip';
-export type AppKind = 'bundle' | 'service';
 /** `admin` apps are absent from the manifest the gateway serves anonymous visitors. */
-export type AppAccess = 'public' | 'admin';
+type AppAccess = 'public' | 'admin';
 /** Optional attribution line, rendered verbatim on the app's card. `text` is the whole note. */
-export interface AppCredit {
+interface AppCredit {
   text: string;
   url?: string;
 }
@@ -32,7 +31,7 @@ export interface AppCredit {
  *   how many people are on it. Only for apps that either store nothing per visitor or have
  *   their own accounts: every visitor sees the same data.
  */
-export type ServiceMode = 'session' | 'shared';
+type ServiceMode = 'session' | 'shared';
 
 interface AppBase {
   /** Launcher deep link (`#/<slug>`); for bundles also the directory under public/hosted. */
@@ -46,7 +45,7 @@ interface AppBase {
   credit?: AppCredit;
 }
 
-export interface BundleApp extends AppBase {
+interface BundleApp extends AppBase {
   kind: 'bundle';
 }
 
@@ -55,7 +54,7 @@ export interface BundleApp extends AppBase {
  * `apps.json`: the gateway strips these keys before serving `/manifest.json` to a browser,
  * so a parsed service app coming off the wire has `runtime === undefined`.
  */
-export interface ServiceRuntime {
+interface ServiceRuntime {
   image: string;
   port: number;
   memoryMb: number;
@@ -67,7 +66,7 @@ export interface ServiceRuntime {
   capAdd: string[];
 }
 
-export interface ServiceApp extends AppBase {
+interface ServiceApp extends AppBase {
   kind: 'service';
   /** Survives into the browser-facing manifest: the launcher words its overlay from it. */
   mode: ServiceMode;

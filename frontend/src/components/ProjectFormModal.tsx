@@ -4,9 +4,7 @@ import { apiErrorMessage } from '../repositories/apiError.ts';
 import ImageUploadField from './ImageUploadField.tsx';
 import Modal from './Modal.tsx';
 import {
-  BTN_MUTED,
-  BTN_PRIMARY,
-  DIALOG_TITLE,
+  DialogHeader,
   ERROR_BOX,
   ERROR_TEXT,
   FIELD,
@@ -14,7 +12,8 @@ import {
   FIELD_MONO,
   HINT,
   LABEL,
-} from './formStyles.ts';
+  MonoButton,
+} from './console.tsx';
 import type {
   PortfolioItem,
   ProjectFact,
@@ -269,23 +268,16 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
     }
   };
 
+  const submitLabel = mode === 'add' ? 'Add project' : 'Save changes';
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} titleId="project-form-title">
       <div className="p-6">
-        {/* Header */}
-        <div className="flex justify-between items-start gap-4 mb-6">
-          <h2 id="project-form-title" className={DIALOG_TITLE}>
-            {mode === 'add' ? 'Add project' : 'Edit project'}
-          </h2>
-          <button
-            onClick={onClose}
-            type="button"
-            className="bg-transparent border border-ln2 text-mut font-mono text-[12px] leading-none px-2.5 py-2 cursor-pointer hover:text-ink hover:border-ink"
-            aria-label="Close dialog"
-          >
-            <span aria-hidden="true">×</span>
-          </button>
-        </div>
+        <DialogHeader
+          id="project-form-title"
+          title={mode === 'add' ? 'Add project' : 'Edit project'}
+          onClose={onClose}
+        />
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
@@ -772,25 +764,25 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
             </div>
           )}
 
-          {/* Action Buttons */}
           <div className="flex gap-3 justify-end pt-1">
-            <button type="button" onClick={onClose} disabled={submitting} className={BTN_MUTED}>
+            <MonoButton onClick={onClose} tone="muted" size="md" disabled={submitting}>
               Cancel
-            </button>
-            <button
+            </MonoButton>
+            <MonoButton
               type="submit"
+              tone="accent"
+              size="md"
               disabled={submitting}
-              aria-label={submitting ? 'Saving project' : (mode === 'add' ? 'Add project' : 'Save changes')}
-              className={BTN_PRIMARY}
+              ariaLabel={submitting ? 'Saving project' : submitLabel}
             >
               {submitting ? (
                 <span role="status" aria-label="Saving">
                   ● Saving
                 </span>
               ) : (
-                mode === 'add' ? 'Add project' : 'Save changes'
+                submitLabel
               )}
-            </button>
+            </MonoButton>
           </div>
         </form>
       </div>

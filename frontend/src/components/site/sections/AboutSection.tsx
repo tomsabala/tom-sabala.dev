@@ -4,6 +4,7 @@
  * strip is mounted only when the feature is configured and its tab is visible.
  */
 import { useEffect, useState } from 'react';
+import { API_ORIGIN } from '../../../repositories/apiClient.ts';
 import { getAbout } from '../../../repositories/aboutRepository.ts';
 import { getActivePdf, getPdfDownloadUrl, getPdfFileUrl } from '../../../repositories/resumeRepository.ts';
 import { getGitHubStatsEnabled } from '../../../repositories/githubRepository.ts';
@@ -12,8 +13,7 @@ import { SKILLS } from '../../../about/skills.ts';
 import { radar } from '../../../about/radar.ts';
 import GitHubStats from '../../GitHubStats.tsx';
 import PdfViewer from '../../PdfViewer.tsx';
-import Panel from '../Panel.tsx';
-import SectionHeading from '../SectionHeading.tsx';
+import Section from '../Section.tsx';
 
 const RADARS = SKILLS.map(radar);
 
@@ -22,6 +22,7 @@ const FALLBACK_BIO =
 
 export default function AboutSection() {
   const [bio, setBio] = useState(FALLBACK_BIO);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [hasPdf, setHasPdf] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
   const [githubEnabled, setGithubEnabled] = useState(false);
@@ -32,6 +33,8 @@ export default function AboutSection() {
       .then(resp => {
         const content = resp?.data?.content;
         if (typeof content === 'string' && content.trim()) setBio(content.trim());
+        const photo = resp?.data?.profilePhotoUrl;
+        if (typeof photo === 'string' && photo) setPhotoUrl(photo);
       })
       .catch(() => { /* the fallback bio is the same copy the terminal ships */ });
 
@@ -43,32 +46,40 @@ export default function AboutSection() {
   }, []);
 
   return (
-    <section id="about" data-field="1" className="pt-[clamp(64px,22vh,240px)] scroll-mt-[60px]">
-      <Panel>
-        <SectionHeading
-          index="03"
-          title="About + CV"
-          aside={
-            <span className="font-mono text-[12px] leading-none text-mut tracking-[0.06em] uppercase">
-              Based in Israel
-            </span>
-          }
-        />
-
+    <>
+      <Section
+        id="about"
+        index="03"
+        title="About + CV"
+        aside={
+          <span className="font-mono text-[12px] leading-none text-mut tracking-[0.06em] uppercase">
+            Based in Israel
+          </span>
+        }
+      >
         <div
           className="grid gap-8 lg:gap-12 items-start mt-6"
           style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 420px), 1fr))' }}
         >
-          <p
-            className="m-0 [text-wrap:pretty]"
-            style={{
-              fontSize: 'clamp(20px,2.2vw,30px)',
-              lineHeight: 1.35,
-              letterSpacing: '-0.01em',
-            }}
-          >
-            {bio}
-          </p>
+          <div className="flex flex-col gap-6 min-w-0">
+            {photoUrl && (
+              <img
+                src={photoUrl.startsWith('/api/') ? `${API_ORIGIN}${photoUrl}` : photoUrl}
+                alt="Tom Sabała"
+                className="w-[180px] h-[180px] object-cover border border-ln2 grayscale"
+              />
+            )}
+            <p
+              className="m-0 [text-wrap:pretty]"
+              style={{
+                fontSize: 'clamp(20px,2.2vw,30px)',
+                lineHeight: 1.35,
+                letterSpacing: '-0.01em',
+              }}
+            >
+              {bio}
+            </p>
+          </div>
 
           <div className="flex flex-col gap-5">
             <p className="m-0 font-mono text-[13px] leading-[1.7] text-ink2">
@@ -153,7 +164,7 @@ export default function AboutSection() {
             <GitHubStats />
           </div>
         )}
-      </Panel>
+      </Section>
 
       {viewerOpen && (
         <div
@@ -179,6 +190,6 @@ export default function AboutSection() {
           </div>
         </div>
       )}
-    </section>
+    </>
   );
 }

@@ -9,7 +9,7 @@ import { bool, num } from '../config';
 import { A, cross, MONO } from '../draw';
 import type { FieldAlgo, FieldStepCtx, FieldTapCtx, FieldTool, Pal, FieldPointer, Pt } from '../types';
 
-export interface PlannerNode {
+interface PlannerNode {
   x: number;
   y: number;
   /** Parent index, `-1` for the root. */
@@ -18,13 +18,13 @@ export interface PlannerNode {
   c: number;
 }
 
-export interface PlannerObstacle {
+interface PlannerObstacle {
   x: number;
   y: number;
   r: number;
 }
 
-export interface KeepOut {
+interface KeepOut {
   x: number;
   y: number;
   w: number;
@@ -42,14 +42,14 @@ export interface PlannerState {
   frame: number;
 }
 
-export function free(S: PlannerState, x: number, y: number): boolean {
+function free(S: PlannerState, x: number, y: number): boolean {
   for (const o of S.obs) if ((x - o.x) ** 2 + (y - o.y) ** 2 < (o.r + 3) ** 2) return false;
   const k = S.ko;
   if (k && x > k.x && x < k.x + k.w && y > k.y && y < k.y + k.h) return false;
   return true;
 }
 
-export function segFree(S: PlannerState, a: Pt, b: Pt): boolean {
+function segFree(S: PlannerState, a: Pt, b: Pt): boolean {
   const d = Math.hypot(b.x - a.x, b.y - a.y),
     n = Math.max(2, Math.ceil(d / 5));
   for (let i = 0; i <= n; i++) {

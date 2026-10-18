@@ -1,4 +1,4 @@
-export const HOSTNAME = 'visitor@tom-sabala.dev';
+const HOSTNAME = 'visitor@tom-sabala.dev';
 
 export function getPrompt(currentDir: string): string {
   return `${HOSTNAME}:${currentDir}$ `;

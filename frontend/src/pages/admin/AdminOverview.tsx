@@ -24,13 +24,22 @@ import {
   formatBytes,
   formatDuration,
   formatWhen,
-} from './ui.tsx';
+} from '../../components/console.tsx';
 
 interface Kpi {
   k: string;
   v: string;
   d: string;
   to: string;
+}
+
+/** Every panel on this screen hands off to the screen it summarises. */
+function OpenLink({ to }: { to: string }) {
+  return (
+    <Link to={to} className="font-mono text-[11px] leading-none text-mut no-underline">
+      open →
+    </Link>
+  );
 }
 
 export default function AdminOverview(): JSX.Element {
@@ -176,11 +185,7 @@ export default function AdminOverview(): JSX.Element {
           <PanelHead
             label="PIPELINE · FLOW"
             padded={false}
-            right={
-              <Link to="/admin/pipeline" className="font-mono text-[11px] leading-none text-mut no-underline">
-                open →
-              </Link>
-            }
+            right={<OpenLink to="/admin/pipeline" />}
           />
           {funnel.map(row => (
             <div
@@ -214,10 +219,10 @@ export default function AdminOverview(): JSX.Element {
           {latestRun ? (
             <>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <MetricTile k="COMPANIES" v={latestRun.companies_total} />
-                <MetricTile k="POSTINGS" v={latestRun.postings_seen} />
-                <MetricTile k="NEW" v={latestRun.postings_new} />
-                <MetricTile k="FINDINGS" v={latestRun.findings_count} />
+                <MetricTile label="COMPANIES" value={latestRun.companies_total} />
+                <MetricTile label="POSTINGS" value={latestRun.postings_seen} />
+                <MetricTile label="NEW" value={latestRun.postings_new} />
+                <MetricTile label="FINDINGS" value={latestRun.findings_count} />
               </div>
               {findings.slice(0, 3).map(f => (
                 <div
@@ -256,11 +261,7 @@ export default function AdminOverview(): JSX.Element {
           <PanelHead
             label={`INBOX · ${stats?.unreadMessages ?? 0} UNREAD`}
             padded={false}
-            right={
-              <Link to="/admin/inbox" className="font-mono text-[11px] leading-none text-mut no-underline">
-                open →
-              </Link>
-            }
+            right={<OpenLink to="/admin/inbox" />}
           />
           {inbox.slice(0, 2).map(m => (
             <div key={m.id} className="flex flex-col gap-1 py-2.5 border-t border-ln min-w-0">
@@ -280,11 +281,7 @@ export default function AdminOverview(): JSX.Element {
           <PanelHead
             label="HANGAR · HEALTH"
             padded={false}
-            right={
-              <Link to="/admin/hangar" className="font-mono text-[11px] leading-none text-mut no-underline">
-                open →
-              </Link>
-            }
+            right={<OpenLink to="/admin/hangar" />}
           />
           {hangarDown && <MutedLine>status unavailable — the broker is not reachable</MutedLine>}
           {!hangarDown && instances.length === 0 && <MutedLine>No instances running.</MutedLine>}

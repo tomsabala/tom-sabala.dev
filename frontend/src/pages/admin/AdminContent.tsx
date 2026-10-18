@@ -31,21 +31,29 @@ import ProjectFormModal from '../../components/ProjectFormModal.tsx';
 import AboutFormModal from '../../components/AboutFormModal.tsx';
 import PdfUploadForm from '../../components/PdfUploadForm.tsx';
 import PdfHistoryList from '../../components/PdfHistoryList.tsx';
+import {
+  ConsolePanel,
+  EmptyState,
+  MonoButton,
+  MutedLine,
+  PanelHead,
+} from '../../components/console.tsx';
 import type { AboutData, PortfolioItem } from '../../types/index.ts';
-import { useAdminChrome, usePrimaryAction } from './chrome.tsx';
-import { ConsolePanel, MonoButton, MutedLine, PanelHead } from './ui.tsx';
+import { useAdminAction, useAdminChrome, usePrimaryAction } from './chrome.tsx';
 
 function ProjectRow({
   project,
   index,
   onEdit,
   onToggle,
+  onDelete,
   busy,
 }: {
   project: PortfolioItem;
   index: number;
   onEdit: () => void;
   onToggle: () => void;
+  onDelete: () => void;
   busy: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -89,6 +97,9 @@ function ProjectRow({
           {project.isVisible ? 'PUBLIC' : 'HIDDEN'}
         </MonoButton>
         <MonoButton onClick={onEdit}>Edit</MonoButton>
+        <MonoButton tone="muted" onClick={onDelete} disabled={busy}>
+          Delete
+        </MonoButton>
       </div>
     </div>
   );
@@ -96,6 +107,7 @@ function ProjectRow({
 
 export default function AdminContent(): JSX.Element {
   const { notify, refreshStats } = useAdminChrome();
+  const act = useAdminAction();
   const [projects, setProjects] = useState<PortfolioItem[]>([]);
   const [about, setAbout] = useState<AboutData | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
@@ -143,38 +155,37 @@ export default function AdminContent(): JSX.Element {
     const previous = projects;
     const next = arrayMove(projects, oldIndex, newIndex);
     setProjects(next);
-    try {
-      const res = await portfolioRepository.reorderProjects(
-        next.map((p, i) => ({ id: p.id, displayOrder: i + 1 }))
-      );
-      if (!res.success) {
-        setProjects(previous);
-        notify('err', res.error || 'Could not save the new order');
-        return;
-      }
-      notify('ok', 'Order saved');
-    } catch (err) {
-      setProjects(previous);
-      notify('err', apiErrorMessage(err, 'Could not save the new order'));
-    }
+    const result = await act(
+      () => portfolioRepository.reorderProjects(next.map((p, i) => ({ id: p.id, displayOrder: i + 1 }))),
+      { failure: 'Could not save the new order', success: 'Order saved' }
+    );
+    if (!result) setProjects(previous);
   };
 
   const toggleVisibility = async (project: PortfolioItem) => {
     setBusyId(project.id);
     const nextVisible = !project.isVisible;
-    try {
-      const res = await portfolioRepository.setProjectVisibility(project.id, nextVisible);
-      if (!res.success) {
-        notify('err', res.error || 'Could not change visibility');
-        return;
-      }
-      setProjects(prev => prev.map(p => (p.id === project.id ? { ...p, isVisible: nextVisible } : p)));
-      refreshStats();
-    } catch (err) {
-      notify('err', apiErrorMessage(err, 'Could not change visibility'));
-    } finally {
-      setBusyId(null);
-    }
+    const result = await act(
+      () => portfolioRepository.setProjectVisibility(project.id, nextVisible),
+      { failure: 'Could not change visibility' }
+    );
+    setBusyId(null);
+    if (!result) return;
+    setProjects(prev => prev.map(p => (p.id === project.id ? { ...p, isVisible: nextVisible } : p)));
+    refreshStats();
+  };
+
+  const deleteProject = async (project: PortfolioItem) => {
+    if (!confirm(`Delete "${project.title}"? This cannot be undone.`)) return;
+    setBusyId(project.id);
+    const result = await act(() => portfolioRepository.deleteProject(project.id), {
+      failure: 'Could not delete the project',
+      success: 'Project deleted',
+    });
+    setBusyId(null);
+    if (!result) return;
+    await loadProjects();
+    refreshStats();
   };
 
   return (
@@ -202,15 +213,12 @@ export default function AdminContent(): JSX.Element {
                   busy={busyId === project.id}
                   onEdit={() => setProjectModal({ mode: 'edit', project })}
                   onToggle={() => toggleVisibility(project)}
+                  onDelete={() => deleteProject(project)}
                 />
               ))}
             </SortableContext>
           </DndContext>
-          {projects.length === 0 && (
-            <div className="px-5 py-5">
-              <MutedLine>No projects yet.</MutedLine>
-            </div>
-          )}
+          {projects.length === 0 && <EmptyState>No projects yet.</EmptyState>}
         </ConsolePanel>
 
         <div className="flex flex-col gap-5 min-w-0">
@@ -241,7 +249,11 @@ export default function AdminContent(): JSX.Element {
                 }}
                 onUploadError={message => notify('err', message)}
               />
-              <PdfHistoryList key={pdfTick} onVersionChange={refreshStats} />
+              <PdfHistoryList
+                key={pdfTick}
+                onVersionChange={refreshStats}
+                onError={message => notify('err', message)}
+              />
             </div>
           </ConsolePanel>
         </div>

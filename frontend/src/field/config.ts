@@ -23,7 +23,7 @@ export const NAMES: Record<FieldKind, string> = {
   arm: 'FABRIK ARM',
 };
 
-export const CFG0: Record<FieldKind, FieldCfg> = {
+const CFG0: Record<FieldKind, FieldCfg> = {
   planner: { step: 24, rate: 30, density: 1, tree: true, rover: true },
   voronoi: { drift: 16, density: 1, tri: true, circ: true },
   lidar: { range: 300, speed: 0.8, persist: 7, rays: true, trail: true },

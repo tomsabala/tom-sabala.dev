@@ -13,7 +13,13 @@ import { useTabConfig } from '../../contexts/TabConfigContext.tsx';
 import { apiErrorMessage } from '../../repositories/apiError.ts';
 import type { TabConfigs } from '../../types/index.ts';
 import { useAdminChrome, usePrimaryAction } from './chrome.tsx';
-import { ConsolePanel, MutedLine, PanelHead, SquareToggle } from './ui.tsx';
+import {
+  ConsolePanel,
+  EmptyState,
+  MutedLine,
+  PanelHead,
+  SquareToggle,
+} from '../../components/console.tsx';
 
 interface SectionMeta {
   key: string;
@@ -105,9 +111,7 @@ export default function AdminVisibility(): JSX.Element {
       <ConsolePanel>
         <PanelHead label="PUBLIC VISIBILITY · YOU ALWAYS SEE EVERYTHING" />
         {loading ? (
-          <div className="px-5 py-4">
-            <MutedLine>Loading…</MutedLine>
-          </div>
+          <EmptyState>Loading…</EmptyState>
         ) : (
           SECTIONS.map(section => {
             const on = section.locked ? true : configs[section.key] ?? true;

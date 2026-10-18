@@ -2,15 +2,16 @@ import { useState, useEffect } from 'react';
 import * as aboutRepository from '../repositories/aboutRepository.ts';
 import { apiErrorMessage } from '../repositories/apiError.ts';
 import Modal from './Modal.tsx';
+import ProfilePhotoUploadField from './ProfilePhotoUploadField.tsx';
 import {
-  BTN_MUTED,
-  BTN_PRIMARY,
-  DIALOG_TITLE,
+  DialogHeader,
   ERROR_BOX,
+  ERROR_TEXT,
   FIELD,
   HINT,
   LABEL,
-} from './formStyles.ts';
+  MonoButton,
+} from './console.tsx';
 import type { AboutData } from '../types/index.ts';
 
 interface AboutFormModalProps {
@@ -27,15 +28,18 @@ const AboutFormModal: React.FC<AboutFormModalProps> = ({
   onSuccess,
 }) => {
   const [content, setContent] = useState('');
-  const [error, setError] = useState<string>('');
+  // The upload endpoint only stores the file; the row is written when this form is saved.
+  const [photoUrl, setPhotoUrl] = useState('');
+  const [photoError, setPhotoError] = useState('');
+  const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  // Initialize form data when modal opens
   useEffect(() => {
-    if (isOpen && currentData) {
-      setContent(currentData.content || '');
-      setError('');
-    }
+    if (!isOpen) return;
+    setContent(currentData?.content ?? '');
+    setPhotoUrl(currentData?.profilePhotoUrl ?? '');
+    setPhotoError('');
+    setError('');
   }, [isOpen, currentData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -44,8 +48,10 @@ const AboutFormModal: React.FC<AboutFormModalProps> = ({
     setError('');
 
     try {
+      // An empty string clears the portrait — the backend only skips the column on `null`.
       const response = await aboutRepository.updateAbout({
         content: content.trim(),
+        profilePhotoUrl: photoUrl,
       });
 
       if (response.success) {
@@ -63,24 +69,9 @@ const AboutFormModal: React.FC<AboutFormModalProps> = ({
   return (
     <Modal isOpen={isOpen} onClose={onClose} titleId="about-form-title">
       <div className="p-6">
-        {/* Header */}
-        <div className="flex justify-between items-start gap-4 mb-6">
-          <h2 id="about-form-title" className={DIALOG_TITLE}>
-            Edit about
-          </h2>
-          <button
-            onClick={onClose}
-            type="button"
-            className="bg-transparent border border-ln2 text-mut font-mono text-[12px] leading-none px-2.5 py-2 cursor-pointer hover:text-ink hover:border-ink"
-            aria-label="Close dialog"
-          >
-            <span aria-hidden="true">×</span>
-          </button>
-        </div>
+        <DialogHeader id="about-form-title" title="Edit about" onClose={onClose} />
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-          {/* About Content */}
           <div>
             <label htmlFor="about-content" className={LABEL}>
               About text
@@ -88,7 +79,7 @@ const AboutFormModal: React.FC<AboutFormModalProps> = ({
             <textarea
               id="about-content"
               value={content}
-              onChange={(e) => setContent(e.target.value)}
+              onChange={e => setContent(e.target.value)}
               rows={8}
               className={FIELD}
               placeholder="Write about yourself..."
@@ -96,19 +87,38 @@ const AboutFormModal: React.FC<AboutFormModalProps> = ({
             <p className={HINT}>Plain text only — no formatting or markdown supported.</p>
           </div>
 
-          {/* Error */}
+          <div>
+            <span className={LABEL}>Portrait</span>
+            <ProfilePhotoUploadField
+              currentPhotoUrl={photoUrl}
+              onPhotoUploaded={url => {
+                setPhotoUrl(url);
+                setPhotoError('');
+              }}
+              onUploadError={setPhotoError}
+            />
+            {photoError ? (
+              <p role="alert" className={ERROR_TEXT}>
+                {photoError}
+              </p>
+            ) : (
+              <p className={HINT}>
+                Shown beside the About section. Removing it takes effect when you save.
+              </p>
+            )}
+          </div>
+
           {error && (
             <div role="alert" className={ERROR_BOX}>
               {error}
             </div>
           )}
 
-          {/* Action Buttons */}
           <div className="flex gap-3 justify-end pt-1">
-            <button type="button" onClick={onClose} disabled={submitting} className={BTN_MUTED}>
+            <MonoButton onClick={onClose} tone="muted" size="md" disabled={submitting}>
               Cancel
-            </button>
-            <button type="submit" disabled={submitting} className={BTN_PRIMARY}>
+            </MonoButton>
+            <MonoButton type="submit" tone="accent" size="md" disabled={submitting}>
               {submitting ? (
                 <span role="status" aria-label="Saving about content">
                   ● Saving
@@ -116,7 +126,7 @@ const AboutFormModal: React.FC<AboutFormModalProps> = ({
               ) : (
                 'Save changes'
               )}
-            </button>
+            </MonoButton>
           </div>
         </form>
       </div>

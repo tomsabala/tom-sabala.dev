@@ -3,18 +3,16 @@ import * as jobsRepository from '../repositories/jobsRepository.ts';
 import { apiErrorMessage } from '../repositories/apiError.ts';
 import Modal from './Modal.tsx';
 import {
-  BTN_GHOST,
-  BTN_MUTED,
-  BTN_PRIMARY,
   CHIP,
-  DIALOG_TITLE,
+  DialogHeader,
   ERROR_BOX,
   ERROR_TEXT,
   FIELD,
   FIELD_ERROR,
   HINT,
   LABEL,
-} from './formStyles.ts';
+  MonoButton,
+} from './console.tsx';
 import type { Company } from '../types/index.ts';
 
 interface CompanyFormModalProps {
@@ -194,19 +192,11 @@ const CompanyFormModal: React.FC<CompanyFormModalProps> = ({
   return (
     <Modal isOpen={isOpen} onClose={onClose} titleId="company-form-title">
       <div className="p-6">
-        <div className="flex justify-between items-start gap-4 mb-6">
-          <h2 id="company-form-title" className={DIALOG_TITLE}>
-            {mode === 'add' ? 'Add company' : 'Edit company'}
-          </h2>
-          <button
-            onClick={onClose}
-            type="button"
-            className="bg-transparent border border-ln2 text-mut hover:text-ink font-mono text-[12px] leading-none px-2.5 py-2 cursor-pointer"
-            aria-label="Close dialog"
-          >
-            ✕
-          </button>
-        </div>
+        <DialogHeader
+          id="company-form-title"
+          title={mode === 'add' ? 'Add company' : 'Edit company'}
+          onClose={onClose}
+        />
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <div>
@@ -349,15 +339,15 @@ const CompanyFormModal: React.FC<CompanyFormModalProps> = ({
               placeholder={categories.length >= 10 ? 'Max 10 tags reached' : 'Type a tag and press Enter or comma'}
             />
 
-            {/* AI Suggest button */}
-            <button
-              type="button"
+            <MonoButton
               onClick={handleSuggest}
+              tone="muted"
+              size="md"
               disabled={suggestLoading || !formData.name.trim()}
-              className={`${BTN_MUTED} mt-2 px-3 py-2.5`}
+              className="mt-2"
             >
               {suggestLoading ? 'Suggesting…' : '✦ Suggest with AI'}
-            </button>
+            </MonoButton>
 
             {/* Validation error */}
             {errors.categories && (
@@ -384,7 +374,7 @@ const CompanyFormModal: React.FC<CompanyFormModalProps> = ({
                       type="button"
                       onClick={() => addTag(tag)}
                       disabled={categories.length >= 10}
-                      className={`${CHIP} bg-s1 text-ink2 hover:text-ink hover:border-ink cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed`}
+                      className={`${CHIP} bg-s1 text-ink2 border-ln2 hover:text-ink hover:border-ink cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed`}
                       aria-label={`Add tag ${tag}`}
                     >
                       + {tag}
@@ -400,12 +390,12 @@ const CompanyFormModal: React.FC<CompanyFormModalProps> = ({
           )}
 
           <div className="flex gap-2 justify-end pt-2">
-            <button type="button" onClick={onClose} disabled={submitting} className={BTN_GHOST}>
+            <MonoButton onClick={onClose} size="md" disabled={submitting}>
               Cancel
-            </button>
-            <button type="submit" disabled={submitting} className={BTN_PRIMARY}>
+            </MonoButton>
+            <MonoButton type="submit" tone="accent" size="md" disabled={submitting}>
               {submitting ? 'Saving…' : mode === 'add' ? 'Add company' : 'Save changes'}
-            </button>
+            </MonoButton>
           </div>
         </form>
       </div>

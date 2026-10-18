@@ -1,4 +1,5 @@
 import { registerCommand } from './registry';
+import { hint } from './output';
 import type { CommandResult, TerminalContext, OutputLine } from './types';
 
 registerCommand({
@@ -38,8 +39,7 @@ registerCommand({
       lines.push({ text: `  ${cmd.name.padEnd(12)} ${cmd.description}${aliasStr}` });
     }
 
-    lines.push({ text: '' });
-    lines.push({ text: "Type 'help <command>' for more details." });
+    lines.push(...hint("Type 'help <command>' for more details."));
 
     return { output: lines };
   },

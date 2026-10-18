@@ -9,18 +9,18 @@ import { bool, num } from '../config';
 import { A, cross } from '../draw';
 import type { FieldAlgo, FieldPointer, FieldStepCtx, FieldTapCtx, FieldTool, Pal, Pt } from '../types';
 
-export interface Site extends Pt {
+interface Site extends Pt {
   vx: number;
   vy: number;
 }
 
-export interface Circum {
+interface Circum {
   x: number;
   y: number;
   r2: number;
 }
 
-export interface Tri {
+interface Tri {
   /** Indices into the point array the triangulation was built from. */
   v: [number, number, number];
   c: Circum;
@@ -37,7 +37,7 @@ export interface VoronoiState {
   triN: number;
 }
 
-export function delaunay(V0: Pt[]): Tri[] {
+function delaunay(V0: Pt[]): Tri[] {
   const n = V0.length;
   let x0 = Infinity,
     y0 = Infinity,
@@ -52,7 +52,7 @@ export function delaunay(V0: Pt[]): Tri[] {
   const d = Math.max(x1 - x0, y1 - y0) * 20,
     cx = (x0 + x1) / 2,
     cy = (y0 + y1) / 2;
-  const V: Pt[] = (V0 as Pt[]).concat([
+  const V: Pt[] = V0.concat([
     { x: cx - d, y: cy - d },
     { x: cx + d, y: cy - d },
     { x: cx, y: cy + d },

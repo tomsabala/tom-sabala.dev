@@ -57,14 +57,6 @@ export async function reorderProjects(orderUpdates: ProjectOrderUpdate[]) {
 }
 
 /**
- * Get a single portfolio project by ID (public)
- */
-export async function getProject(id: number) {
-  const response = await apiClient.get(`/portfolio/${id}`);
-  return response.data;
-}
-
-/**
  * Get the deep-dive markdown for a project (public)
  */
 export async function getProjectDeepDive(id: number) {

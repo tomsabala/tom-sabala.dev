@@ -1,6 +1,7 @@
 import { registerCommand } from './registry';
-import type { CommandResult, TerminalContext } from './types';
 import { resolvePath, getNode, toDisplay } from '../filesystem';
+import { ERROR } from './output';
+import type { CommandResult, TerminalContext } from './types';
 
 registerCommand({
   name: 'cd',
@@ -17,19 +18,19 @@ registerCommand({
     const resolved = resolvePath(ctx.currentDir, target);
     const node = resolved ? getNode(ctx.getFilesystem(), resolved) : null;
 
-    if (!node) {
+    if (!resolved || !node) {
       return {
-        output: [{ text: `cd: no such directory: ${target}`, color: 'var(--term-error)' }],
+        output: [{ text: `cd: no such directory: ${target}`, color: ERROR }],
       };
     }
 
     if (node.type !== 'dir') {
       return {
-        output: [{ text: `cd: not a directory: ${target}`, color: 'var(--term-error)' }],
+        output: [{ text: `cd: not a directory: ${target}`, color: ERROR }],
       };
     }
 
-    ctx.setCurrentDir(toDisplay(resolved!));
+    ctx.setCurrentDir(toDisplay(resolved));
     return { output: [] };
   },
 });

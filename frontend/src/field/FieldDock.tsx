@@ -24,6 +24,36 @@ const BTN: CSSProperties = {
   appearance: 'none',
 };
 
+/** Shared chrome of the dock itself; the mobile sheet and the desktop panel differ only in how they are pinned. */
+const PANEL: CSSProperties = {
+  position: 'fixed',
+  zIndex: 40,
+  background: 'color-mix(in oklab, var(--bg) 94%, transparent)',
+  backdropFilter: 'blur(8px)',
+  WebkitBackdropFilter: 'blur(8px)',
+  boxShadow: '0 14px 34px -16px rgba(0,0,0,0.35)',
+  color: 'var(--ink)',
+};
+
+/** The outlined "↺ Reset" / "❚❚ Pause" pair at the foot of the dock. */
+const GHOST: CSSProperties = {
+  ...BTN,
+  ...mono(11),
+  background: 'transparent',
+  color: 'var(--ink)',
+  border: '1px solid var(--ln2)',
+  padding: 10,
+  letterSpacing: '0.08em',
+  textTransform: 'uppercase',
+};
+
+/** A tool button is accent-filled while armed on touch, ink-filled while selected on a mouse. */
+function toolTone(on: boolean, coarse: boolean): CSSProperties {
+  if (!on) return { background: 'transparent', color: 'var(--ink)' };
+  if (coarse) return { background: 'var(--acc)', color: 'var(--onacc)' };
+  return { background: 'var(--ink)', color: 'var(--bg)' };
+}
+
 export default function FieldDock() {
   const {
     algo,
@@ -48,31 +78,19 @@ export default function FieldDock() {
 
   const shell: CSSProperties = mobile
     ? {
-        position: 'fixed',
+        ...PANEL,
         left: 0,
         right: 0,
         bottom: 0,
-        zIndex: 40,
-        background: 'color-mix(in oklab, var(--bg) 94%, transparent)',
-        backdropFilter: 'blur(8px)',
-        WebkitBackdropFilter: 'blur(8px)',
         borderTop: '1px solid var(--ln2)',
-        boxShadow: '0 14px 34px -16px rgba(0,0,0,0.35)',
-        color: 'var(--ink)',
         paddingBottom: 'env(safe-area-inset-bottom)',
       }
     : {
-        position: 'fixed',
+        ...PANEL,
         right: 16,
         bottom: 16,
-        zIndex: 40,
         width: 'min(340px, calc(100vw - 32px))',
-        background: 'color-mix(in oklab, var(--bg) 94%, transparent)',
-        backdropFilter: 'blur(8px)',
-        WebkitBackdropFilter: 'blur(8px)',
         border: '1px solid var(--ln2)',
-        boxShadow: '0 14px 34px -16px rgba(0,0,0,0.35)',
-        color: 'var(--ink)',
       };
 
   return (
@@ -188,8 +206,7 @@ export default function FieldDock() {
                     style={{
                       ...BTN,
                       font: "500 11px/1.2 'DM Mono', ui-monospace, monospace",
-                      background: on ? (coarse ? 'var(--acc)' : 'var(--ink)') : 'transparent',
-                      color: on ? (coarse ? 'var(--onacc)' : 'var(--bg)') : 'var(--ink)',
+                      ...toolTone(on, coarse),
                       border: '1px solid var(--ink)',
                       padding: '9px 6px',
                     }}
@@ -303,36 +320,10 @@ export default function FieldDock() {
           </pre>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-            <button
-              type="button"
-              onClick={reset}
-              style={{
-                ...BTN,
-                ...mono(11),
-                background: 'transparent',
-                color: 'var(--ink)',
-                border: '1px solid var(--ln2)',
-                padding: 10,
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-              }}
-            >
+            <button type="button" onClick={reset} style={GHOST}>
               ↺ Reset
             </button>
-            <button
-              type="button"
-              onClick={togglePause}
-              style={{
-                ...BTN,
-                ...mono(11),
-                background: 'transparent',
-                color: 'var(--ink)',
-                border: '1px solid var(--ln2)',
-                padding: 10,
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-              }}
-            >
+            <button type="button" onClick={togglePause} style={GHOST}>
               {paused ? '▶ Resume' : '❚❚ Pause'}
             </button>
           </div>

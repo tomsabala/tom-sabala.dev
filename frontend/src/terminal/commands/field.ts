@@ -1,8 +1,6 @@
 import { registerCommand } from './registry';
+import { ACCENT, DIM } from './output';
 import type { CommandResult, TerminalContext } from './types';
-
-const DIM = 'var(--term-fg-dim)';
-const ACCENT = 'var(--term-accent)';
 
 registerCommand({
   name: 'field',

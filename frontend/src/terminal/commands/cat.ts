@@ -1,5 +1,6 @@
 import { registerCommand } from './registry';
 import { resolvePath, getNode } from '../filesystem';
+import { ERROR } from './output';
 import type { CommandResult, TerminalContext, OutputLine } from './types';
 
 registerCommand({
@@ -8,28 +9,22 @@ registerCommand({
   usage: 'cat <file> [file2 ...]',
   execute: (args: string[], ctx: TerminalContext): CommandResult => {
     if (args.length === 0) {
-      return { output: [{ text: 'Usage: cat <file>', color: 'var(--term-error)' }] };
+      return { output: [{ text: 'Usage: cat <file>', color: ERROR }] };
     }
 
     const lines: OutputLine[] = [];
 
     for (const arg of args) {
       const absolutePath = resolvePath(ctx.currentDir, arg);
-
-      if (!absolutePath) {
-        lines.push({ text: `cat: ${arg}: No such file or directory`, color: 'var(--term-error)' });
-        continue;
-      }
-
-      const node = getNode(ctx.getFilesystem(), absolutePath);
+      const node = absolutePath ? getNode(ctx.getFilesystem(), absolutePath) : null;
 
       if (!node) {
-        lines.push({ text: `cat: ${arg}: No such file or directory`, color: 'var(--term-error)' });
+        lines.push({ text: `cat: ${arg}: No such file or directory`, color: ERROR });
         continue;
       }
 
       if (node.type === 'dir') {
-        lines.push({ text: `cat: ${arg}: Is a directory`, color: 'var(--term-error)' });
+        lines.push({ text: `cat: ${arg}: Is a directory`, color: ERROR });
         continue;
       }
 

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import * as agentRepository from '../repositories/agentRepository.ts';
 import { apiErrorMessage } from '../repositories/apiError.ts';
-import { CHIP } from './formStyles.ts';
+import { CHIP, ERROR_INK, MutedLine, formatDateTime } from './console.tsx';
 import type { AgentRun, AgentRunDetail } from '../types/index.ts';
 
 interface AgentRunsHistoryProps {
@@ -14,18 +14,14 @@ const STATUS_DOT: Record<string, string> = {
   queued: 'text-mut',
   running: 'text-acct',
   succeeded: 'text-ink',
-  failed: 'text-[#b3261e]',
+  failed: ERROR_INK,
   cancelled: 'text-mut',
 };
 
 const TERMINAL_STATUSES = ['succeeded', 'failed', 'cancelled'];
 
-function formatWhen(run: AgentRun): string {
-  const raw = run.started_at || run.created_at;
-  if (!raw) return '—';
-  const parsed = new Date(raw.endsWith('Z') ? raw : `${raw}Z`);
-  return Number.isNaN(parsed.getTime()) ? raw : parsed.toLocaleString();
-}
+/** Every counter in an expanded run wears the same chip. */
+const STAT_CHIP = `${CHIP} border-ln2`;
 
 const AgentRunsHistory: React.FC<AgentRunsHistoryProps> = ({ runs, onError }) => {
   const [expandedId, setExpandedId] = useState<number | null>(null);
@@ -58,11 +54,7 @@ const AgentRunsHistory: React.FC<AgentRunsHistoryProps> = ({ runs, onError }) =>
   };
 
   if (runs.length === 0) {
-    return (
-      <p className="m-0 font-mono text-[11px] leading-none uppercase tracking-[0.12em] text-mut">
-        No runs yet
-      </p>
-    );
+    return <MutedLine>No runs yet.</MutedLine>;
   }
 
   return (
@@ -83,7 +75,7 @@ const AgentRunsHistory: React.FC<AgentRunsHistoryProps> = ({ runs, onError }) =>
                 {expanded ? '−' : '+'}
               </span>
               <span className="font-mono text-[11px] leading-none text-ink2 w-40 flex-shrink-0">
-                {formatWhen(run)}
+                {formatDateTime(run.started_at || run.created_at)}
               </span>
               <span className={`font-mono text-[11px] leading-none uppercase tracking-[0.08em] ${STATUS_DOT[run.status] ?? STATUS_DOT.queued}`}>
                 ● {run.status}
@@ -92,7 +84,7 @@ const AgentRunsHistory: React.FC<AgentRunsHistoryProps> = ({ runs, onError }) =>
                 {run.findings_count} findings
               </span>
               {run.companies_failed > 0 && (
-                <span className="font-mono text-[11px] leading-none text-[#b3261e]">
+                <span className={`font-mono text-[11px] leading-none ${ERROR_INK}`}>
                   {run.companies_failed} failed
                 </span>
               )}
@@ -105,26 +97,28 @@ const AgentRunsHistory: React.FC<AgentRunsHistoryProps> = ({ runs, onError }) =>
                 ) : detail ? (
                   <>
                     <div className="flex flex-wrap gap-1.5 mb-2.5">
-                      <span className={`${CHIP} text-ink2`}>
+                      <span className={`${STAT_CHIP} text-ink2`}>
                         {detail.companies_processed}/{detail.companies_total} companies
                       </span>
-                      <span className={`${CHIP} text-ink2`}>{detail.postings_seen} seen</span>
-                      <span className={`${CHIP} text-ink2`}>{detail.postings_new} new</span>
-                      <span className={`${CHIP} text-mut`}>
+                      <span className={`${STAT_CHIP} text-ink2`}>{detail.postings_seen} seen</span>
+                      <span className={`${STAT_CHIP} text-ink2`}>{detail.postings_new} new</span>
+                      <span className={`${STAT_CHIP} text-mut`}>
                         {detail.postings_applied_skipped} applied
                       </span>
                       {detail.postings_rejected > 0 && (
-                        <span className={`${CHIP} text-mut`}>{detail.postings_rejected} rejected</span>
+                        <span className={`${STAT_CHIP} text-mut`}>
+                          {detail.postings_rejected} rejected
+                        </span>
                       )}
-                      <span className={`${CHIP} text-ink2`}>
+                      <span className={`${STAT_CHIP} text-ink2`}>
                         {detail.input_tokens + detail.output_tokens} tokens
                       </span>
                       {detail.duration_seconds !== null && (
-                        <span className={`${CHIP} text-ink2`}>{detail.duration_seconds}s</span>
+                        <span className={`${STAT_CHIP} text-ink2`}>{detail.duration_seconds}s</span>
                       )}
                     </div>
                     {detail.error && (
-                      <p className="m-0 mb-2.5 font-mono text-[11px] leading-[1.5] text-[#b3261e] whitespace-pre-line">
+                      <p className={`m-0 mb-2.5 font-mono text-[11px] leading-[1.5] whitespace-pre-line ${ERROR_INK}`}>
                         {detail.error}
                       </p>
                     )}
@@ -147,7 +141,7 @@ const AgentRunsHistory: React.FC<AgentRunsHistoryProps> = ({ runs, onError }) =>
                             <tr
                               key={result.id}
                               className={`border-t border-ln ${
-                                result.status === 'error' ? 'text-[#b3261e]' : 'text-ink2'
+                                result.status === 'error' ? ERROR_INK : 'text-ink2'
                               }`}
                             >
                               <td className="py-1.5 pr-3 align-top">{result.company_name}</td>

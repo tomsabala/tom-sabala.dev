@@ -45,9 +45,6 @@ const SCREEN_COMPONENTS: Record<AdminScreenKey, () => JSX.Element> = {
   visibility: AdminVisibility,
 };
 
-export { ADMIN_SCREENS } from './admin/chrome.tsx';
-export type { AdminScreenKey } from './admin/chrome.tsx';
-
 /** Resolves `:screen` to a screen component; no param and unknown values land on overview. */
 export function AdminScreenRoute(): JSX.Element {
   const { screen } = useParams<{ screen?: string }>();

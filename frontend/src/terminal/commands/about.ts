@@ -1,5 +1,6 @@
 import { registerCommand } from './registry';
 import { PERSONAL_INFO } from '../data';
+import { PROMPT } from './output';
 import type { CommandResult, OutputLine } from './types';
 
 registerCommand({
@@ -9,7 +10,7 @@ registerCommand({
   execute: (): CommandResult => {
     const lines: OutputLine[] = [
       { text: PERSONAL_INFO.name, bold: true },
-      { text: PERSONAL_INFO.title, color: 'var(--term-prompt)' },
+      { text: PERSONAL_INFO.title, color: PROMPT },
       { text: '' },
       { text: `Location:  ${PERSONAL_INFO.location}` },
       { text: `Email:     ${PERSONAL_INFO.email}` },

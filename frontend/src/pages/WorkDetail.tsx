@@ -7,9 +7,9 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext.tsx';
-import { useTheme } from '../contexts/ThemeContext.tsx';
-import { getPortfolio, getProjectDeepDive } from '../repositories/portfolioRepository.ts';
+import ThemeToggle from '../components/site/ThemeToggle.tsx';
+import { getProjectDeepDive } from '../repositories/portfolioRepository.ts';
+import { useProjects } from '../work/useProjects.ts';
 import type { PortfolioItem, ProjectFact, ProjectStep } from '../types/index.ts';
 import AnimatedSpecimen from '../work/AnimatedSpecimen.tsx';
 import DeepDive, { type TocItem } from '../work/DeepDive.tsx';
@@ -22,31 +22,10 @@ function projectPath(p: PortfolioItem): string {
 export default function WorkDetail() {
   const { slug = '' } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const { isAuthenticated, isLoading } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+  const { projects, loading, error } = useProjects();
 
-  const [projects, setProjects] = useState<PortfolioItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [deepDive, setDeepDive] = useState<string | null>(null);
   const [toc, setToc] = useState<TocItem[]>([]);
-
-  useEffect(() => {
-    if (isLoading) return;
-    let cancelled = false;
-    getPortfolio(isAuthenticated)
-      .then(resp => {
-        if (cancelled) return;
-        setProjects(Array.isArray(resp?.data) ? resp.data : []);
-      })
-      .catch(() => {
-        if (!cancelled) setError('Failed to load projects.');
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => { cancelled = true; };
-  }, [isAuthenticated, isLoading]);
 
   const index = useMemo(
     () => projects.findIndex(p => (p.slug ?? String(p.id)) === slug),
@@ -151,13 +130,7 @@ export default function WorkDetail() {
                 </button>
               );
             })}
-            <button
-              type="button"
-              onClick={toggleTheme}
-              className="border border-ln2 bg-transparent text-ink px-[11px] py-[9px] font-mono text-[11px] leading-none tracking-[0.06em] uppercase cursor-pointer ml-2 shrink-0"
-            >
-              {theme === 'dark' ? '◐ Light' : '◑ Dark'}
-            </button>
+            <ThemeToggle className="ml-2" />
           </nav>
         </div>
       </header>

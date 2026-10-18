@@ -1,8 +1,7 @@
 import { registerCommand } from './registry';
 import { projectSlug } from '../filesystem';
+import { DIM, hint } from './output';
 import type { CommandResult, TerminalContext, OutputLine } from './types';
-
-const DIM = 'var(--term-fg-dim)';
 
 registerCommand({
   name: 'projects',
@@ -31,8 +30,7 @@ registerCommand({
       lines.push({ text: `  ${projectSlug(project).padEnd(width)}  ${project.description}` });
     }
 
-    lines.push({ text: '' });
-    lines.push({ text: 'cd projects/<name> and cat README.txt for more.', color: DIM });
+    lines.push(...hint('cd projects/<name> and cat README.txt for more.', DIM));
 
     return { output: lines };
   },

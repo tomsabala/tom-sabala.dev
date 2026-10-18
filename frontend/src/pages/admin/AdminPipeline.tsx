@@ -21,12 +21,22 @@ import {
   searchCompanies,
   searchFindings,
 } from '../jobsSearch.ts';
-import { useAdminChrome, usePrimaryAction } from './chrome.tsx';
+import { useAdminAction, useAdminChrome, usePrimaryAction } from './chrome.tsx';
 import { BOARD_COLUMNS } from './applicationStatus.ts';
-import { ConsolePanel, MonoButton, MutedLine, PanelHead, SearchField, formatWhen } from './ui.tsx';
+import {
+  ConsolePanel,
+  EmptyState,
+  ERROR_INK,
+  MonoButton,
+  MutedLine,
+  PanelHead,
+  SearchField,
+  formatWhen,
+} from '../../components/console.tsx';
 
 export default function AdminPipeline(): JSX.Element {
   const { notify, refreshStats } = useAdminChrome();
+  const act = useAdminAction();
 
   const [companies, setCompanies] = useState<Company[]>([]);
   const [applications, setApplications] = useState<JobApplication[]>([]);
@@ -166,50 +176,32 @@ export default function AdminPipeline(): JSX.Element {
   const handleCancelRun = async () => {
     if (!latestRun) return;
     setCancelling(true);
-    try {
-      const res = await agentRepository.cancelRun(latestRun.id);
-      if (res.success) {
-        setLatestRun(res.data as AgentRun);
-        notify('ok', 'Cancellation requested');
-      } else {
-        notify('err', res.error || 'Could not cancel the run');
-      }
-    } catch (err) {
-      notify('err', apiErrorMessage(err, 'Could not cancel the run'));
-    } finally {
-      setCancelling(false);
-    }
+    const result = await act<AgentRun>(() => agentRepository.cancelRun(latestRun.id), {
+      failure: 'Could not cancel the run',
+      success: 'Cancellation requested',
+    });
+    setCancelling(false);
+    if (result?.data) setLatestRun(result.data);
   };
 
   const deleteCompany = async (company: Company) => {
     if (!confirm(`Delete "${company.name}"? This cannot be undone.`)) return;
-    try {
-      const res = await jobsRepository.deleteCompany(company.id);
-      if (!res.success) {
-        notify('err', res.error || 'Could not delete the company');
-        return;
-      }
-      notify('ok', 'Company deleted');
-      await fetchData();
-    } catch (err) {
-      notify('err', apiErrorMessage(err, 'Could not delete the company'));
-    }
+    const result = await act(() => jobsRepository.deleteCompany(company.id), {
+      failure: 'Could not delete the company',
+      success: 'Company deleted',
+    });
+    if (result) await fetchData();
   };
 
   const deleteApplication = async (application: JobApplication) => {
     if (!confirm(`Delete the application for "${application.position}" at ${application.company_name}?`)) return;
-    try {
-      const res = await jobsRepository.deleteApplication(application.id);
-      if (!res.success) {
-        notify('err', res.error || 'Could not delete the application');
-        return;
-      }
-      notify('ok', 'Application deleted');
-      await fetchData();
-      refreshStats();
-    } catch (err) {
-      notify('err', apiErrorMessage(err, 'Could not delete the application'));
-    }
+    const result = await act(() => jobsRepository.deleteApplication(application.id), {
+      failure: 'Could not delete the application',
+      success: 'Application deleted',
+    });
+    if (!result) return;
+    await fetchData();
+    refreshStats();
   };
 
   const toggleCategory = (cat: string) => {
@@ -324,8 +316,7 @@ export default function AdminPipeline(): JSX.Element {
         {latestRun?.error && (
           <p
             role="alert"
-            className="m-0 px-5 py-3 border-b border-ln font-mono text-[11px] leading-[1.5] whitespace-pre-line"
-            style={{ color: '#b3261e' }}
+            className={`m-0 px-5 py-3 border-b border-ln font-mono text-[11px] leading-[1.5] whitespace-pre-line ${ERROR_INK}`}
           >
             {latestRun.error}
           </p>
@@ -386,9 +377,7 @@ export default function AdminPipeline(): JSX.Element {
             </div>
           ))}
         {showCompanies && visibleCompanies.length === 0 && (
-          <div className="px-5 py-4">
-            <MutedLine>No companies match the current search and tags.</MutedLine>
-          </div>
+          <EmptyState>No companies match the current search and tags.</EmptyState>
         )}
       </ConsolePanel>
 

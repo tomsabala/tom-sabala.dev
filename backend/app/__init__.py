@@ -149,7 +149,7 @@ def create_app():
 
     # Import models (required for Flask-Migrate to detect them)
     with app.app_context():
-        from app import models
+        from app import models  # noqa: F401 — import registers the tables with Flask-Migrate
 
     # Register blueprints
     from app.routes.portfolio_routes import portfolio_bp

@@ -3,7 +3,7 @@ import { appHash, appEntryUrl } from './registry.ts';
 import type { HostedApp } from './registry.ts';
 import RequestPathDiagram from './RequestPathDiagram.tsx';
 import ThemeToggle from './ThemeToggle.tsx';
-import { specRows, unitIndex } from './units.ts';
+import { launchLabel, specRows, unitIndex } from './units.ts';
 import { useBrokerInstances } from './useBrokerInstances.ts';
 
 /** Below this the diagram stacks vertically and the inspector moves above it. */
@@ -49,12 +49,7 @@ function AppsIndex({
   const liveCount = list.filter(entry => entry.status === 'live').length;
   const rows = app ? specRows(app, admin, instances) : [];
   const source = app?.sourceUrl ?? app?.credit?.url ?? null;
-  const cta =
-    app === null || app.kind !== 'service'
-      ? 'Open the build'
-      : app.mode === 'session'
-        ? 'Start my private instance'
-        : 'Wake the shared instance';
+  const cta = launchLabel(app);
 
   return (
     <div className="flex min-h-screen flex-col bg-bg text-ink">

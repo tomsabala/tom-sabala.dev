@@ -39,14 +39,6 @@ export async function getSubmissions(
 }
 
 /**
- * Get single submission by ID (admin - requires auth)
- */
-export async function getSubmissionById(id: number) {
-  const response = await apiClient.get(`/contact/submissions/${id}`);
-  return response.data;
-}
-
-/**
  * Set read status explicitly (admin - requires auth).
  * The console always states the value it wants; the backend still toggles on an empty body.
  */

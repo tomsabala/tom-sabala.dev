@@ -6,6 +6,7 @@
  */
 import { registerCommand } from './registry';
 import { getGitHubStats } from '../../repositories/githubRepository.ts';
+import { DIM, ERROR, FG, PROMPT } from './output';
 import type { CommandResult, OutputLine } from './types';
 
 function blockBar(val: number, max: number, width = 20): string {
@@ -36,13 +37,13 @@ registerCommand({
       resp = await getGitHubStats();
     } catch {
       return {
-        output: [{ text: 'stats: failed to reach the server.', color: 'var(--term-error)' }],
+        output: [{ text: 'stats: failed to reach the server.', color: ERROR }],
       };
     }
 
     if (!resp.success || !resp.data) {
       return {
-        output: [{ text: 'stats: no data available.', color: 'var(--term-error)' }],
+        output: [{ text: 'stats: no data available.', color: ERROR }],
       };
     }
 
@@ -51,7 +52,7 @@ registerCommand({
     const maxVal = Math.max(d.prs, d.stars, d.publicRepos, 1);
 
     const lines: OutputLine[] = [
-      { text: `$ git stats --year ${year}`, color: 'var(--term-fg-dim)' },
+      { text: `$ git stats --year ${year}`, color: DIM },
       { text: '' },
     ];
 
@@ -65,14 +66,14 @@ registerCommand({
     if (d.hasContributionData && d.totalContributions > 0) {
       lines.push({
         text: `  ${'contributions:'.padEnd(15)}${fmt(d.totalContributions).padStart(6)}  ${blockBar(d.totalContributions, Math.max(1, d.totalContributions))}`,
-        color: 'var(--term-fg)',
+        color: FG,
       });
     }
 
     for (const [key, val] of statRows) {
       lines.push({
         text: `  ${key.padEnd(15)}${fmt(val).padStart(6)}  ${blockBar(val, maxVal)}`,
-        color: 'var(--term-fg)',
+        color: FG,
       });
     }
 
@@ -80,7 +81,7 @@ registerCommand({
     if (d.currentStreak > 0 || d.longestStreak > 0) {
       lines.push({
         text: `  ${'streak:'.padEnd(15)}${String(d.currentStreak + ' days').padStart(6)}  (best: ${d.longestStreak} days)`,
-        color: 'var(--term-fg-dim)',
+        color: DIM,
       });
     }
 
@@ -91,7 +92,7 @@ registerCommand({
     if (hasActivity) {
       lines.push({
         text: '── activity · last 20 weeks ─────────────────',
-        color: 'var(--term-fg-dim)',
+        color: DIM,
       });
 
       const recent = d.contributions.slice(-20);
@@ -102,7 +103,7 @@ registerCommand({
         for (let week = 0; week < 20; week++) {
           row += asciiChar(recent[week]?.[day] ?? 0);
         }
-        lines.push({ text: row, color: 'var(--term-fg)' });
+        lines.push({ text: row, color: FG });
       }
 
       lines.push({ text: '' });
@@ -112,7 +113,7 @@ registerCommand({
     if (d.languages.length > 0) {
       lines.push({
         text: '── languages ────────────────────────────────',
-        color: 'var(--term-fg-dim)',
+        color: DIM,
       });
 
       for (const lang of d.languages) {
@@ -121,7 +122,7 @@ registerCommand({
         const pct   = `${lang.pct}%`.padStart(4);
         lines.push({
           text: `${label}${bar} ${pct}`,
-          color: 'var(--term-prompt)',
+          color: PROMPT,
         });
       }
     }

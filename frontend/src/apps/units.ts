@@ -30,6 +30,18 @@ export function modeLabel(app: HostedApp): string {
   return app.mode === 'session' ? 'private session' : 'shared';
 }
 
+/** The inspector's primary action, worded as what clicking it actually does. */
+export function launchLabel(app: HostedApp | null): string {
+  if (app === null || app.kind !== 'service') return 'Open the build';
+  return app.mode === 'session' ? 'Start my private instance' : 'Wake the shared instance';
+}
+
+/** The same distinction one step later, under the frame's boot log. */
+export function bootLabel(app: HostedApp): string {
+  if (app.kind === 'service' && app.mode === 'shared') return 'Waking the app…';
+  return 'Starting your private instance…';
+}
+
 function formatBytes(bytes: number): string {
   if (bytes >= 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(1)} GB`;
   return `${Math.round(bytes / 1024 ** 2)} MB`;

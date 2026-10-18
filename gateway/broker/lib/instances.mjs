@@ -106,11 +106,6 @@ export function getInstanceState(name) {
   return states.get(name) ?? null;
 }
 
-/** Every instance this broker process has started, newest state as it stands now. */
-export function listInstances() {
-  return [...states.entries()].map(([name, entry]) => ({ name, ...entry }));
-}
-
 /** Used by the reaper, and by tests that need a clean slate. */
 export function forgetInstanceState(name) {
   states.delete(name);

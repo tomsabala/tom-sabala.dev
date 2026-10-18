@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useMemo } from 'react';
 import type { OutputBlock, CommandResult, SideEffect, ProjectsSnapshot } from '../commands/types';
 import { execute, getAllCommands } from '../commands/registry';
+import { ERROR } from '../commands/output';
 import { useCommandHistory } from './useCommandHistory';
 import { useTabCompletion } from './useTabCompletion';
 import { buildFilesystem } from '../filesystem';
@@ -121,7 +122,7 @@ export function useTerminal({
       }
     } catch (err) {
       addOutput({
-        lines: [{ text: `Error: ${err instanceof Error ? err.message : 'Unknown error'}`, color: 'var(--term-error)' }],
+        lines: [{ text: `Error: ${err instanceof Error ? err.message : 'Unknown error'}`, color: ERROR }],
       });
     } finally {
       setIsProcessing(false);

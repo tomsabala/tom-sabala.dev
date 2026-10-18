@@ -1,10 +1,11 @@
 import { registerCommand } from './registry';
 import { resolvePath, getNode } from '../filesystem';
+import { ERROR, PROMPT } from './output';
 import type { CommandResult, TerminalContext, OutputLine } from './types';
 
 function formatError(target: string): CommandResult {
   return {
-    output: [{ text: `ls: cannot access '${target}': No such file or directory`, color: 'var(--term-error)' }],
+    output: [{ text: `ls: cannot access '${target}': No such file or directory`, color: ERROR }],
   };
 }
 
@@ -40,7 +41,7 @@ registerCommand({
 
     const lines: OutputLine[] = sorted.map(child =>
       child.type === 'dir'
-        ? { text: `${child.name}/`, color: 'var(--term-prompt)', bold: true }
+        ? { text: `${child.name}/`, color: PROMPT, bold: true }
         : { text: child.name }
     );
 

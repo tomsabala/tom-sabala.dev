@@ -25,5 +25,4 @@ export const SOCIAL_LINKS: SocialLink[] = [
  * Skills are shared with the About section's radars; `src/about/skills.ts` is the source
  * and this re-export keeps `terminal/filesystem.ts` importing from one place.
  */
-export type { SkillCategory } from '../about/skills';
 export { SKILLS } from '../about/skills';

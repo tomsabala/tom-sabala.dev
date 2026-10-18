@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { asRecord } from './json.ts';
 
 /**
  * Boot progress for the frame overlay, read from the broker's `GET /boot/<slug>`.
@@ -18,7 +19,7 @@ const POLL_MS = 400;
 const MAX_FAILURES = 3;
 const DEFAULT_PHASE_COUNT = 6;
 
-export interface BootPhase {
+interface BootPhase {
   name: string;
   /** Milliseconds since this boot attempt started. */
   at: number;
@@ -49,8 +50,7 @@ function parsePhases(value: unknown): BootPhase[] {
   if (!Array.isArray(value)) return [];
   const phases: BootPhase[] = [];
   for (const raw of value) {
-    if (typeof raw !== 'object' || raw === null) continue;
-    const entry = raw as Record<string, unknown>;
+    const entry = asRecord(raw);
     if (typeof entry.name !== 'string' || entry.name.length === 0) continue;
     const at = typeof entry.at === 'number' && Number.isFinite(entry.at) ? entry.at : 0;
     phases.push({ name: entry.name, at });
@@ -92,7 +92,7 @@ export function useBootPhases(slug: string, active: boolean, attempt: number): B
         if (cancelled) return;
         failures = 0;
 
-        const record = typeof body === 'object' && body !== null ? (body as Record<string, unknown>) : {};
+        const record = asRecord(body);
         const phases = parsePhases(record.phases);
         const phaseCount =
           typeof record.phaseCount === 'number' && record.phaseCount > 0

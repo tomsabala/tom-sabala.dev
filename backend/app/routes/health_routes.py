@@ -59,7 +59,7 @@ def readinessCheck():
     # Warm up storage service (initializes S3 client if using S3)
     try:
         from app.services.storage_factory import getStorageService
-        StorageService = getStorageService()
+        getStorageService()
 
         # If S3 backend, ensure the client is initialized
         storageBackend = os.getenv('STORAGE_BACKEND', 'local').lower()

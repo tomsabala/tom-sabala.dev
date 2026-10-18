@@ -12,11 +12,11 @@ import { bool, num } from '../config';
 import { A, MONO } from '../draw';
 import type { FieldAlgo, FieldPointer, FieldStepCtx, FieldTapCtx, FieldTool, Pal, Pt } from '../types';
 
-export type Seg = [Pt, Pt];
+type Seg = [Pt, Pt];
 /** A box is exactly four corners, in order. */
-export type Box = Pt[];
+type Box = Pt[];
 
-export interface LidarHit extends Pt {
+interface LidarHit extends Pt {
   /** Timestamp (seconds) the return was recorded at. */
   t: number;
 }
@@ -36,17 +36,18 @@ export interface LidarState {
   tc: number;
 }
 
-export function addBox(S: LidarState, x: number, y: number, bw: number, bh: number, rot: number): void {
+/** Unit square corners, in order; scaled and rotated into a box by `addBox`. */
+const CORNERS: Array<[number, number]> = [
+  [-1, -1],
+  [1, -1],
+  [1, 1],
+  [-1, 1],
+];
+
+function addBox(S: LidarState, x: number, y: number, bw: number, bh: number, rot: number): void {
   const c = Math.cos(rot),
     s = Math.sin(rot),
-    pts: Box = (
-      [
-        [-1, -1],
-        [1, -1],
-        [1, 1],
-        [-1, 1],
-      ] as Array<[number, number]>
-    ).map(([u, v]) => ({
+    pts: Box = CORNERS.map(([u, v]) => ({
       x: x + ((u * bw) / 2) * c - ((v * bh) / 2) * s,
       y: y + ((u * bw) / 2) * s + ((v * bh) / 2) * c,
     }));
@@ -54,7 +55,7 @@ export function addBox(S: LidarState, x: number, y: number, bw: number, bh: numb
   for (let i = 0; i < 4; i++) S.segs.push([pts[i], pts[(i + 1) % 4]]);
 }
 
-export function inPoly(pts: Box, x: number, y: number, pad: number): boolean {
+function inPoly(pts: Box, x: number, y: number, pad: number): boolean {
   let s = 0;
   for (let i = 0; i < 4; i++) {
     const j = (i + 1) % 4;
@@ -72,7 +73,7 @@ export function inPoly(pts: Box, x: number, y: number, pad: number): boolean {
   return true;
 }
 
-export function blocked(S: LidarState, x: number, y: number): boolean {
+function blocked(S: LidarState, x: number, y: number): boolean {
   return (
     x < 12 ||
     y < 12 ||
@@ -82,7 +83,7 @@ export function blocked(S: LidarState, x: number, y: number): boolean {
   );
 }
 
-export function cast(S: LidarState, ox: number, oy: number, a: number): number {
+function cast(S: LidarState, ox: number, oy: number, a: number): number {
   const dx = Math.cos(a),
     dy = Math.sin(a);
   let best = S.range;
@@ -100,7 +101,7 @@ export function cast(S: LidarState, ox: number, oy: number, a: number): number {
   return best;
 }
 
-export function rebuildSegs(S: LidarState): void {
+function rebuildSegs(S: LidarState): void {
   S.segs = S.walls.slice();
   for (const pts of S.boxes) for (let i = 0; i < 4; i++) S.segs.push([pts[i], pts[(i + 1) % 4]]);
 }

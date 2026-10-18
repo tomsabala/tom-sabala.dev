@@ -7,7 +7,7 @@
 import type { SkillCategory } from './skills.ts';
 
 /** One axis label: a position, a transform that keeps it clear of the polygon, and the value. */
-export interface RadarLabel {
+interface RadarLabel {
   left: string;
   top: string;
   tf: string;
@@ -36,6 +36,22 @@ export interface Radar {
   labels: RadarLabel[];
 }
 
+/** Which side of the chart an axis points at, from the cosine of its angle. */
+type Anchor = 'start' | 'end' | 'center';
+
+const SHIFT: Record<Anchor, string> = { start: '0', end: '-100%', center: '-50%' };
+const ALIGN: Record<Anchor, RadarLabel['al']> = {
+  start: 'flex-start',
+  end: 'flex-end',
+  center: 'center',
+};
+
+function anchor(cos: number): Anchor {
+  if (cos > 0.3) return 'start';
+  if (cos < -0.3) return 'end';
+  return 'center';
+}
+
 export function radar(cat: SkillCategory): Radar {
   const n = cat.skills.length;
   const cx = 200;
@@ -51,15 +67,15 @@ export function radar(cat: SkillCategory): Radar {
 
   const labels: RadarLabel[] = cat.skills.map((s, i) => {
     const a = -Math.PI / 2 + (i * 2 * Math.PI) / n;
-    const c = Math.cos(a);
+    const side = anchor(Math.cos(a));
     const [x, y] = pt(i, R + 16);
     return {
       left: ((x / 400) * 100).toFixed(2) + '%',
       top: (((y + Math.sin(a) * 4) / 300) * 100).toFixed(2) + '%',
-      tf: `translate(${c > 0.3 ? '0' : c < -0.3 ? '-100%' : '-50%'},-50%)`,
+      tf: `translate(${SHIFT[side]},-50%)`,
       t: s.name,
       v: String(s.level),
-      al: c > 0.3 ? 'flex-start' : c < -0.3 ? 'flex-end' : 'center',
+      al: ALIGN[side],
     };
   });
 

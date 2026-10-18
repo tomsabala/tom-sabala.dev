@@ -1,10 +1,9 @@
 import { registerCommand } from './registry';
 import { HOSTED_APPS, appEntryUrl, type HostedApp } from '../../apps/registry';
+import { unitIndex } from '../../apps/units';
+import { ACCENT, DIM, ERROR, hint } from './output';
 import type { CommandResult, OutputLine } from './types';
 
-const DIM = 'var(--term-fg-dim)';
-const ACCENT = 'var(--term-accent)';
-const ERROR = 'var(--term-error)';
 const APPS_ORIGIN = 'https://apps.tom-sabala.dev';
 
 /** Only what an anonymous visitor would also see on apps.tom-sabala.dev. */
@@ -55,7 +54,7 @@ registerCommand({
     ];
 
     PUBLIC_APPS.forEach((app, i) => {
-      const unit = String(i + 1).padStart(2, '0');
+      const unit = unitIndex(i);
       const mode = app.kind === 'service' ? app.mode : 'static';
       const status = app.status === 'live' ? '● live' : '○ wip ';
       lines.push({
@@ -63,8 +62,7 @@ registerCommand({
       });
     });
 
-    lines.push({ text: '' });
-    lines.push({ text: 'apps open <slug> to launch one.', color: DIM });
+    lines.push(...hint('apps open <slug> to launch one.', DIM));
 
     return { output: lines };
   },

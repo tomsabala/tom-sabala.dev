@@ -3,31 +3,17 @@ import * as jobsRepository from '../repositories/jobsRepository.ts';
 import { apiErrorMessage } from '../repositories/apiError.ts';
 import Modal from './Modal.tsx';
 import {
-  BTN_GHOST,
-  BTN_PRIMARY,
-  DIALOG_TITLE,
+  DialogHeader,
   ERROR_BOX,
   ERROR_TEXT,
   FIELD,
   FIELD_ERROR,
   LABEL,
-} from './formStyles.ts';
+  MonoButton,
+} from './console.tsx';
+// The dialog and the board name the eight statuses once, together.
+import { STATUS_LABELS, VALID_STATUSES } from '../pages/admin/applicationStatus.ts';
 import type { JobApplication, Company } from '../types/index.ts';
-
-const VALID_STATUSES = [
-  'bookmarked', 'applied', 'in_review', 'interview', 'offer', 'rejected', 'withdrawn', 'closed',
-];
-
-const STATUS_LABELS: Record<string, string> = {
-  bookmarked: 'Bookmarked',
-  applied: 'Applied',
-  in_review: 'In Review',
-  interview: 'Interview',
-  offer: 'Offer',
-  rejected: 'Rejected',
-  withdrawn: 'Withdrawn',
-  closed: 'Closed',
-};
 
 interface JobApplicationFormModalProps {
   isOpen: boolean;
@@ -163,19 +149,11 @@ const JobApplicationFormModal: React.FC<JobApplicationFormModalProps> = ({
   return (
     <Modal isOpen={isOpen} onClose={onClose} titleId="job-application-form-title">
       <div className="p-6">
-        <div className="flex justify-between items-start gap-4 mb-6">
-          <h2 id="job-application-form-title" className={DIALOG_TITLE}>
-            {mode === 'add' ? 'Add application' : 'Edit application'}
-          </h2>
-          <button
-            onClick={onClose}
-            type="button"
-            className="bg-transparent border border-ln2 text-mut hover:text-ink font-mono text-[12px] leading-none px-2.5 py-2 cursor-pointer"
-            aria-label="Close dialog"
-          >
-            ✕
-          </button>
-        </div>
+        <DialogHeader
+          id="job-application-form-title"
+          title={mode === 'add' ? 'Add application' : 'Edit application'}
+          onClose={onClose}
+        />
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <div>
@@ -292,12 +270,12 @@ const JobApplicationFormModal: React.FC<JobApplicationFormModalProps> = ({
           )}
 
           <div className="flex gap-2 justify-end pt-2">
-            <button type="button" onClick={onClose} disabled={submitting} className={BTN_GHOST}>
+            <MonoButton onClick={onClose} size="md" disabled={submitting}>
               Cancel
-            </button>
-            <button type="submit" disabled={submitting} className={BTN_PRIMARY}>
+            </MonoButton>
+            <MonoButton type="submit" tone="accent" size="md" disabled={submitting}>
               {submitting ? 'Saving…' : mode === 'add' ? 'Add application' : 'Save changes'}
-            </button>
+            </MonoButton>
           </div>
         </form>
       </div>

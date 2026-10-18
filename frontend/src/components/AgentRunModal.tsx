@@ -3,15 +3,14 @@ import * as agentRepository from '../repositories/agentRepository.ts';
 import { apiErrorMessage } from '../repositories/apiError.ts';
 import Modal from './Modal.tsx';
 import {
-  BTN_GHOST,
-  BTN_PRIMARY,
-  DIALOG_TITLE,
+  DialogHeader,
   ERROR_BOX,
   FIELD,
   FIELD_MONO,
   HINT,
   LABEL,
-} from './formStyles.ts';
+  MonoButton,
+} from './console.tsx';
 import type { AgentRun } from '../types/index.ts';
 
 interface AgentRunModalProps {
@@ -79,17 +78,7 @@ const AgentRunModal: React.FC<AgentRunModalProps> = ({ isOpen, onClose, onStarte
   return (
     <Modal isOpen={isOpen} onClose={onClose} titleId="agent-run-title">
       <div className="p-6">
-        <div className="flex justify-between items-start gap-4 mb-6">
-          <h2 id="agent-run-title" className={DIALOG_TITLE}>Run scout</h2>
-          <button
-            onClick={onClose}
-            type="button"
-            className="bg-transparent border border-ln2 text-mut hover:text-ink font-mono text-[12px] leading-none px-2.5 py-2 cursor-pointer"
-            aria-label="Close dialog"
-          >
-            ✕
-          </button>
-        </div>
+        <DialogHeader id="agent-run-title" title="Run scout" onClose={onClose} />
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <div>
@@ -136,16 +125,17 @@ const AgentRunModal: React.FC<AgentRunModalProps> = ({ isOpen, onClose, onStarte
           {error && <div role="alert" className={ERROR_BOX}>{error}</div>}
 
           <div className="flex gap-2 justify-end pt-2">
-            <button type="button" onClick={onClose} disabled={submitting} className={BTN_GHOST}>
+            <MonoButton onClick={onClose} size="md" disabled={submitting}>
               Cancel
-            </button>
-            <button
+            </MonoButton>
+            <MonoButton
               type="submit"
+              tone="accent"
+              size="md"
               disabled={submitting || loadingProfile}
-              className={BTN_PRIMARY}
             >
               {submitting ? 'Starting…' : 'Run'}
-            </button>
+            </MonoButton>
           </div>
         </form>
       </div>

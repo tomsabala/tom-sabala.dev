@@ -36,11 +36,3 @@ export async function getMe(): Promise<AuthResponse> {
   const response = await apiClient.get('/auth/me');
   return response.data;
 }
-
-/**
- * Check authentication status
- */
-export async function checkAuth(): Promise<AuthResponse> {
-  const response = await apiClient.get('/auth/check');
-  return response.data;
-}

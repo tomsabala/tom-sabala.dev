@@ -1,5 +1,6 @@
 import { registerCommand } from './registry';
 import { themes } from '../themes';
+import { hint } from './output';
 import type { CommandResult, TerminalContext, OutputLine } from './types';
 
 registerCommand({
@@ -24,8 +25,7 @@ registerCommand({
         });
       }
 
-      lines.push({ text: '' });
-      lines.push({ text: "Usage: theme <name>" });
+      lines.push(...hint('Usage: theme <name>'));
 
       return { output: lines };
     }

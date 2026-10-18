@@ -11,9 +11,23 @@ import { HOSTED_APPS, appEntryUrl } from '../../apps/registry.ts';
 import * as hangarRepository from '../../repositories/hangarRepository.ts';
 import type { HangarStatus } from '../../types/index.ts';
 import { useAdminChrome, usePrimaryAction } from './chrome.tsx';
-import { Bar, ConsolePanel, MetricTile, MonoButton, MutedLine, formatBytes } from './ui.tsx';
+import {
+  Bar,
+  ConsolePanel,
+  MetricTile,
+  MonoButton,
+  MutedLine,
+  formatBytes,
+} from '../../components/console.tsx';
 
 const NO_MUTATION = 'The gateway broker exposes no mutation endpoint — status only';
+
+/** A bundle is always static; a service is healthy only while the broker reports a unit up. */
+function cardState(down: boolean, isBundle: boolean, liveCount: number): string {
+  if (down) return '—';
+  if (isBundle) return 'static';
+  return liveCount > 0 ? 'healthy' : 'idle';
+}
 
 export default function AdminHangar(): JSX.Element {
   const { notify } = useAdminChrome();
@@ -80,13 +94,7 @@ export default function AdminHangar(): JSX.Element {
           const cold = units
             .map(u => u.coldStartMs)
             .filter((ms): ms is number => typeof ms === 'number');
-          const state = down
-            ? '—'
-            : app.kind === 'bundle'
-              ? 'static'
-              : live.length > 0
-                ? 'healthy'
-                : 'idle';
+          const state = cardState(down, app.kind === 'bundle', live.length);
 
           return (
             <ConsolePanel key={app.slug} className="p-5 flex flex-col gap-3.5">
@@ -98,12 +106,12 @@ export default function AdminHangar(): JSX.Element {
                 {app.name}
               </span>
               <div className="grid grid-cols-3 gap-2">
-                <MetricTile k="INSTANCES" v={down ? '—' : String(units.length)} />
+                <MetricTile label="INSTANCES" value={down ? '—' : String(units.length)} />
                 <MetricTile
-                  k="COLD START"
-                  v={cold.length > 0 ? `${(Math.max(...cold) / 1000).toFixed(1)} s` : '—'}
+                  label="COLD START"
+                  value={cold.length > 0 ? `${(Math.max(...cold) / 1000).toFixed(1)} s` : '—'}
                 />
-                <MetricTile k="MODE" v={app.kind === 'service' ? app.mode : 'bundle'} />
+                <MetricTile label="MODE" value={app.kind === 'service' ? app.mode : 'bundle'} />
               </div>
               <div className="flex flex-col gap-1.5 font-mono text-[11px] leading-none">
                 <span className="flex justify-between gap-2">

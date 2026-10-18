@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react';
 import * as agentRepository from '../repositories/agentRepository.ts';
 import { apiErrorMessage } from '../repositories/apiError.ts';
-import { MonoButton, VerdictChip } from '../pages/admin/ui.tsx';
-import { CHIP } from './formStyles.ts';
+import { CHIP, EmptyState, MonoButton, VerdictChip } from './console.tsx';
 import type { AgentFinding } from '../types/index.ts';
 
 interface AgentFindingsListProps {
@@ -64,11 +63,7 @@ const AgentFindingsList: React.FC<AgentFindingsListProps> = ({
   };
 
   if (findings.length === 0) {
-    return (
-      <p className="m-0 px-5 py-10 text-center font-mono text-[11px] leading-none uppercase tracking-[0.12em] text-mut">
-        No matching positions in this run
-      </p>
-    );
+    return <EmptyState>No matching positions in this run.</EmptyState>;
   }
 
   return (
@@ -107,7 +102,7 @@ const AgentFindingsList: React.FC<AgentFindingsListProps> = ({
                   {finding.is_new ? (
                     <span className={`${CHIP} bg-acc text-onacc border-acc`}>New</span>
                   ) : (
-                    <span className={`${CHIP} bg-s1 text-mut`}>Seen</span>
+                    <span className={`${CHIP} bg-s1 text-mut border-ln2`}>Seen</span>
                   )}
                   <span className={`${CHIP} ${scoreChipClass(finding.score)}`}>
                     {finding.score === null ? 'unscored' : finding.score}
