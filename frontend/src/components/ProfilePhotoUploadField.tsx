@@ -1,5 +1,7 @@
 import { useState, useRef } from 'react';
 import * as aboutRepository from '../repositories/aboutRepository.ts';
+import { apiErrorMessage } from '../repositories/apiError.ts';
+import { BTN_GHOST } from './formStyles.ts';
 
 interface ProfilePhotoUploadFieldProps {
   currentPhotoUrl?: string | null;
@@ -21,13 +23,13 @@ const ProfilePhotoUploadField: React.FC<ProfilePhotoUploadFieldProps> = ({
   const validateAndSetFile = (file: File) => {
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
     if (!allowedTypes.includes(file.type)) {
-      onUploadError?.('Please select an image file (JPG, PNG, WEBP, or GIF)');
+      onUploadError?.('Please select a valid image file (JPG, PNG, WEBP, or GIF)');
       return;
     }
 
     const maxSize = 5 * 1024 * 1024;
     if (file.size > maxSize) {
-      onUploadError?.('Image too large. Maximum size is 5MB');
+      onUploadError?.('File too large. Maximum size is 5MB');
       return;
     }
 
@@ -79,9 +81,8 @@ const ProfilePhotoUploadField: React.FC<ProfilePhotoUploadFieldProps> = ({
       } else {
         onUploadError?.(response.error || 'Upload failed');
       }
-    } catch (error: any) {
-      const errorMsg = error.response?.data?.error || 'Upload failed';
-      onUploadError?.(errorMsg);
+    } catch (error) {
+      onUploadError?.(apiErrorMessage(error, 'Upload failed'));
     } finally {
       setUploading(false);
     }
@@ -97,29 +98,27 @@ const ProfilePhotoUploadField: React.FC<ProfilePhotoUploadFieldProps> = ({
   };
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col items-start gap-3">
       {previewUrl ? (
         <div className="relative inline-block">
           <img
             src={previewUrl}
             alt="Profile Preview"
-            className="w-48 h-48 rounded-full object-cover border-2 border-gray-300"
+            className="w-48 h-48 object-cover border border-ln2 block"
           />
           <button
             onClick={handleRemove}
             type="button"
             aria-label="Remove profile photo"
-            className="absolute top-0 right-0 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors shadow-lg"
+            className="absolute top-2 right-2 bg-bg text-ink border border-ln2 font-mono text-[12px] leading-none px-2.5 py-2 cursor-pointer hover:border-ink"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            ×
           </button>
         </div>
       ) : (
         <div
-          className={`w-48 h-48 rounded-full border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-colors ${
-            dragActive ? 'border-orange-500 bg-orange-50' : 'border-gray-300 hover:border-gray-400'
+          className={`w-48 h-48 border border-dashed flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors ${
+            dragActive ? 'border-acct bg-s1' : 'border-ln2 hover:border-ink'
           }`}
           onDragEnter={handleDrag}
           onDragLeave={handleDrag}
@@ -136,28 +135,32 @@ const ProfilePhotoUploadField: React.FC<ProfilePhotoUploadFieldProps> = ({
             onChange={handleFileChange}
             className="hidden"
           />
-          <svg className="h-10 w-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-          </svg>
-          <p id="profile-photo-constraints" className="text-xs text-gray-500 mt-2 text-center px-4">Click or drag to upload</p>
+          <span className="font-mono text-[22px] leading-none text-mut" aria-hidden="true">
+            ＋
+          </span>
+          <p
+            id="profile-photo-constraints"
+            className="m-0 px-4 text-center font-mono text-[11px] leading-[1.4] uppercase tracking-[0.1em] text-mut"
+          >
+            Click or drag to upload
+          </p>
         </div>
       )}
 
       {selectedFile && !uploading && (
-        <button
-          onClick={handleUpload}
-          type="button"
-          className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
-        >
-          Upload Photo
+        <button onClick={handleUpload} type="button" className={BTN_GHOST}>
+          Upload photo
         </button>
       )}
 
       {uploading && (
-        <div role="status" aria-label="Uploading photo" className="flex items-center gap-2 text-sm text-gray-600">
-          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-500" aria-hidden="true"></div>
-          Uploading...
-        </div>
+        <p
+          role="status"
+          aria-label="Uploading photo"
+          className="m-0 font-mono text-[11px] leading-none uppercase tracking-[0.12em] text-acct"
+        >
+          ● Uploading
+        </p>
       )}
     </div>
   );

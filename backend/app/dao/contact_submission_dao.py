@@ -74,6 +74,31 @@ class ContactSubmissionDAO:
             self.session.rollback()
             raise Exception(f"Failed to mark as read: {str(e)}")
 
+    def setReadStatus(self, submissionId, read):
+        try:
+            submission = self.session.get(ContactSubmission, submissionId)
+            if not submission:
+                return None
+            submission.read = bool(read)
+            self.session.commit()
+            return submission
+        except Exception as e:
+            self.session.rollback()
+            raise Exception(f"Failed to set read status: {str(e)}")
+
+    def markAllRead(self):
+        """Mark every unarchived unread submission read. Returns the row count."""
+        try:
+            updated = self.session.query(ContactSubmission) \
+                .filter(ContactSubmission.archivedAt == None) \
+                .filter(ContactSubmission.read == False) \
+                .update({ContactSubmission.read: True}, synchronize_session=False)
+            self.session.commit()
+            return updated
+        except Exception as e:
+            self.session.rollback()
+            raise Exception(f"Failed to mark all read: {str(e)}")
+
     def softDelete(self, submissionId):
         try:
             submission = self.session.get(ContactSubmission, submissionId)

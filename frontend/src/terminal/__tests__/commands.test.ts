@@ -14,6 +14,9 @@ import '../commands/whoami';
 import '../commands/sudo';
 import '../commands/pwd';
 import '../commands/cd';
+import '../commands/projects';
+import '../commands/apps';
+import '../commands/field';
 // Skipping: download, open, ls
 // (they depend on browser APIs, fetch, or dynamic imports)
 
@@ -31,7 +34,11 @@ function createMockContext(overrides?: Partial<TerminalContext>): TerminalContex
     currentDir: '~',
     setCurrentDir: vi.fn(),
     getFilesystem: () => fs,
-    currentThemeName: () => 'default',
+    currentThemeName: () => 'field',
+    getProjects: () => ({ status: 'ready', items: [] }),
+    setFieldVisible: vi.fn(),
+    isFieldVisible: () => true,
+    resetField: vi.fn(),
     ...overrides,
   };
 }
@@ -316,5 +323,83 @@ describe('cd command', () => {
     const ctx = createMockContext({ currentDir: '~/about' });
     await execute('cd ~/skills', ctx);
     expect(ctx.setCurrentDir).toHaveBeenCalledWith('~/skills');
+  });
+});
+
+describe('projects command', () => {
+  it('lists projects by slug', async () => {
+    const ctx = createMockContext({
+      getProjects: () => ({
+        status: 'ready',
+        items: [{
+          id: 1,
+          title: 'MLMP - Multi-Level Motion Planning',
+          slug: 'mlmp',
+          description: 'Planner races',
+          technologies: ['C++'],
+          isVisible: true,
+          is_in_progress: false,
+          displayOrder: 1,
+        }],
+      }),
+    });
+    const result = await execute('projects', ctx);
+    const text = result.output.map(l => l.text).join('\n');
+    expect(text).toContain('mlmp');
+    expect(text).toContain('Planner races');
+    expect(text).not.toContain('Multi-Level Motion Planning');
+  });
+
+  it('reports an unavailable list', async () => {
+    const ctx = createMockContext({ getProjects: () => ({ status: 'unavailable' }) });
+    const result = await execute('projects', ctx);
+    expect(result.output[0].text).toBe('project list unavailable');
+  });
+});
+
+describe('apps command', () => {
+  it('lists hosted units with mode and memory', async () => {
+    const result = await execute('apps', createMockContext());
+    const text = result.output.map(l => l.text).join('\n');
+    expect(text).toContain('UNIT');
+    expect(text).toContain('trek');
+    expect(text).toContain('shared');
+    expect(text).toContain('apps open <slug> to launch one.');
+  });
+
+  it('opens a unit on the apps subdomain', async () => {
+    const result = await execute('apps open trek', createMockContext());
+    expect(result.sideEffect).toEqual({ type: 'open', url: 'https://apps.tom-sabala.dev/a/trek/' });
+  });
+
+  it('errors on an unknown unit', async () => {
+    const result = await execute('apps open nope', createMockContext());
+    expect(result.output[0].text).toContain('no unit called nope');
+  });
+});
+
+describe('field command', () => {
+  it('hides the pane', async () => {
+    const ctx = createMockContext();
+    await execute('field off', ctx);
+    expect(ctx.setFieldVisible).toHaveBeenCalledWith(false);
+  });
+
+  it('shows the pane', async () => {
+    const ctx = createMockContext();
+    await execute('field on', ctx);
+    expect(ctx.setFieldVisible).toHaveBeenCalledWith(true);
+  });
+
+  it('regenerates the world', async () => {
+    const ctx = createMockContext();
+    const result = await execute('field reset', ctx);
+    expect(ctx.resetField).toHaveBeenCalled();
+    expect(result.output[0].text).toContain('world regenerated');
+  });
+
+  it('explains itself without args', async () => {
+    const result = await execute('field', createMockContext());
+    expect(result.output[0].text).toContain('2D LiDAR');
   });
 });

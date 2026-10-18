@@ -20,22 +20,41 @@ export interface Theme {
 
 export const themes: Theme[] = [
   {
-    name: 'default',
-    label: 'Default (Green)',
+    name: 'field',
+    label: 'Field (default)',
     colors: {
-      bg: '#0a0e14',
-      fg: '#33ff33',
-      fgDim: '#1a8c1a',
-      prompt: '#5cff5c',
-      error: '#ff5555',
-      link: '#5caaff',
-      selectionBg: '#33ff3340',
-      selectionFg: '#ffffff',
-      cursor: '#33ff33',
-      accent: '#5cff5c',
+      bg: '#0a0f0b',
+      fg: '#e8f0e3',
+      fgDim: '#93a596',
+      prompt: '#c8f53c',
+      error: '#ff6b57',
+      link: '#c8f53c',
+      selectionBg: '#c8f53c',
+      selectionFg: '#0a0f0b',
+      cursor: '#c8f53c',
+      accent: '#c8f53c',
       warning: '#ffaa00',
-      success: '#5cff5c',
-      border: '#1a8c1a',
+      success: '#c8f53c',
+      border: '#2f4134',
+    },
+  },
+  {
+    name: 'paper',
+    label: 'Paper (light)',
+    colors: {
+      bg: '#eef0e6',
+      fg: '#0d150f',
+      fgDim: '#56655a',
+      prompt: '#3f5a00',
+      error: '#b3261e',
+      link: '#3f5a00',
+      selectionBg: '#c8f53c',
+      selectionFg: '#0d150f',
+      cursor: '#3f5a00',
+      accent: '#3f5a00',
+      warning: '#8a6a00',
+      success: '#3f5a00',
+      border: '#aab79f',
     },
   },
   {
@@ -156,12 +175,21 @@ export const themes: Theme[] = [
 
 const STORAGE_KEY = 'terminal-theme';
 
+export const DEFAULT_THEME_NAME = 'field';
+
+/**
+ * The green-on-black `default` theme was replaced by `field` in the redesign; a visitor
+ * carrying the old value is moved across instead of being dropped onto an unknown theme.
+ */
 export function getStoredThemeName(): string {
+  let stored: string | null = null;
   try {
-    return localStorage.getItem(STORAGE_KEY) || 'default';
+    stored = localStorage.getItem(STORAGE_KEY);
   } catch {
-    return 'default';
+    stored = null;
   }
+  if (!stored || stored === 'default') return DEFAULT_THEME_NAME;
+  return stored;
 }
 
 export function storeThemeName(name: string): void {
@@ -200,6 +228,8 @@ export function applyTheme(theme: Theme, container: HTMLElement): void {
   container.style.setProperty('--term-warning', c.warning || '#ffaa00');
   container.style.setProperty('--term-success', c.success || c.prompt);
   container.style.setProperty('--term-border', c.border || c.fgDim);
+  // Text drawn on top of an accent fill (the status-bar brand chip).
+  container.style.setProperty('--term-on-accent', c.bg);
 
   document.body.style.backgroundColor = c.bg;
 }

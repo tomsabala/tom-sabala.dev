@@ -9,11 +9,13 @@ from werkzeug.utils import secure_filename
 from app import db
 from app.dao import AboutDAO
 from app.services.storage_factory import getStorageService
+from app.utils.tab_guard import require_tab_visible
 
 about_bp = Blueprint('about', __name__)
 
 
 @about_bp.route('/about', methods=['GET'])
+@require_tab_visible('about')
 def getAbout():
     """
     Get about content (public endpoint)

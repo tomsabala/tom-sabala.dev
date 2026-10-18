@@ -1,7 +1,20 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 import * as jobsRepository from '../repositories/jobsRepository.ts';
+import { apiErrorMessage } from '../repositories/apiError.ts';
 import Modal from './Modal.tsx';
+import {
+  BTN_GHOST,
+  BTN_MUTED,
+  BTN_PRIMARY,
+  CHIP,
+  DIALOG_TITLE,
+  ERROR_BOX,
+  ERROR_TEXT,
+  FIELD,
+  FIELD_ERROR,
+  HINT,
+  LABEL,
+} from './formStyles.ts';
 import type { Company } from '../types/index.ts';
 
 interface CompanyFormModalProps {
@@ -101,10 +114,7 @@ const CompanyFormModal: React.FC<CompanyFormModalProps> = ({
         setErrors({ submit: response.error || 'Failed to save company' });
       }
     } catch (error: unknown) {
-      const serverError = axios.isAxiosError<{ error?: string }>(error)
-        ? error.response?.data?.error
-        : undefined;
-      setErrors({ submit: serverError || 'Failed to save company' });
+      setErrors({ submit: apiErrorMessage(error, 'Failed to save company') });
     } finally {
       setSubmitting(false);
     }
@@ -175,10 +185,7 @@ const CompanyFormModal: React.FC<CompanyFormModalProps> = ({
         setAiWarning('No new suggestions — every tag it picked is already added.');
       }
     } catch (error: unknown) {
-      const serverError = axios.isAxiosError<{ error?: string }>(error)
-        ? error.response?.data?.error
-        : undefined;
-      setAiWarning(serverError || 'AI suggestions unavailable. Add tags manually.');
+      setAiWarning(apiErrorMessage(error, 'AI suggestions unavailable. Add tags manually.'));
     } finally {
       setSuggestLoading(false);
     }
@@ -187,26 +194,24 @@ const CompanyFormModal: React.FC<CompanyFormModalProps> = ({
   return (
     <Modal isOpen={isOpen} onClose={onClose} titleId="company-form-title">
       <div className="p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h2 id="company-form-title" className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-            {mode === 'add' ? 'Add Company' : 'Edit Company'}
+        <div className="flex justify-between items-start gap-4 mb-6">
+          <h2 id="company-form-title" className={DIALOG_TITLE}>
+            {mode === 'add' ? 'Add company' : 'Edit company'}
           </h2>
           <button
             onClick={onClose}
             type="button"
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-            aria-label="Close modal"
+            className="bg-transparent border border-ln2 text-mut hover:text-ink font-mono text-[12px] leading-none px-2.5 py-2 cursor-pointer"
+            aria-label="Close dialog"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            ✕
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Company Name <span className="text-red-500" aria-hidden="true">*</span>
+            <label htmlFor="name" className={LABEL}>
+              Company name <span className="text-acct" aria-hidden="true">*</span>
               <span className="sr-only">(required)</span>
             </label>
             <input
@@ -217,18 +222,16 @@ const CompanyFormModal: React.FC<CompanyFormModalProps> = ({
               onChange={handleInputChange}
               aria-required="true"
               aria-describedby={errors.name ? 'company-name-error' : undefined}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
-                errors.name ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-              }`}
+              className={`${FIELD} ${errors.name ? FIELD_ERROR : ''}`}
               placeholder="Acme Corp"
             />
-            {errors.name && <p id="company-name-error" role="alert" className="mt-1 text-sm text-red-600">{errors.name}</p>}
+            {errors.name && (
+              <p id="company-name-error" role="alert" className={ERROR_TEXT}>{errors.name}</p>
+            )}
           </div>
 
           <div>
-            <label htmlFor="url" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Website URL
-            </label>
+            <label htmlFor="url" className={LABEL}>Website URL</label>
             <input
               type="text"
               id="url"
@@ -236,18 +239,16 @@ const CompanyFormModal: React.FC<CompanyFormModalProps> = ({
               value={formData.url}
               onChange={handleInputChange}
               aria-describedby={errors.url ? 'company-url-error' : undefined}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
-                errors.url ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-              }`}
+              className={`${FIELD} ${errors.url ? FIELD_ERROR : ''}`}
               placeholder="https://acme.com"
             />
-            {errors.url && <p id="company-url-error" role="alert" className="mt-1 text-sm text-red-600">{errors.url}</p>}
+            {errors.url && (
+              <p id="company-url-error" role="alert" className={ERROR_TEXT}>{errors.url}</p>
+            )}
           </div>
 
           <div>
-            <label htmlFor="careers_url" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Careers page URL
-            </label>
+            <label htmlFor="careers_url" className={LABEL}>Careers page URL</label>
             <input
               type="text"
               id="careers_url"
@@ -255,33 +256,31 @@ const CompanyFormModal: React.FC<CompanyFormModalProps> = ({
               value={formData.careers_url}
               onChange={handleInputChange}
               aria-describedby={errors.careers_url ? 'company-careers-url-error' : 'company-careers-url-help'}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
-                errors.careers_url ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-              }`}
+              className={`${FIELD} ${errors.careers_url ? FIELD_ERROR : ''}`}
               placeholder="https://acme.com/careers"
             />
             {errors.careers_url ? (
-              <p id="company-careers-url-error" role="alert" className="mt-1 text-sm text-red-600">{errors.careers_url}</p>
+              <p id="company-careers-url-error" role="alert" className={ERROR_TEXT}>{errors.careers_url}</p>
             ) : (
-              <p id="company-careers-url-help" className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              <p id="company-careers-url-help" className={HINT}>
                 Where the job board lives. Leave blank to let the agent find it.
               </p>
             )}
             {mode === 'edit' && company?.ats_provider && (
-              <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                <p>
-                  Board: <span className="font-medium text-gray-700 dark:text-gray-300">{company.ats_provider}</span>
-                  {company.ats_token ? ` (${company.ats_token})` : ''}
+              <div className="mt-2.5 bg-s1 p-3 flex flex-col gap-2">
+                <p className="m-0 font-mono text-[11px] leading-[1.4] text-mut uppercase tracking-[0.08em]">
+                  Board <span className="text-ink">{company.ats_provider}</span>
+                  {company.ats_token ? <span className="text-ink2"> · {company.ats_token}</span> : null}
                 </p>
                 {company.sync_error && (
-                  <p className="text-amber-600 dark:text-amber-400 mt-0.5">{company.sync_error}</p>
+                  <p className="m-0 font-mono text-[11px] leading-[1.4] text-acct">{company.sync_error}</p>
                 )}
-                <label className="inline-flex items-center gap-2 mt-1.5 cursor-pointer">
+                <label className="inline-flex items-center gap-2 cursor-pointer font-mono text-[11px] leading-none uppercase tracking-[0.08em] text-ink2">
                   <input
                     type="checkbox"
                     checked={redetectBoard}
                     onChange={e => setRedetectBoard(e.target.checked)}
-                    className="rounded border-gray-300 dark:border-gray-600"
+                    className="appearance-none w-3.5 h-3.5 border border-ln2 bg-bg checked:bg-acc checked:border-acc cursor-pointer"
                   />
                   Re-detect board on next run
                 </label>
@@ -290,60 +289,63 @@ const CompanyFormModal: React.FC<CompanyFormModalProps> = ({
           </div>
 
           <div>
-            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Notes
-            </label>
+            <label htmlFor="notes" className={LABEL}>Notes</label>
             <textarea
               id="notes"
               name="notes"
               value={formData.notes}
               onChange={handleInputChange}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              className={FIELD}
               placeholder="Any notes about this company..."
             />
           </div>
 
           {/* Categories */}
           <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Categories <span className="text-red-500" aria-hidden="true">*</span>
+            <div className="flex items-center justify-between gap-3">
+              <label htmlFor="company-tag-input" className={LABEL}>
+                Categories <span className="text-acct" aria-hidden="true">*</span>
                 <span className="sr-only">(required)</span>
               </label>
-              <span className="text-xs text-gray-400 dark:text-gray-500">{categories.length}/10</span>
+              <span className="font-mono text-[10px] leading-none tracking-[0.1em] text-mut mb-2">
+                {categories.length}/10
+              </span>
             </div>
 
             {/* Accepted tag chips */}
-            <div className="flex flex-wrap gap-1.5 mb-2 min-h-[28px]">
-              {categories.map(tag => (
-                <span
-                  key={tag}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
-                >
-                  {tag}
-                  <button
-                    type="button"
-                    onClick={() => removeTag(tag)}
-                    className="text-blue-400 hover:text-blue-600 dark:hover:text-blue-200 transition-colors"
-                    aria-label={`Remove tag ${tag}`}
+            {categories.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {categories.map(tag => (
+                  <span
+                    key={tag}
+                    className={`${CHIP} inline-flex items-center gap-2 border-ink text-ink`}
                   >
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </span>
-              ))}
-            </div>
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => removeTag(tag)}
+                      className="bg-transparent border-0 p-0 text-mut hover:text-acct cursor-pointer font-mono text-[10px] leading-none"
+                      aria-label={`Remove tag ${tag}`}
+                    >
+                      ✕
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
 
             {/* Manual input */}
             <input
               type="text"
+              id="company-tag-input"
               value={tagInput}
               onChange={e => setTagInput(e.target.value)}
               onKeyDown={handleTagKeyDown}
               disabled={categories.length >= 10}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              className={`${FIELD} disabled:opacity-50 disabled:cursor-not-allowed ${
+                errors.categories ? FIELD_ERROR : ''
+              }`}
               placeholder={categories.length >= 10 ? 'Max 10 tags reached' : 'Type a tag and press Enter or comma'}
             />
 
@@ -352,37 +354,29 @@ const CompanyFormModal: React.FC<CompanyFormModalProps> = ({
               type="button"
               onClick={handleSuggest}
               disabled={suggestLoading || !formData.name.trim()}
-              className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className={`${BTN_MUTED} mt-2 px-3 py-2.5`}
             >
-              {suggestLoading ? (
-                <>
-                  <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-current" />
-                  Suggesting...
-                </>
-              ) : (
-                <>
-                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                  </svg>
-                  Suggest with AI
-                </>
-              )}
+              {suggestLoading ? 'Suggesting…' : '✦ Suggest with AI'}
             </button>
 
             {/* Validation error */}
             {errors.categories && (
-              <p role="alert" className="mt-1.5 text-xs text-red-600 dark:text-red-400">{errors.categories}</p>
+              <p role="alert" className={ERROR_TEXT}>{errors.categories}</p>
             )}
 
             {/* AI warning */}
             {aiWarning && (
-              <p className="mt-1.5 text-xs text-amber-600 dark:text-amber-400">{aiWarning}</p>
+              <p role="status" className="mt-1.5 font-mono text-[11px] leading-[1.4] text-acct">
+                {aiWarning}
+              </p>
             )}
 
             {/* AI suggestions row */}
             {aiSuggestions.length > 0 && (
-              <div className="mt-3">
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">AI suggestions — click to add:</p>
+              <div className="mt-3 flex flex-col gap-2">
+                <p className="m-0 font-mono text-[10px] leading-none uppercase tracking-[0.12em] text-acct">
+                  AI suggestions — click to add
+                </p>
                 <div className="flex flex-wrap gap-1.5">
                   {aiSuggestions.map(tag => (
                     <button
@@ -390,13 +384,10 @@ const CompanyFormModal: React.FC<CompanyFormModalProps> = ({
                       type="button"
                       onClick={() => addTag(tag)}
                       disabled={categories.length >= 10}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-950 hover:text-blue-700 dark:hover:text-blue-300 border border-gray-200 dark:border-gray-600 hover:border-blue-200 dark:hover:border-blue-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      className={`${CHIP} bg-s1 text-ink2 hover:text-ink hover:border-ink cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed`}
                       aria-label={`Add tag ${tag}`}
                     >
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                      </svg>
-                      {tag}
+                      + {tag}
                     </button>
                   ))}
                 </div>
@@ -405,36 +396,15 @@ const CompanyFormModal: React.FC<CompanyFormModalProps> = ({
           </div>
 
           {errors.submit && (
-            <div role="alert" className="p-3 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-sm text-red-600">{errors.submit}</p>
-            </div>
+            <div role="alert" className={ERROR_BOX}>{errors.submit}</div>
           )}
 
-          <div className="flex gap-3 justify-end pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={submitting}
-              className="px-5 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
+          <div className="flex gap-2 justify-end pt-2">
+            <button type="button" onClick={onClose} disabled={submitting} className={BTN_GHOST}>
               Cancel
             </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="px-6 py-2 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-              style={{ background: 'var(--accent)' }}
-              onMouseEnter={e => !e.currentTarget.disabled && (e.currentTarget.style.background = 'var(--accent-hover)')}
-              onMouseLeave={e => !e.currentTarget.disabled && (e.currentTarget.style.background = 'var(--accent)')}
-            >
-              {submitting ? (
-                <>
-                  <div role="status" aria-label="Saving" className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  Saving...
-                </>
-              ) : (
-                mode === 'add' ? 'Add Company' : 'Save Changes'
-              )}
+            <button type="submit" disabled={submitting} className={BTN_PRIMARY}>
+              {submitting ? 'Saving…' : mode === 'add' ? 'Add company' : 'Save changes'}
             </button>
           </div>
         </form>

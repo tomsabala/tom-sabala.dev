@@ -14,6 +14,18 @@ class Project(db.Model):
     imageUrl = db.Column('image_url', db.String(500), nullable=True)
     content = db.Column('content', db.Text, nullable=True)
     docsSlug = db.Column('docs_slug', db.String(100), nullable=True)
+    # ── Redesign detail-page content; all optional ────────────────────────────
+    slug = db.Column('slug', db.String(100), nullable=True, unique=True)
+    field = db.Column('field', db.String(100), nullable=True)
+    lede = db.Column('lede', db.Text, nullable=True)
+    facts = db.Column('facts', db.JSON, nullable=True)          # [{"k":..,"v":..}]
+    aboutParagraphs = db.Column('about_paragraphs', db.JSON, nullable=True)  # ["..",".."]
+    steps = db.Column('steps', db.JSON, nullable=True)          # [{"t":..,"d":..}]
+    rulesTitle = db.Column('rules_title', db.String(120), nullable=True)
+    rules = db.Column('rules', db.JSON, nullable=True)          # ["..", ".."]
+    runCode = db.Column('run_code', db.Text, nullable=True)
+    specimen = db.Column('specimen', db.String(40), nullable=True)
+    accessLabel = db.Column('access_label', db.String(60), nullable=True)
     isVisible = db.Column('is_visible', db.Boolean, nullable=False, default=True)
     isInProgress = db.Column('is_in_progress', db.Boolean, nullable=False, default=False)
     displayOrder = db.Column('display_order', db.Integer, nullable=False, default=0)
@@ -32,6 +44,17 @@ class Project(db.Model):
             'image_url': self.imageUrl,
             'content': self.content,
             'docsSlug': self.docsSlug,
+            'slug': self.slug,
+            'field': self.field,
+            'lede': self.lede,
+            'facts': self.facts,
+            'aboutParagraphs': self.aboutParagraphs,
+            'steps': self.steps,
+            'rulesTitle': self.rulesTitle,
+            'rules': self.rules,
+            'runCode': self.runCode,
+            'specimen': self.specimen,
+            'accessLabel': self.accessLabel,
             'isVisible': self.isVisible,
             'is_in_progress': self.isInProgress,
             'displayOrder': self.displayOrder,

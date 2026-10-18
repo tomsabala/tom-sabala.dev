@@ -47,10 +47,19 @@ export async function getSubmissionById(id: number) {
 }
 
 /**
- * Toggle read/unread status (admin - requires auth)
+ * Set read status explicitly (admin - requires auth).
+ * The console always states the value it wants; the backend still toggles on an empty body.
  */
-export async function toggleReadStatus(id: number) {
-  const response = await apiClient.patch(`/contact/submissions/${id}/read`);
+export async function setReadStatus(id: number, read: boolean) {
+  const response = await apiClient.patch(`/contact/submissions/${id}/read`, { read });
+  return response.data;
+}
+
+/**
+ * Mark every unarchived unread submission as read (admin - requires auth).
+ */
+export async function markAllRead() {
+  const response = await apiClient.post('/contact/submissions/read-all');
   return response.data;
 }
 

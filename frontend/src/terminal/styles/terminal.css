@@ -1,18 +1,21 @@
 :root {
-  --term-bg: #0a0e14;
-  --term-fg: #33ff33;
-  --term-fg-dim: #1a8c1a;
-  --term-prompt: #5cff5c;
-  --term-error: #ff5555;
-  --term-link: #5caaff;
-  --term-selection-bg: #33ff3340;
-  --term-selection-fg: #ffffff;
-  --term-cursor: #33ff33;
+  /* Defaults mirror the `field` theme; applyTheme() overwrites them on .terminal-shell. */
+  --term-bg: #0a0f0b;
+  --term-fg: #e8f0e3;
+  --term-fg-dim: #93a596;
+  --term-prompt: #c8f53c;
+  --term-error: #ff6b57;
+  --term-link: #c8f53c;
+  --term-selection-bg: #c8f53c;
+  --term-selection-fg: #0a0f0b;
+  --term-cursor: #c8f53c;
   --term-accent: var(--term-prompt);
   --term-warning: #ffaa00;
   --term-success: var(--term-prompt);
-  --term-border: var(--term-fg-dim);
-  --term-font: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Monaco, Menlo, 'Courier New', monospace;
+  --term-border: #2f4134;
+  --term-on-accent: var(--term-bg);
+  --term-font: 'DM Mono', ui-monospace, monospace;
+  --term-pad: clamp(14px, 2.4vw, 28px);
 }
 
 *,
@@ -33,23 +36,97 @@ html, body, #terminal-root {
 body {
   font-family: var(--term-font);
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.6;
   color: var(--term-fg);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* ── Shell: status bar / body / chip bar ── */
+
+.terminal-shell {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--term-bg);
+  color: var(--term-fg);
+}
+
+.terminal-statusbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+  gap: 12px;
+  border-bottom: 1px solid var(--term-border);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  flex-wrap: wrap;
+}
+
+.terminal-statusbar-group {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+}
+
+.terminal-statusbar-group--right {
+  color: var(--term-fg-dim);
+}
+
+.terminal-statusbar-brand {
+  background: var(--term-accent);
+  color: var(--term-on-accent);
+  padding: 9px 12px;
+  white-space: nowrap;
+}
+
+.terminal-statusbar-cwd {
+  padding: 9px 12px;
+  border-right: 1px solid var(--term-border);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.terminal-statusbar-link {
+  padding: 9px 12px;
+  color: var(--term-fg-dim);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.terminal-statusbar-link:hover {
+  color: var(--term-accent);
+}
+
+.terminal-statusbar-cell {
+  padding: 9px 12px;
+  border-left: 1px solid var(--term-border);
+  white-space: nowrap;
+}
+
+.terminal-statusbar-clock {
+  color: var(--term-fg);
+}
+
+.terminal-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
 /* ── Terminal container ── */
 
 .terminal-container {
-  height: 100%;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   overflow-y: auto;
   scroll-behavior: smooth;
-  padding: 12px 16px;
+  padding: var(--term-pad);
   display: flex;
   flex-direction: column;
-  scrollbar-color: var(--term-fg-dim) var(--term-bg);
+  scrollbar-color: var(--term-border) var(--term-bg);
   scrollbar-width: thin;
 }
 
@@ -64,57 +141,54 @@ body {
 }
 
 .terminal-container::-webkit-scrollbar-thumb {
-  background: var(--term-fg-dim);
-  border-radius: 4px;
+  background: var(--term-border);
 }
 
 .terminal-container::-webkit-scrollbar-thumb:hover {
-  background: var(--term-fg);
+  background: var(--term-fg-dim);
 }
 
 /* ── Welcome banner ── */
 
 .terminal-banner {
-  margin-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 18px;
 }
 
 .terminal-banner-art {
-  color: var(--term-prompt);
+  color: var(--term-accent);
   font-family: var(--term-font);
-  font-size: 14px;
-  line-height: 1.2;
+  font-weight: 500;
+  font-size: clamp(9px, 1.25vw, 14px);
+  line-height: 1.15;
+  white-space: pre;
+  overflow: hidden;
 }
 
-.terminal-banner-subtitle,
-.terminal-banner-hint {
-  color: var(--term-fg-dim);
-  margin-top: 4px;
+.terminal-banner-subtitle {
+  margin-top: 10px;
+  font-weight: 500;
 }
 
 .terminal-banner-meta {
   color: var(--term-fg-dim);
-  margin-top: 2px;
-  font-size: 0.85em;
 }
 
 .terminal-banner-separator {
-  color: var(--term-fg-dim);
-  margin-top: 6px;
-  opacity: 0.5;
+  color: var(--term-border);
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .terminal-banner-cmd {
-  color: var(--term-fg);
-}
-
-.terminal-banner-spacer {
-  height: 8px;
+  color: var(--term-accent);
 }
 
 /* ── Output ── */
 
 .terminal-output {
-  flex: 1;
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -129,7 +203,7 @@ body {
 
 .terminal-prompt-text {
   color: var(--term-prompt);
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .terminal-command-echo {
@@ -138,10 +212,11 @@ body {
 
 .terminal-line {
   color: var(--term-fg);
+  min-height: 1.6em;
 }
 
 .terminal-line--bold {
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .terminal-link {
@@ -154,27 +229,18 @@ body {
   opacity: 0.8;
 }
 
-/* ── Sticky footer (input + suggestions) ── */
-
-.terminal-sticky-footer {
-  position: sticky;
-  bottom: 0;
-  background-color: var(--term-bg);
-  padding: 2px 0;
-  padding-bottom: env(safe-area-inset-bottom, 2px);
-}
-
 /* ── Input ── */
 
 .terminal-input-row {
   display: flex;
   align-items: center;
-  min-height: 1.5em;
+  min-height: 1.6em;
 }
 
 .terminal-input-wrapper {
   flex: 1;
   position: relative;
+  min-width: 0;
 }
 
 .terminal-input-field {
@@ -230,56 +296,151 @@ body {
   color: var(--term-selection-fg);
 }
 
-/* ── Mobile command suggestions ── */
+/* ── LiDAR pane ── */
 
-.terminal-suggestions {
-  display: none;
+.terminal-lidar {
+  flex: 0 0 400px;
+  border-left: 1px solid var(--term-border);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
-@media screen and (max-width: 640px) {
-  .terminal-suggestions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    padding: 10px 0 4px;
-  }
+.terminal-lidar-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--term-border);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.08em;
+}
 
-  .terminal-suggestion-pill {
-    background: transparent;
-    border: 1px solid var(--term-fg-dim);
-    color: var(--term-fg);
-    font-family: var(--term-font);
-    font-size: 12px;
-    padding: 4px 10px;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: border-color 0.15s, color 0.15s;
-  }
+.terminal-lidar-title {
+  color: var(--term-accent);
+}
 
-  .terminal-suggestion-pill:active {
-    border-color: var(--term-prompt);
-    color: var(--term-prompt);
-  }
+.terminal-lidar-hint {
+  color: var(--term-fg-dim);
+}
 
-  .terminal-suggestion-pill:disabled {
-    opacity: 0.4;
-    cursor: default;
-  }
+.terminal-lidar-scan {
+  margin: 0;
+  padding: 12px 14px;
+  flex: 1;
+  color: var(--term-accent);
+  font-family: var(--term-font);
+  font-size: 13px;
+  line-height: 1.05;
+  white-space: pre;
+  overflow: hidden;
+}
+
+.terminal-lidar-telemetry {
+  margin: 0;
+  padding: 12px 14px;
+  border-top: 1px solid var(--term-border);
+  color: var(--term-fg-dim);
+  font-family: var(--term-font);
+  font-size: 12px;
+  line-height: 1.7;
+  white-space: pre;
+}
+
+/* ── Bottom chip bar ── */
+
+.terminal-chipbar {
+  border-top: 1px solid var(--term-border);
+  padding: 10px var(--term-pad);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px 20px;
+  flex-wrap: wrap;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+}
+
+.terminal-suggestions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.terminal-suggestion-pill {
+  background: transparent;
+  border: 1px solid var(--term-border);
+  color: var(--term-fg);
+  font-family: var(--term-font);
+  font-size: 12px;
+  line-height: 1;
+  padding: 8px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.terminal-suggestion-pill:hover,
+.terminal-suggestion-pill:active {
+  border-color: var(--term-accent);
+  color: var(--term-accent);
+}
+
+.terminal-suggestion-pill:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.terminal-chipbar-hint {
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--term-fg-dim);
+  white-space: nowrap;
 }
 
 /* ── Mobile adjustments ── */
 
+@media screen and (max-width: 899px) {
+  .terminal-lidar {
+    display: none;
+  }
+}
+
 @media screen and (max-width: 768px) {
   body {
-    font-size: 12px;
+    font-size: 13px;
   }
 
-  /* Prevent iOS zoom on input focus */
-  .terminal-input-field {
+  /*
+   * iOS zooms a focused input below 16px, so the field (and the overlay that draws its
+   * text) are pinned there. The prompt stays at body size: at 16px a deep cwd wraps the
+   * input row onto a second line on a 390px screen.
+   */
+  .terminal-input-field,
+  .terminal-input-visual {
     font-size: 16px;
   }
 
-  .terminal-banner-art {
-    font-size: 12px;
+  .terminal-chipbar {
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .terminal-suggestions {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    width: 100%;
+    padding-bottom: 2px;
+  }
+
+  .terminal-suggestions::-webkit-scrollbar {
+    display: none;
+  }
+
+  .terminal-chipbar-hint {
+    white-space: normal;
   }
 }

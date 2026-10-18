@@ -93,6 +93,30 @@ export function createDockerClient({ baseUrl, fetchImpl = fetch }) {
     },
 
     /**
+     * A one-shot memory sample for a running container. `stream=0` makes the daemon return
+     * a single JSON document instead of an endless stream, and `one-shot=1` skips the
+     * two-sample CPU delta we have no use for.
+     *
+     * Never throws: this backs a status page. A socket proxy without CONTAINERS=1 on this
+     * route, or a daemon that reports a shape we do not recognise, yields null and the
+     * caller renders a dash.
+     */
+    async stats(id) {
+      try {
+        const { body } = await request('GET', `/containers/${encodeURIComponent(id)}/stats?stream=0&one-shot=1`);
+        const memory = body?.memory_stats;
+        if (!memory || typeof memory.usage !== 'number') return null;
+        // `usage` counts the page cache, which makes an idle app look twice its size; the
+        // cgroup v2 `inactive_file` is the reclaimable part and is what `docker stats`
+        // subtracts too.
+        const cache = memory.stats?.inactive_file ?? memory.stats?.cache ?? 0;
+        return { usage: Math.max(0, memory.usage - cache), limit: memory.limit ?? null };
+      } catch {
+        return null;
+      }
+    },
+
+    /**
      * The tail of a container's own output. A failed anonymous instance is removed
      * immediately — its tmpfs makes a half-started container worthless — so this is the
      * only moment the app's account of why it died can still be read. Never throws: this

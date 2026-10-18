@@ -40,10 +40,11 @@ const Modal: React.FC<ModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div data-panel="1" className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
         className="absolute inset-0 backdrop-blur-lg"
+        style={{ background: 'color-mix(in oklab, var(--bg) 70%, transparent)' }}
         aria-hidden="true"
         onClick={dismissOnBackdrop ? onClose : undefined}
       />
@@ -53,7 +54,8 @@ const Modal: React.FC<ModalProps> = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className={`relative bg-white dark:bg-[#2a2a2a] rounded-lg shadow-xl w-full ${maxWidth} max-h-[90vh] overflow-y-auto`}
+        className={`relative bg-bg text-ink border border-ln2 w-full ${maxWidth} max-h-[90vh] overflow-y-auto`}
+        style={{ boxShadow: '0 30px 60px -30px rgba(0,0,0,0.5)' }}
       >
         {children}
       </div>

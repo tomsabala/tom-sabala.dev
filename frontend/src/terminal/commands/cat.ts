@@ -1,26 +1,12 @@
 import { registerCommand } from './registry';
-import { getPortfolio } from '../../repositories/portfolioRepository';
-import { resolvePath, getNode, populateProjects } from '../filesystem';
+import { resolvePath, getNode } from '../filesystem';
 import type { CommandResult, TerminalContext, OutputLine } from './types';
-
-const PROJECTS_PATH = '/home/visitor/projects';
-
-async function ensureProjectsPopulated(ctx: TerminalContext): Promise<void> {
-  const fs = ctx.getFilesystem();
-  const projectsNode = getNode(fs, PROJECTS_PATH);
-  if (!projectsNode?.children || projectsNode.children.length > 0) return;
-
-  const projects = await getPortfolio().catch(() => null);
-  if (projects) {
-    populateProjects(fs, projects);
-  }
-}
 
 registerCommand({
   name: 'cat',
   description: 'Display file contents',
   usage: 'cat <file> [file2 ...]',
-  execute: async (args: string[], ctx: TerminalContext): Promise<CommandResult> => {
+  execute: (args: string[], ctx: TerminalContext): CommandResult => {
     if (args.length === 0) {
       return { output: [{ text: 'Usage: cat <file>', color: 'var(--term-error)' }] };
     }
@@ -33,10 +19,6 @@ registerCommand({
       if (!absolutePath) {
         lines.push({ text: `cat: ${arg}: No such file or directory`, color: 'var(--term-error)' });
         continue;
-      }
-
-      if (absolutePath.startsWith(PROJECTS_PATH)) {
-        await ensureProjectsPopulated(ctx);
       }
 
       const node = getNode(ctx.getFilesystem(), absolutePath);

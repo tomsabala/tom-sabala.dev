@@ -1,7 +1,7 @@
 /**
- * GitHubStats — Option C "Activity Focus"
- * Shows the full 52-week contribution heatmap, streak badges,
- * contribution count, and language tag pills.
+ * GitHub activity strip: a 52-week contribution heatmap, streak counters and language
+ * shares, drawn in the site's own palette — square cells, 1px borders, mono labels — so it
+ * reads as part of the About section rather than an embedded GitHub widget.
  */
 import { useState, useEffect, useRef } from 'react';
 import { getGitHubStats } from '../repositories/githubRepository.ts';
@@ -12,7 +12,7 @@ const CELL = 10;
 const GAP  = 2;
 const STEP = CELL + GAP;
 const SVG_W = 52 * STEP;          // 624px
-const SVG_H = 7  * STEP + 18;     // 100px  (18 = month label row)
+const SVG_H = 7  * STEP + 18;     // 102px  (18 = month label row)
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -42,60 +42,35 @@ function buildMonthLabels(): { label: string; x: number }[] {
 
 const MONTH_LABELS = buildMonthLabels();
 
-// ── Color helpers ────────────────────────────────────────────────────────────
-function heatColor(count: number, dark: boolean): string {
-  if (dark) {
-    if (count === 0) return '#161b22';
-    if (count <= 2)  return '#0e4429';
-    if (count <= 4)  return '#006d32';
-    if (count <= 6)  return '#26a641';
-    return '#39d353';
-  }
-  if (count === 0) return '#ebedf0';
-  if (count <= 2)  return '#9be9a8';
-  if (count <= 4)  return '#40c463';
-  if (count <= 6)  return '#30a14e';
-  return '#216e39';
+/**
+ * Five steps of the accent, mixed against the surface so an empty day is the panel itself.
+ * `color-mix` keeps both themes correct from one ladder.
+ */
+function heatColor(count: number): string {
+  if (count === 0) return 'var(--s1)';
+  const pct = count <= 2 ? 22 : count <= 4 ? 45 : count <= 6 ? 70 : 100;
+  return `color-mix(in oklab, var(--acc) ${pct}%, var(--s1))`;
 }
 
-// ── Loading skeleton ─────────────────────────────────────────────────────────
 function Skeleton() {
   return (
-    <div className="animate-pulse space-y-4">
-      <div className="flex gap-3 items-center">
-        <div className="h-7 bg-gray-200 dark:bg-gray-700 rounded-full w-36" />
-        <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded-full w-24" />
-      </div>
-      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-52" />
-      <div className="h-24 bg-gray-200 dark:bg-gray-700 rounded" />
+    <div className="animate-pulse flex flex-col gap-4">
+      <div className="h-6 bg-s1 border border-ln w-44" />
+      <div className="h-[102px] bg-s1 border border-ln" />
       <div className="flex gap-2 flex-wrap">
-        <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded-full w-28" />
-        <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded-full w-24" />
-        <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded-full w-20" />
-        <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded-full w-24" />
+        <div className="h-6 bg-s1 border border-ln w-28" />
+        <div className="h-6 bg-s1 border border-ln w-24" />
+        <div className="h-6 bg-s1 border border-ln w-20" />
       </div>
     </div>
   );
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
 export default function GitHubStats() {
   const [stats,   setStats]   = useState<GitHubStatsType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState('');
   const heatmapRef = useRef<HTMLDivElement>(null);
-
-  // Track dark mode by watching the <html> class attribute
-  const [isDark, setIsDark] = useState(() =>
-    document.documentElement.classList.contains('dark')
-  );
-  useEffect(() => {
-    const obs = new MutationObserver(() =>
-      setIsDark(document.documentElement.classList.contains('dark'))
-    );
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-    return () => obs.disconnect();
-  }, []);
 
   useEffect(() => {
     getGitHubStats()
@@ -115,48 +90,49 @@ export default function GitHubStats() {
   }, [stats]);
 
   const year = new Date().getFullYear();
-  const labelColor = isDark ? '#6b7280' : '#9ca3af';
 
   return (
-    <div className="bg-white dark:bg-[#252525] rounded-lg shadow-md border border-transparent dark:border-gray-700 p-4 sm:p-8">
-      <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-4">
-        GitHub Activity
-      </h2>
+    <div className="border border-ln p-5 sm:p-6 flex flex-col gap-4">
+      <div className="flex items-baseline justify-between gap-4 flex-wrap">
+        <span className="font-mono text-[11px] leading-none font-medium text-acct tracking-[0.1em] uppercase">
+          GitHub activity
+        </span>
+        {stats && (
+          <a
+            href={`https://github.com/${stats.username}`}
+            target="_blank"
+            rel="noopener"
+            className="font-mono text-[11px] leading-none text-mut tracking-[0.06em] uppercase no-underline hover:text-acct"
+          >
+            @{stats.username} ↗
+          </a>
+        )}
+      </div>
 
       {loading ? (
         <Skeleton />
       ) : error ? (
-        <p className="text-sm text-gray-400 dark:text-gray-500">{error}</p>
+        <p className="m-0 font-mono text-[12px] text-mut">{error}</p>
       ) : stats && (
         <>
-          {/* ── Streak badges ── */}
-          {(stats.currentStreak > 0 || stats.longestStreak > 0) && (
-            <div className="flex items-baseline gap-3 mb-2.5 flex-wrap">
-              {stats.currentStreak > 0 && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60">
-                  🔥 {stats.currentStreak} day streak
-                </span>
-              )}
-              {stats.longestStreak > 0 && (
-                <span className="text-sm text-gray-500 dark:text-gray-400">
-                  Best: {stats.longestStreak} days
-                </span>
-              )}
-            </div>
-          )}
+          <div className="flex items-baseline gap-5 flex-wrap font-mono text-[12px] text-ink2">
+            {stats.hasContributionData && stats.totalContributions > 0 && (
+              <span>
+                <span className="text-acct">{stats.totalContributions.toLocaleString()}</span>{' '}
+                contributions in {year}
+              </span>
+            )}
+            {stats.currentStreak > 0 && (
+              <span>
+                <span className="text-acct">{stats.currentStreak}</span> day streak
+              </span>
+            )}
+            {stats.longestStreak > 0 && (
+              <span className="text-mut">best {stats.longestStreak} days</span>
+            )}
+          </div>
 
-          {/* ── Contributions summary ── */}
-          {stats.hasContributionData && stats.totalContributions > 0 && (
-            <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-              <strong className="font-semibold text-gray-900 dark:text-gray-100">
-                {stats.totalContributions.toLocaleString()}
-              </strong>{' '}
-              contributions in {year}
-            </p>
-          )}
-
-          {/* ── Contribution heatmap ── */}
-          <div ref={heatmapRef} className="overflow-x-auto mb-4 -mx-1 px-1">
+          <div ref={heatmapRef} className="overflow-x-auto">
             <svg
               width={SVG_W}
               height={SVG_H}
@@ -164,21 +140,19 @@ export default function GitHubStats() {
               style={{ display: 'block' }}
               aria-label={`GitHub contribution heatmap for ${year}`}
             >
-              {/* Month labels */}
               {MONTH_LABELS.map(m => (
                 <text
                   key={m.label}
                   x={m.x}
                   y={11}
                   fontSize={9}
-                  fill={labelColor}
-                  fontFamily="system-ui,-apple-system,sans-serif"
+                  fill="var(--mut)"
+                  fontFamily="'DM Mono', monospace"
                 >
                   {m.label}
                 </text>
               ))}
 
-              {/* Contribution cells */}
               {stats.contributions.map((week, w) =>
                 week.map((count, d) => (
                   <rect
@@ -187,8 +161,7 @@ export default function GitHubStats() {
                     y={16 + d * STEP}
                     width={CELL}
                     height={CELL}
-                    rx={2}
-                    fill={heatColor(count, isDark)}
+                    fill={heatColor(count)}
                   >
                     <title>{count} contribution{count !== 1 ? 's' : ''}</title>
                   </rect>
@@ -197,15 +170,14 @@ export default function GitHubStats() {
             </svg>
           </div>
 
-          {/* ── Language tags ── */}
           {stats.languages.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-2">
               {stats.languages.map(lang => (
                 <span
                   key={lang.name}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium text-white shadow-sm"
-                  style={{ background: lang.color }}
+                  className="inline-flex items-center gap-2 border border-ln px-2 py-1.5 font-mono text-[11px] leading-none text-ink2"
                 >
+                  <span className="w-2 h-2 block" style={{ background: lang.color }} />
                   {lang.name} {lang.pct}%
                 </span>
               ))}

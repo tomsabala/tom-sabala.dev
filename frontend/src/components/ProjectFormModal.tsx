@@ -1,8 +1,26 @@
 import { useState, useEffect } from 'react';
 import * as portfolioRepository from '../repositories/portfolioRepository.ts';
+import { apiErrorMessage } from '../repositories/apiError.ts';
 import ImageUploadField from './ImageUploadField.tsx';
 import Modal from './Modal.tsx';
-import type { PortfolioItem, ProjectFormData } from '../types/index.ts';
+import {
+  BTN_MUTED,
+  BTN_PRIMARY,
+  DIALOG_TITLE,
+  ERROR_BOX,
+  ERROR_TEXT,
+  FIELD,
+  FIELD_ERROR,
+  FIELD_MONO,
+  HINT,
+  LABEL,
+} from './formStyles.ts';
+import type {
+  PortfolioItem,
+  ProjectFact,
+  ProjectFormData,
+  ProjectStep,
+} from '../types/index.ts';
 
 interface ProjectFormModalProps {
   isOpen: boolean;
@@ -12,6 +30,79 @@ interface ProjectFormModalProps {
   onSuccess: () => void;
 }
 
+/** Everything the dialog edits, flattened to the shapes the inputs bind to. */
+interface FormState {
+  title: string;
+  description: string;
+  technologies: string;
+  github_url: string;
+  live_url: string;
+  image_url: string;
+  content: string;
+  docs_slug: string;
+  is_in_progress: boolean;
+  slug: string;
+  field: string;
+  lede: string;
+  facts: ProjectFact[];
+  aboutParagraphs: string[];
+  steps: ProjectStep[];
+  rulesTitle: string;
+  rules: string[];
+  runCode: string;
+  specimen: string;
+  accessLabel: string;
+}
+
+const EMPTY_FORM: FormState = {
+  title: '',
+  description: '',
+  technologies: '',
+  github_url: '',
+  live_url: '',
+  image_url: '',
+  content: '',
+  docs_slug: '',
+  is_in_progress: false,
+  slug: '',
+  field: '',
+  lede: '',
+  facts: [],
+  aboutParagraphs: [],
+  steps: [],
+  rulesTitle: '',
+  rules: [],
+  runCode: '',
+  specimen: '',
+  accessLabel: '',
+};
+
+/** Painter keys the detail page knows how to draw; the empty option means "no specimen". */
+const SPECIMENS = ['chain', 'hull', 'equity', 'graph', 'board'];
+
+const SECTION_RULE = 'border-t border-ln2 pt-5 mt-1';
+const SECTION_LABEL =
+  'font-mono text-[11px] leading-none uppercase tracking-[0.18em] text-acct';
+const ADD_BUTTON =
+  'self-start bg-transparent border border-ln2 text-ink2 font-mono text-[11px] leading-none ' +
+  'uppercase tracking-[0.1em] px-2.5 py-2 cursor-pointer hover:text-ink hover:border-ink';
+const ROW_REMOVE =
+  'shrink-0 self-stretch bg-transparent border border-ln2 text-mut font-mono text-[13px] ' +
+  'leading-none px-3 cursor-pointer hover:text-ink hover:border-ink';
+const ROW_INDEX = 'shrink-0 w-6 pt-3 font-mono text-[11px] leading-none text-mut tabular-nums';
+
+function removeAt<T>(list: T[], index: number): T[] {
+  return list.filter((_, i) => i !== index);
+}
+
+function patchAt<T>(list: T[], index: number, patch: Partial<T>): T[] {
+  return list.map((item, i) => (i === index ? { ...item, ...patch } : item));
+}
+
+function replaceAt(list: string[], index: number, value: string): string[] {
+  return list.map((item, i) => (i === index ? value : item));
+}
+
 const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
   isOpen,
   mode,
@@ -19,18 +110,7 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
   onClose,
   onSuccess,
 }) => {
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    technologies: '',
-    github_url: '',
-    live_url: '',
-    image_url: '',
-    content: '',
-    docs_slug: '',
-    is_in_progress: false,
-  });
-
+  const [formData, setFormData] = useState<FormState>(EMPTY_FORM);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [uploadError, setUploadError] = useState<string>('');
@@ -49,24 +129,38 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
           content: project.content || '',
           docs_slug: project.docsSlug || '',
           is_in_progress: project.is_in_progress ?? false,
+          slug: project.slug || '',
+          field: project.field || '',
+          lede: project.lede || '',
+          facts: project.facts ?? [],
+          aboutParagraphs: project.aboutParagraphs ?? [],
+          steps: project.steps ?? [],
+          rulesTitle: project.rulesTitle || '',
+          rules: project.rules ?? [],
+          runCode: project.runCode || '',
+          specimen: project.specimen || '',
+          accessLabel: project.accessLabel || '',
         });
       } else {
-        setFormData({
-          title: '',
-          description: '',
-          technologies: '',
-          github_url: '',
-          live_url: '',
-          image_url: '',
-          content: '',
-          docs_slug: '',
-          is_in_progress: false,
-        });
+        setFormData(EMPTY_FORM);
       }
       setErrors({});
       setUploadError('');
     }
   }, [isOpen, mode, project]);
+
+  const update = (patch: Partial<FormState>) => {
+    setFormData(prev => ({ ...prev, ...patch }));
+  };
+
+  const clearError = (key: string) => {
+    setErrors(prev => {
+      if (!prev[key]) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  };
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -118,6 +212,19 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
         .map(tech => tech.trim())
         .filter(tech => tech.length > 0);
 
+      // Half-filled repeatable rows are dropped; a list the admin emptied is sent as `[]`
+      // so the blanket `setattr` on the backend actually clears the column.
+      const facts = formData.facts
+        .map(fact => ({ k: fact.k.trim(), v: fact.v.trim() }))
+        .filter(fact => fact.k || fact.v);
+      const steps = formData.steps
+        .map(step => ({ t: step.t.trim(), d: step.d.trim() }))
+        .filter(step => step.t || step.d);
+      const aboutParagraphs = formData.aboutParagraphs
+        .map(paragraph => paragraph.trim())
+        .filter(paragraph => paragraph.length > 0);
+      const rules = formData.rules.map(rule => rule.trim()).filter(rule => rule.length > 0);
+
       const projectData: ProjectFormData = {
         title: formData.title.trim(),
         description: formData.description.trim(),
@@ -128,6 +235,19 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
         content: formData.is_in_progress ? undefined : (formData.content.trim() || undefined),
         docsSlug: formData.is_in_progress ? undefined : (formData.docs_slug.trim() || undefined),
         is_in_progress: formData.is_in_progress,
+        // Detail-page content. `null` rather than `undefined` so clearing a field clears the
+        // column instead of silently keeping the old value.
+        slug: formData.slug.trim() || null,
+        field: formData.field.trim() || null,
+        lede: formData.lede.trim() || null,
+        facts,
+        aboutParagraphs,
+        steps,
+        rulesTitle: formData.rulesTitle.trim() || null,
+        rules,
+        runCode: formData.runCode.trim() || null,
+        specimen: formData.specimen || null,
+        accessLabel: formData.accessLabel.trim() || null,
       };
 
       let response;
@@ -142,214 +262,197 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
       } else {
         setErrors({ submit: response.error || 'Failed to save project' });
       }
-    } catch (error: any) {
-      const errorMsg = error.response?.data?.error || 'Failed to save project';
-      setErrors({ submit: errorMsg });
+    } catch (error) {
+      setErrors({ submit: apiErrorMessage(error, 'Failed to save project') });
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    if (errors[name]) {
-      setErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
-    }
-  };
-
-  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, checked } = e.target;
-    setFormData(prev => ({ ...prev, [name]: checked }));
-  };
-
-  const handleImageUploaded = (imageUrl: string) => {
-    setFormData(prev => ({ ...prev, image_url: imageUrl }));
-    setUploadError('');
-  };
-
-  const handleUploadError = (error: string) => {
-    setUploadError(error);
   };
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} titleId="project-form-title">
       <div className="p-6">
         {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <h2 id="project-form-title" className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-            {mode === 'add' ? 'Add New Project' : 'Edit Project'}
+        <div className="flex justify-between items-start gap-4 mb-6">
+          <h2 id="project-form-title" className={DIALOG_TITLE}>
+            {mode === 'add' ? 'Add project' : 'Edit project'}
           </h2>
           <button
             onClick={onClose}
             type="button"
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-            aria-label="Close modal"
+            className="bg-transparent border border-ln2 text-mut font-mono text-[12px] leading-none px-2.5 py-2 cursor-pointer hover:text-ink hover:border-ink"
+            aria-label="Close dialog"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <span aria-hidden="true">×</span>
           </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           {/* Title Field */}
           <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Title <span className="text-red-500" aria-hidden="true">*</span>
+            <label htmlFor="title" className={LABEL}>
+              Title <span className="text-acct" aria-hidden="true">*</span>
               <span className="sr-only">(required)</span>
             </label>
             <input
               type="text"
               id="title"
-              name="title"
               value={formData.title}
-              onChange={handleInputChange}
+              onChange={e => {
+                update({ title: e.target.value });
+                clearError('title');
+              }}
               aria-required="true"
               aria-describedby={errors.title ? 'title-error' : undefined}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
-                errors.title ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-              }`}
+              className={`${FIELD} ${errors.title ? FIELD_ERROR : ''}`}
               placeholder="Project title"
             />
-            {errors.title && <p id="title-error" role="alert" className="mt-1 text-sm text-red-600">{errors.title}</p>}
+            {errors.title && (
+              <p id="title-error" role="alert" className={ERROR_TEXT}>{errors.title}</p>
+            )}
           </div>
 
           {/* Description Field */}
           <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Description <span className="text-red-500" aria-hidden="true">*</span>
+            <label htmlFor="description" className={LABEL}>
+              Description <span className="text-acct" aria-hidden="true">*</span>
               <span className="sr-only">(required)</span>
             </label>
             <textarea
               id="description"
-              name="description"
               value={formData.description}
-              onChange={handleInputChange}
+              onChange={e => {
+                update({ description: e.target.value });
+                clearError('description');
+              }}
               rows={4}
               aria-required="true"
               aria-describedby={errors.description ? 'description-error' : undefined}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
-                errors.description ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-              }`}
+              className={`${FIELD} ${errors.description ? FIELD_ERROR : ''}`}
               placeholder="Project description"
             />
-            {errors.description && <p id="description-error" role="alert" className="mt-1 text-sm text-red-600">{errors.description}</p>}
+            {errors.description && (
+              <p id="description-error" role="alert" className={ERROR_TEXT}>{errors.description}</p>
+            )}
           </div>
 
           {/* Technologies Field */}
           <div>
-            <label htmlFor="technologies" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Technologies <span className="text-red-500" aria-hidden="true">*</span>
+            <label htmlFor="technologies" className={LABEL}>
+              Technologies <span className="text-acct" aria-hidden="true">*</span>
               <span className="sr-only">(required)</span>
             </label>
             <input
               type="text"
               id="technologies"
-              name="technologies"
               value={formData.technologies}
-              onChange={handleInputChange}
+              onChange={e => {
+                update({ technologies: e.target.value });
+                clearError('technologies');
+              }}
               aria-required="true"
               aria-describedby={errors.technologies ? 'technologies-error' : undefined}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
-                errors.technologies ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-              }`}
+              className={`${FIELD_MONO} ${errors.technologies ? FIELD_ERROR : ''}`}
               placeholder="React, TypeScript, Node.js (comma-separated)"
             />
-            {errors.technologies && <p id="technologies-error" role="alert" className="mt-1 text-sm text-red-600">{errors.technologies}</p>}
+            {errors.technologies && (
+              <p id="technologies-error" role="alert" className={ERROR_TEXT}>
+                {errors.technologies}
+              </p>
+            )}
           </div>
 
           {/* Image Upload Field */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Project Image
-            </label>
+            <span className={LABEL}>Project image</span>
             <ImageUploadField
               currentImageUrl={formData.image_url}
-              onImageUploaded={handleImageUploaded}
-              onUploadError={handleUploadError}
+              onImageUploaded={imageUrl => {
+                update({ image_url: imageUrl });
+                setUploadError('');
+              }}
+              onUploadError={setUploadError}
             />
-            {uploadError && <p role="alert" className="mt-1 text-sm text-red-600">{uploadError}</p>}
+            {uploadError && <p role="alert" className={ERROR_TEXT}>{uploadError}</p>}
           </div>
 
           {/* GitHub URL Field */}
           <div>
-            <label htmlFor="github_url" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label htmlFor="github_url" className={LABEL}>
               GitHub URL
             </label>
             <input
               type="url"
               id="github_url"
-              name="github_url"
               value={formData.github_url}
-              onChange={handleInputChange}
-              aria-describedby={errors.github_url ? 'github-url-error' : undefined}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
-                errors.github_url ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-              }`}
+              onChange={e => {
+                update({ github_url: e.target.value });
+                clearError('github_url');
+              }}
+              aria-describedby={errors.github_url ? 'github_url-error' : undefined}
+              className={`${FIELD_MONO} ${errors.github_url ? FIELD_ERROR : ''}`}
               placeholder="https://github.com/username/repo"
             />
-            {errors.github_url && <p id="github-url-error" role="alert" className="mt-1 text-sm text-red-600">{errors.github_url}</p>}
+            {errors.github_url && (
+              <p id="github_url-error" role="alert" className={ERROR_TEXT}>{errors.github_url}</p>
+            )}
           </div>
 
           {/* Live URL Field */}
           <div>
-            <label htmlFor="live_url" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label htmlFor="live_url" className={LABEL}>
               Live URL
             </label>
             <input
               type="url"
               id="live_url"
-              name="live_url"
               value={formData.live_url}
-              onChange={handleInputChange}
-              aria-describedby={errors.live_url ? 'live-url-error' : undefined}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
-                errors.live_url ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-              }`}
+              onChange={e => {
+                update({ live_url: e.target.value });
+                clearError('live_url');
+              }}
+              aria-describedby={errors.live_url ? 'live_url-error' : undefined}
+              className={`${FIELD_MONO} ${errors.live_url ? FIELD_ERROR : ''}`}
               placeholder="https://example.com"
             />
-            {errors.live_url && <p id="live-url-error" role="alert" className="mt-1 text-sm text-red-600">{errors.live_url}</p>}
+            {errors.live_url && (
+              <p id="live_url-error" role="alert" className={ERROR_TEXT}>{errors.live_url}</p>
+            )}
           </div>
 
           {/* In Progress Toggle */}
-          <div className="flex items-center gap-3 p-3 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg">
+          <label
+            htmlFor="is_in_progress"
+            className="flex items-start gap-3 border border-ln2 bg-s1 p-3.5 cursor-pointer select-none"
+          >
             <input
               type="checkbox"
               id="is_in_progress"
-              name="is_in_progress"
               checked={formData.is_in_progress}
-              onChange={handleCheckboxChange}
-              className="w-4 h-4 rounded border-gray-300 accent-amber-500 cursor-pointer"
+              onChange={e => update({ is_in_progress: e.target.checked })}
+              className="mt-0.5 w-4 h-4 accent-acc cursor-pointer"
             />
-            <label htmlFor="is_in_progress" className="text-sm font-medium text-amber-800 dark:text-amber-300 cursor-pointer select-none">
-              In Progress — hides the detail page; card click shows an info message instead
-            </label>
-          </div>
+            <span className="font-mono text-[11px] leading-[1.5] uppercase tracking-[0.08em] text-ink2">
+              In progress — hides the detail page; card click shows an info message instead
+            </span>
+          </label>
 
           {/* Article Content Field (hidden when in-progress) */}
           {!formData.is_in_progress && (
             <div>
-              <label htmlFor="content" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Article Content (Markdown)
+              <label htmlFor="content" className={LABEL}>
+                Article content (markdown)
               </label>
               <textarea
                 id="content"
-                name="content"
                 value={formData.content}
-                onChange={handleInputChange}
-                rows={15}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-mono text-sm"
+                onChange={e => update({ content: e.target.value })}
+                rows={12}
+                className={FIELD_MONO}
                 placeholder="Write a detailed article about this project..."
               />
-              <p className="mt-1 text-xs text-gray-500">
+              <p className={HINT}>
                 Supports Markdown: **bold**, `code`, ## headings, - lists, etc.
               </p>
             </div>
@@ -358,57 +461,334 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
           {/* Docs Slug Field (hidden when in-progress) */}
           {!formData.is_in_progress && (
             <div>
-              <label htmlFor="docs_slug" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Docs Slug
+              <label htmlFor="docs_slug" className={LABEL}>
+                Docs slug
               </label>
               <input
                 type="text"
                 id="docs_slug"
-                name="docs_slug"
                 value={formData.docs_slug}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                onChange={e => update({ docs_slug: e.target.value })}
+                className={FIELD_MONO}
                 placeholder="e.g. cgeo"
               />
-              <p className="mt-1 text-xs text-gray-500">
-                Links to a docs repo in <code>backend/docs/&lt;slug&gt;/</code>. Deep-dive markdown will be served from there.
+              <p className={HINT}>
+                Links to a docs repo in backend/docs/&lt;slug&gt;/. Deep-dive markdown will be
+                served from there.
               </p>
             </div>
           )}
 
+          {/* ── Detail page ─────────────────────────────────────────────────── */}
+          <div className={SECTION_RULE}>
+            <p className={`${SECTION_LABEL} m-0`}>Detail page</p>
+            <p className={HINT}>
+              Everything below renders on /work/&lt;slug&gt;. Leave a field empty to drop its
+              section from the page.
+            </p>
+          </div>
+
+          {/* Slug */}
+          <div>
+            <label htmlFor="slug" className={LABEL}>
+              Slug
+            </label>
+            <input
+              type="text"
+              id="slug"
+              value={formData.slug}
+              onChange={e => update({ slug: e.target.value })}
+              className={FIELD_MONO}
+              placeholder="auto-generated from the title when empty"
+            />
+            <p className={HINT}>URL segment — must be unique across projects.</p>
+          </div>
+
+          {/* Field + access label */}
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div>
+              <label htmlFor="field" className={LABEL}>
+                Field
+              </label>
+              <input
+                type="text"
+                id="field"
+                value={formData.field}
+                onChange={e => update({ field: e.target.value })}
+                className={FIELD}
+                placeholder="e.g. Geospatial systems"
+              />
+            </div>
+            <div>
+              <label htmlFor="accessLabel" className={LABEL}>
+                Access label
+              </label>
+              <input
+                type="text"
+                id="accessLabel"
+                value={formData.accessLabel}
+                onChange={e => update({ accessLabel: e.target.value })}
+                className={FIELD}
+                placeholder="e.g. Open source"
+              />
+            </div>
+          </div>
+
+          {/* Lede */}
+          <div>
+            <label htmlFor="lede" className={LABEL}>
+              Lede
+            </label>
+            <textarea
+              id="lede"
+              value={formData.lede}
+              onChange={e => update({ lede: e.target.value })}
+              rows={3}
+              className={FIELD}
+              placeholder="One or two sentences under the title"
+            />
+          </div>
+
+          {/* Specimen */}
+          <div>
+            <label htmlFor="specimen" className={LABEL}>
+              Specimen
+            </label>
+            <div className="relative">
+              <select
+                id="specimen"
+                value={formData.specimen}
+                onChange={e => update({ specimen: e.target.value })}
+                className={`${FIELD_MONO} appearance-none pr-9 cursor-pointer`}
+              >
+                <option value="">none</option>
+                {SPECIMENS.map(key => (
+                  <option key={key} value={key}>
+                    {key}
+                  </option>
+                ))}
+              </select>
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 font-mono text-[11px] leading-none text-mut"
+              >
+                ▾
+              </span>
+            </div>
+            <p className={HINT}>Painter drawn in the hero panel.</p>
+          </div>
+
+          {/* Facts */}
+          <div className="flex flex-col gap-2">
+            <span className={LABEL}>Facts</span>
+            {formData.facts.map((fact, index) => (
+              <div key={index} className="flex gap-2 items-stretch">
+                <input
+                  type="text"
+                  value={fact.k}
+                  onChange={e => update({ facts: patchAt(formData.facts, index, { k: e.target.value }) })}
+                  className={`${FIELD_MONO} flex-1 min-w-0`}
+                  placeholder="Key"
+                  aria-label={`Fact ${index + 1} key`}
+                />
+                <input
+                  type="text"
+                  value={fact.v}
+                  onChange={e => update({ facts: patchAt(formData.facts, index, { v: e.target.value }) })}
+                  className={`${FIELD} flex-1 min-w-0`}
+                  placeholder="Value"
+                  aria-label={`Fact ${index + 1} value`}
+                />
+                <button
+                  type="button"
+                  onClick={() => update({ facts: removeAt(formData.facts, index) })}
+                  className={ROW_REMOVE}
+                  aria-label={`Remove fact ${index + 1}`}
+                >
+                  <span aria-hidden="true">×</span>
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => update({ facts: [...formData.facts, { k: '', v: '' }] })}
+              className={ADD_BUTTON}
+            >
+              + Add fact
+            </button>
+          </div>
+
+          {/* About paragraphs */}
+          <div className="flex flex-col gap-2">
+            <span className={LABEL}>About paragraphs</span>
+            {formData.aboutParagraphs.map((paragraph, index) => (
+              <div key={index} className="flex gap-2 items-stretch">
+                <span className={ROW_INDEX} aria-hidden="true">
+                  {String(index + 1).padStart(2, '0')}
+                </span>
+                <textarea
+                  value={paragraph}
+                  onChange={e =>
+                    update({ aboutParagraphs: replaceAt(formData.aboutParagraphs, index, e.target.value) })
+                  }
+                  rows={3}
+                  className={`${FIELD} flex-1 min-w-0`}
+                  placeholder="Paragraph text"
+                  aria-label={`About paragraph ${index + 1}`}
+                />
+                <button
+                  type="button"
+                  onClick={() => update({ aboutParagraphs: removeAt(formData.aboutParagraphs, index) })}
+                  className={ROW_REMOVE}
+                  aria-label={`Remove about paragraph ${index + 1}`}
+                >
+                  <span aria-hidden="true">×</span>
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => update({ aboutParagraphs: [...formData.aboutParagraphs, ''] })}
+              className={ADD_BUTTON}
+            >
+              + Add paragraph
+            </button>
+          </div>
+
+          {/* Steps */}
+          <div className="flex flex-col gap-2">
+            <span className={LABEL}>Steps</span>
+            {formData.steps.map((step, index) => (
+              <div key={index} className="flex gap-2 items-stretch">
+                <span className={ROW_INDEX} aria-hidden="true">
+                  {String(index + 1).padStart(2, '0')}
+                </span>
+                <div className="flex-1 min-w-0 flex flex-col gap-2">
+                  <input
+                    type="text"
+                    value={step.t}
+                    onChange={e => update({ steps: patchAt(formData.steps, index, { t: e.target.value }) })}
+                    className={FIELD}
+                    placeholder="Step title"
+                    aria-label={`Step ${index + 1} title`}
+                  />
+                  <textarea
+                    value={step.d}
+                    onChange={e => update({ steps: patchAt(formData.steps, index, { d: e.target.value }) })}
+                    rows={2}
+                    className={FIELD}
+                    placeholder="What happens in this step"
+                    aria-label={`Step ${index + 1} detail`}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => update({ steps: removeAt(formData.steps, index) })}
+                  className={ROW_REMOVE}
+                  aria-label={`Remove step ${index + 1}`}
+                >
+                  <span aria-hidden="true">×</span>
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => update({ steps: [...formData.steps, { t: '', d: '' }] })}
+              className={ADD_BUTTON}
+            >
+              + Add step
+            </button>
+          </div>
+
+          {/* Rules */}
+          <div>
+            <label htmlFor="rulesTitle" className={LABEL}>
+              Rules title
+            </label>
+            <input
+              type="text"
+              id="rulesTitle"
+              value={formData.rulesTitle}
+              onChange={e => update({ rulesTitle: e.target.value })}
+              className={FIELD}
+              placeholder="e.g. Ground rules"
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <span className={LABEL}>Rules</span>
+            {formData.rules.map((rule, index) => (
+              <div key={index} className="flex gap-2 items-stretch">
+                <span className={ROW_INDEX} aria-hidden="true">
+                  {String(index + 1).padStart(2, '0')}
+                </span>
+                <input
+                  type="text"
+                  value={rule}
+                  onChange={e => update({ rules: replaceAt(formData.rules, index, e.target.value) })}
+                  className={`${FIELD} flex-1 min-w-0`}
+                  placeholder="Rule text"
+                  aria-label={`Rule ${index + 1}`}
+                />
+                <button
+                  type="button"
+                  onClick={() => update({ rules: removeAt(formData.rules, index) })}
+                  className={ROW_REMOVE}
+                  aria-label={`Remove rule ${index + 1}`}
+                >
+                  <span aria-hidden="true">×</span>
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => update({ rules: [...formData.rules, ''] })}
+              className={ADD_BUTTON}
+            >
+              + Add rule
+            </button>
+          </div>
+
+          {/* Run code */}
+          <div>
+            <label htmlFor="runCode" className={LABEL}>
+              Run code
+            </label>
+            <textarea
+              id="runCode"
+              value={formData.runCode}
+              onChange={e => update({ runCode: e.target.value })}
+              rows={4}
+              className={FIELD_MONO}
+              placeholder="git clone ..."
+            />
+            <p className={HINT}>Shown verbatim in the "run it" block.</p>
+          </div>
+
           {/* Submit Error */}
           {errors.submit && (
-            <div role="alert" className="p-3 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-sm text-red-600">{errors.submit}</p>
+            <div role="alert" className={ERROR_BOX}>
+              {errors.submit}
             </div>
           )}
 
           {/* Action Buttons */}
-          <div className="flex gap-3 justify-end pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={submitting}
-              className="px-5 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
+          <div className="flex gap-3 justify-end pt-1">
+            <button type="button" onClick={onClose} disabled={submitting} className={BTN_MUTED}>
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              aria-label={submitting ? 'Saving project' : (mode === 'add' ? 'Add Project' : 'Save Changes')}
-              className="px-6 py-2 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-              style={{ background: 'var(--accent)' }}
-              onMouseEnter={e => !e.currentTarget.disabled && (e.currentTarget.style.background = 'var(--accent-hover)')}
-              onMouseLeave={e => !e.currentTarget.disabled && (e.currentTarget.style.background = 'var(--accent)')}
+              aria-label={submitting ? 'Saving project' : (mode === 'add' ? 'Add project' : 'Save changes')}
+              className={BTN_PRIMARY}
             >
               {submitting ? (
-                <>
-                  <div role="status" aria-label="Saving" className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  Saving...
-                </>
+                <span role="status" aria-label="Saving">
+                  ● Saving
+                </span>
               ) : (
-                mode === 'add' ? 'Add Project' : 'Save Changes'
+                mode === 'add' ? 'Add project' : 'Save changes'
               )}
             </button>
           </div>

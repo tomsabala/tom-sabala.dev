@@ -6,6 +6,8 @@ zero-dependency Node **broker** that starts one container per (app, visitor sess
 ```
                     ┌─ /oauth2/*      → oauth2-proxy  (Google, admin whitelist)
 browser ── Caddy ───┼─ /manifest.json → broker        (the app list you may see)
+                    ├─ /boot/<slug>   → broker        (how your own instance is starting)
+                    ├─ /instances     → broker        (every instance; admin or status token)
                     ├─ /a/<slug>/*    → broker        → apps-<slug>-<key>  (your container)
                     └─ everything else → /srv/launcher on disk  (launcher + /hosted/** bundles)
 ```
@@ -265,6 +267,55 @@ Then, in this order:
 (their containers are orphaned and reaped on idle); admin instances are keyed by email and
 survive.
 
+## Instance status
+
+Two read-only endpoints expose what the broker is doing, because both the launcher's boot
+overlay and the portfolio's admin console were otherwise reduced to inventing it.
+
+`GET /boot/<slug>` is **unauthenticated** — it is polled while an iframe is still blank, so
+there is no session to require — and in exchange it answers about one instance only: the one
+the same caller would be proxied to, resolved from their own cookie exactly as `/a/<slug>/`
+does. It returns `{slug, mode, state, phases, phaseCount, elapsedMs, readyMs, error}`, where
+`state` is `absent | starting | ready | failed | stopped` and each phase is `{name, at}` with
+`at` in milliseconds since this attempt began. The phase names, in order:
+
+| phase | meaning |
+|---|---|
+| `claim` | the request has been resolved to a container name |
+| `reuse` | the container already existed (warm, or stopped with its volume) |
+| `create` | a container was created from the manifest's image |
+| `start` | `docker start` issued |
+| `health` | waiting on the image's own `HEALTHCHECK` |
+| `probe` | healthy; waiting for `readyPath` to answer |
+| `ready` | serving |
+| `failed` | terminal; `error` carries the broker's message |
+
+Nothing from the manifest's runtime block (`image`, `port`, `memoryMb`, `shmSizeMb`,
+`dataPath`, `readyPath`) appears in that payload — the same stripping `publicManifest()`
+enforces, asserted in `lib/status.test.mjs`.
+
+`GET /instances` is the admin view: every instance container on the box joined to the
+broker's in-memory boot state, plus the capacity ceilings. It takes **either** an admin
+oauth2-proxy session (the launcher's own inspector, same origin) **or**
+`X-Hangar-Token: $STATUS_TOKEN`. The token exists because the portfolio admin console lives
+on a different origin and cannot send this origin's `__Host-` cookie: its backend proxies the
+call server-side (`HANGAR_BROKER_URL` / `HANGAR_BROKER_TOKEN`). Leave `STATUS_TOKEN` empty to
+allow admin sessions only; set it and it must be 32+ characters, like `SESSION_SECRET`.
+
+```json
+{"instances": [{"slug": "trek", "name": "apps-trek-shared", "kind": "shared",
+                "mode": "shared", "state": "ready", "memUsedBytes": 265289728,
+                "memLimitBytes": 805306368, "startedAt": "ISO", "lastSeenMs": 4120,
+                "coldStartMs": 6210}],
+ "caps": {"total": 4, "anon": 2, "admin": 2}}
+```
+
+Memory comes from `GET /containers/<id>/stats?stream=0` through the socket proxy, minus the
+reclaimable page cache. A proxy without `CONTAINERS=1` on that route reports
+`memUsedBytes: null` and the console draws a dash; nothing else is affected. Boot state is
+in-memory only: after a broker restart every instance is adopted and reports `running` with a
+null `coldStartMs` until it is next started.
+
 ## Adding an app
 
 1. Build an image whose HTTP server is mounted at `/a/<slug>` (for Next.js: `basePath`, baked
@@ -328,6 +379,14 @@ reaper and capacity paths get tested in seconds:
 ```bash
 IDLE_TTL_SECONDS=20 docker compose -f gateway/docker-compose.dev.yml up -d
 MAX_ANON_INSTANCES=1 docker compose -f gateway/docker-compose.dev.yml up -d
+```
+
+```bash
+# The status surfaces (the dev stack fixes STATUS_TOKEN so this works without sign-in)
+curl -s localhost:8080/instances -o /dev/null -w '%{http_code}\n'   # 401
+curl -s -H "X-Hangar-Token: dev-only-status-token-not-for-production-0123456789" \
+  localhost:8080/instances | jq '.instances[0], .caps'
+curl -s localhost:8080/boot/trek | jq '{state, phases: [.phases[].name]}'
 ```
 
 Tear down with `docker compose -f gateway/docker-compose.dev.yml down`, then check

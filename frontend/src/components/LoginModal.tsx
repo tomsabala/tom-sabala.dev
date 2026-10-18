@@ -18,7 +18,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
   const [isLoading, setIsLoading] = React.useState(false);
 
   // Handle Google OAuth success
-  const handleGoogleSuccess = async (credentialResponse: any) => {
+  const handleGoogleSuccess = async (credentialResponse: { credential?: string }) => {
     if (!credentialResponse.credential) {
       setError('No credential received from Google');
       return;
@@ -53,61 +53,59 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} titleId="login-modal-title" maxWidth="max-w-md" dismissOnBackdrop={false}>
-      <div className="p-8">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <h2 id="login-modal-title" className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Admin Login</h2>
+      <div className="p-7 flex flex-col gap-5">
+        <div className="flex justify-between items-center gap-3">
+          <span
+            id="login-modal-title"
+            className="font-mono text-[11px] leading-none font-medium text-acct tracking-[0.12em] uppercase"
+          >
+            Operator access
+          </span>
           <button
             onClick={onClose}
             type="button"
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+            className="bg-transparent border-0 text-mut font-mono text-[18px] leading-none cursor-pointer p-1 hover:text-ink"
             aria-label="Close modal"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            ×
           </button>
         </div>
 
-        {/* Content */}
-        <div className="flex flex-col items-center">
-          {isLoading ? (
-            <div className="py-8" role="status" aria-label="Signing in">
-              <div className="w-12 h-12 border-4 border-orange-400 border-t-transparent rounded-full animate-spin"></div>
+        {isLoading ? (
+          <div className="py-8 text-center" role="status" aria-label="Signing in">
+            <span className="font-mono text-[12px] tracking-[0.12em] uppercase text-mut">
+              ● authenticating…
+            </span>
+          </div>
+        ) : (
+          <>
+            <p className="m-0 text-[15px] leading-[1.55] text-ink2">
+              Sign in with the authorised Google account to open the console.
+            </p>
+
+            <div className="w-full flex justify-center">
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={handleGoogleError}
+                useOneTap={false}
+                theme="outline"
+                size="large"
+                text="signin_with"
+                shape="rectangular"
+              />
             </div>
-          ) : (
-            <>
-              <p className="text-gray-600 dark:text-gray-400 mb-6 text-center">
-                Sign in with your authorized Google account to access the admin panel.
+
+            {error && (
+              <p role="alert" className="m-0 border border-ln2 p-3 font-mono text-[12px] leading-[1.5] text-ink">
+                {error}
               </p>
+            )}
 
-              {/* Google Sign-In Button */}
-              <div className="w-full flex justify-center">
-                <GoogleLogin
-                  onSuccess={handleGoogleSuccess}
-                  onError={handleGoogleError}
-                  useOneTap={false}
-                  theme="outline"
-                  size="large"
-                  text="signin_with"
-                  shape="rectangular"
-                />
-              </div>
-
-              {/* Error Message */}
-              {error && (
-                <div role="alert" className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md w-full">
-                  <p className="text-sm text-red-600 text-center">{error}</p>
-                </div>
-              )}
-
-              {/* Info Text */}
-              <p className="text-xs text-gray-500 mt-6 text-center">
-                Only authorized emails can access this area.
-              </p>
-            </>
-          )}
-        </div>
+            <p className="m-0 font-mono text-[11px] leading-none text-mut tracking-[0.06em] uppercase">
+              Allow-listed emails only.
+            </p>
+          </>
+        )}
       </div>
     </Modal>
   );

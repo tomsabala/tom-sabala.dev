@@ -1,20 +1,14 @@
-import { useEffect, useRef, useCallback, type RefObject, type ReactNode } from 'react';
+import { useEffect, useRef, type RefObject, type ReactNode } from 'react';
 import type { OutputBlock } from '../commands/types';
 
 interface TerminalProps {
   inputRef: RefObject<HTMLInputElement | null>;
   outputHistory: OutputBlock[];
-  onContainerRef?: (el: HTMLDivElement | null) => void;
   children: ReactNode;
 }
 
-export default function Terminal({ inputRef, outputHistory, onContainerRef, children }: TerminalProps) {
+export default function Terminal({ inputRef, outputHistory, children }: TerminalProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-
-  const setRef = useCallback((el: HTMLDivElement | null) => {
-    containerRef.current = el;
-    onContainerRef?.(el);
-  }, [onContainerRef]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -25,7 +19,7 @@ export default function Terminal({ inputRef, outputHistory, onContainerRef, chil
 
   return (
     <div
-      ref={setRef}
+      ref={containerRef}
       className="terminal-container"
       onClick={() => inputRef.current?.focus()}
       role="application"

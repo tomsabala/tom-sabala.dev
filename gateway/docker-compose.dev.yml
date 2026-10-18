@@ -54,6 +54,9 @@ services:
       DOCKER_API: http://socket-proxy:2375
       # Dev-only fixed secret: sessions survive a broker restart during verification.
       SESSION_SECRET: dev-only-session-secret-not-for-production-0123456789
+      # Dev-only fixed status token, so `curl -H "X-Hangar-Token: …" :8080/instances` works
+      # without an admin cookie. Production reads it from gateway/.env.
+      STATUS_TOKEN: ${STATUS_TOKEN:-dev-only-status-token-not-for-production-0123456789}
       COOKIE_NAME: apps_sid
       COOKIE_SECURE: 'false'
       AUTH_VERIFY_URL: http://dev-auth:4180/oauth2/auth

@@ -1,5 +1,7 @@
 import { useState, useRef } from 'react';
 import * as resumeRepository from '../repositories/resumeRepository.ts';
+import { apiErrorMessage } from '../repositories/apiError.ts';
+import { BTN_MUTED, BTN_PRIMARY, HINT } from './formStyles.ts';
 
 interface PdfUploadFormProps {
   onUploadSuccess?: () => void;
@@ -74,9 +76,8 @@ const PdfUploadForm: React.FC<PdfUploadFormProps> = ({
       } else {
         onUploadError?.(response.error || 'Upload failed');
       }
-    } catch (error: any) {
-      const errorMsg = error.response?.data?.error || 'Upload failed';
-      onUploadError?.(errorMsg);
+    } catch (error) {
+      onUploadError?.(apiErrorMessage(error, 'Upload failed'));
     } finally {
       setUploading(false);
     }
@@ -90,13 +91,11 @@ const PdfUploadForm: React.FC<PdfUploadFormProps> = ({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4">
       {/* Drag & Drop Area */}
       <div
-        className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-          dragActive
-            ? 'border-orange-500 bg-orange-50'
-            : 'border-gray-300 hover:border-gray-400'
+        className={`relative border border-dashed p-8 text-center transition-colors ${
+          dragActive ? 'border-acct bg-s1' : 'border-ln2 hover:border-ink'
         }`}
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
@@ -116,55 +115,24 @@ const PdfUploadForm: React.FC<PdfUploadFormProps> = ({
 
         {!selectedFile ? (
           <div>
-            <svg
-              className="mx-auto h-12 w-12 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-              />
-            </svg>
-            <p className="mt-2 text-sm text-gray-600">
-              <label
-                htmlFor="pdf-upload"
-                className="font-medium text-orange-500 hover:text-orange-600 cursor-pointer"
-              >
+            <p className="m-0 font-mono text-[12px] leading-none uppercase tracking-[0.1em] text-ink2">
+              <label htmlFor="pdf-upload" className="text-acct cursor-pointer">
                 Click to upload
               </label>{' '}
               or drag and drop
             </p>
-            <p id="pdf-upload-constraints" className="text-xs text-gray-500 mt-1">
+            <p id="pdf-upload-constraints" className={HINT}>
               PDF file up to 10MB
             </p>
           </div>
         ) : (
-          <div className="flex items-center justify-center gap-3">
-            <svg
-              className="h-8 w-8 text-green-500"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            <div className="text-left">
-              <p className="text-sm font-medium text-gray-900">
-                {selectedFile.name}
-              </p>
-              <p className="text-xs text-gray-500">
-                {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-              </p>
-            </div>
+          <div className="flex flex-col items-center gap-1.5">
+            <p className="m-0 font-mono text-[12px] leading-none uppercase tracking-[0.06em] text-acct">
+              ● {selectedFile.name}
+            </p>
+            <p className="m-0 font-mono text-[11px] leading-none text-mut">
+              {(selectedFile.size / 1024 / 1024).toFixed(2)} MB — ready to upload
+            </p>
           </div>
         )}
       </div>
@@ -172,23 +140,14 @@ const PdfUploadForm: React.FC<PdfUploadFormProps> = ({
       {/* Action Buttons */}
       {selectedFile && (
         <div className="flex gap-3 justify-end">
-          <button
-            onClick={handleCancel}
-            disabled={uploading}
-            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
+          <button onClick={handleCancel} type="button" disabled={uploading} className={BTN_MUTED}>
             Cancel
           </button>
-          <button
-            onClick={handleUpload}
-            disabled={uploading}
-            className="px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-          >
+          <button onClick={handleUpload} type="button" disabled={uploading} className={BTN_PRIMARY}>
             {uploading ? (
-              <>
-                <div role="status" aria-label="Uploading PDF" className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                <span aria-hidden="true">Uploading...</span>
-              </>
+              <span role="status" aria-label="Uploading PDF">
+                ● Uploading
+              </span>
             ) : (
               'Upload PDF'
             )}

@@ -1,4 +1,30 @@
-export interface PortfolioItem {
+/** `{k, v}` pair rendered in a project's bordered spec grid. */
+export interface ProjectFact { k: string; v: string }
+/** One numbered step in the "how it works" section. `t` = title, `d` = detail. */
+export interface ProjectStep { t: string; d: string }
+
+/** Specimen painter key — matches `projects.specimen` on the backend. */
+export type SpecimenKey = 'chain' | 'hull' | 'equity' | 'graph' | 'board';
+
+/**
+ * Detail-page content lives on the project row, so every field below is optional:
+ * a project added before the redesign renders hero + whatever it has.
+ */
+export interface ProjectContentFields {
+  slug?: string | null;
+  field?: string | null;
+  lede?: string | null;
+  facts?: ProjectFact[] | null;
+  aboutParagraphs?: string[] | null;
+  steps?: ProjectStep[] | null;
+  rulesTitle?: string | null;
+  rules?: string[] | null;
+  runCode?: string | null;
+  specimen?: SpecimenKey | string | null;
+  accessLabel?: string | null;
+}
+
+export interface PortfolioItem extends ProjectContentFields {
   id: number;
   title: string;
   description: string;
@@ -15,7 +41,7 @@ export interface PortfolioItem {
   updatedAt?: string;
 }
 
-export interface ProjectFormData {
+export interface ProjectFormData extends ProjectContentFields {
   title: string;
   description: string;
   technologies: string[];
@@ -108,11 +134,55 @@ export interface AuthResponse {
 }
 
 // Dashboard Types
+
+/** Counts keyed by `job_applications.status`; every status is always present. */
+export type ApplicationsByStatus = Record<string, number>;
+
+/** Compact summary of the most recent agent sweep. `null` when no run exists yet. */
+export interface LatestRunSummary {
+  id: number;
+  status: AgentRunStatus;
+  findings_count: number;
+  companies_total: number;
+  postings_seen: number;
+  postings_new: number;
+  input_tokens: number;
+  output_tokens: number;
+  duration_seconds: number | null;
+  finished_at: string | null;
+}
+
 export interface DashboardStats {
   projectCount: number;
+  hiddenProjectCount: number;
+  pdfVersionCount: number;
+  unreadMessages: number;
   resumeExists: boolean;
+  activeApplications: number;
+  applicationsByStatus: ApplicationsByStatus;
+  latestRun: LatestRunSummary | null;
   lastLogin: string | null;
   adminUser: User | null;
+}
+
+// Hangar Types — mirrors the broker's `GET /instances` payload, proxied by the backend.
+export interface HangarInstance {
+  slug: string;
+  name: string;
+  kind: string;
+  mode: string;
+  state: string;
+  /** Absent when the Docker socket proxy refuses container stats. */
+  memUsedBytes?: number | null;
+  memLimitBytes?: number | null;
+  startedAt: string | null;
+  lastSeenMs: number | null;
+  coldStartMs: number | null;
+}
+
+export interface HangarStatus {
+  instances: HangarInstance[];
+  caps: { total: number; anon: number; admin: number };
 }
 
 // Resume PDF Types

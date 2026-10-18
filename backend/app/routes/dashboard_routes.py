@@ -6,8 +6,14 @@ import traceback
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required
 from app import db
-from app.dao import ProjectDAO, ResumeDAO, TabConfigDAO
+from app.dao import (
+    ProjectDAO, ResumeDAO, TabConfigDAO, ResumePdfDAO,
+    ContactSubmissionDAO, JobApplicationDAO, AgentRunDAO,
+)
+from app.models.job_application import VALID_STATUSES
 from app.services import AuthService
+
+INACTIVE_APPLICATION_STATUSES = {'rejected', 'withdrawn', 'closed'}
 
 dashboard_bp = Blueprint('dashboard', __name__)
 
@@ -21,22 +27,44 @@ def getAdminStats():
     Requires: Valid JWT access token
 
     Returns:
-        200: Dashboard stats including project count, resume status, last login, admin user info
+        200: Dashboard stats: projects, CV, inbox, job pipeline, latest agent run
         500: Server error
     """
     try:
-        projects = ProjectDAO(db.session).getAllProjects()
+        projects = ProjectDAO(db.session).getAllProjects(includeHidden=True)
         resume = ResumeDAO(db.session).getResume()
+        pdfVersions = ResumePdfDAO(db.session).getAllVersions()
+        _, unreadMessages = ContactSubmissionDAO(db.session).getAllSubmissions(
+            limit=1, offset=0, readFilter='unread', includeArchived=False
+        )
+        applications = JobApplicationDAO(db.session).getAll()
         user, _ = AuthService.getCurrentUser()
+
+        applicationsByStatus = {s: 0 for s in VALID_STATUSES}
+        for application in applications:
+            if application.status in applicationsByStatus:
+                applicationsByStatus[application.status] += 1
+
+        recentRuns = AgentRunDAO(db.session).listRecent(limit=1)
+        latestRun = recentRuns[0].toDict() if recentRuns else None
 
         stats = {
             'projectCount': len(projects),
+            'hiddenProjectCount': sum(1 for p in projects if not p.isVisible),
+            'pdfVersionCount': len(pdfVersions),
+            'unreadMessages': unreadMessages,
             'resumeExists': resume is not None,
+            'activeApplications': sum(
+                1 for a in applications if a.status not in INACTIVE_APPLICATION_STATUSES
+            ),
+            'applicationsByStatus': applicationsByStatus,
+            'latestRun': latestRun,
             'lastLogin': user.lastLogin.isoformat() if user and user.lastLogin else None,
             'adminUser': user.toDict() if user else None
         }
         return jsonify({'success': True, 'data': stats}), 200
     except Exception as e:
+        print(traceback.format_exc(), file=sys.stderr)
         return jsonify({'success': False, 'error': str(e)}), 500
 
 

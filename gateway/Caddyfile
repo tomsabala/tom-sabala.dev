@@ -4,6 +4,8 @@
 # Route ownership:
 #   /oauth2/*      oauth2-proxy (Google, existing admin whitelist)
 #   /manifest.json broker — the app list this viewer may see
+#   /boot/*        broker — boot progress of the caller's own instance
+#   /instances     broker — instance status (admin session or status token)
 #   /a/*           broker — one container per (app, visitor session)
 #   everything else the launcher, from ./caddy/launcher-{static,proxy}.caddy
 
@@ -24,6 +26,14 @@
 	}
 
 	handle /manifest.json {
+		reverse_proxy {$BROKER_UPSTREAM}
+	}
+
+	handle /boot/* {
+		reverse_proxy {$BROKER_UPSTREAM}
+	}
+
+	handle /instances {
 		reverse_proxy {$BROKER_UPSTREAM}
 	}
 

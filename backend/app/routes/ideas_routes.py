@@ -10,7 +10,7 @@ ideas_bp = Blueprint('ideas', __name__)
 
 
 @ideas_bp.route('/ideas', methods=['GET'])
-@require_tab_visible('portfolio')
+@require_tab_visible('work')
 def getIdeas():
     try:
         ideas = IdeaDAO(db.session).getAll()

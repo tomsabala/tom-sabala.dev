@@ -1,10 +1,22 @@
 import { useState, useEffect } from 'react';
 import * as resumeRepository from '../repositories/resumeRepository.ts';
+import { apiErrorMessage } from '../repositories/apiError.ts';
+import { CHIP, ERROR_BOX } from './formStyles.ts';
 import type { ResumePdfVersion } from '../types/index.ts';
 
 interface PdfHistoryListProps {
   onVersionChange?: () => void;
 }
+
+const META_ROW = 'flex gap-2 font-mono text-[11px] leading-[1.5] text-mut';
+
+const DATE_FORMAT: Intl.DateTimeFormatOptions = {
+  year: 'numeric',
+  month: 'short',
+  day: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+};
 
 const PdfHistoryList: React.FC<PdfHistoryListProps> = ({ onVersionChange }) => {
   const [versions, setVersions] = useState<ResumePdfVersion[]>([]);
@@ -23,8 +35,8 @@ const PdfHistoryList: React.FC<PdfHistoryListProps> = ({ onVersionChange }) => {
       } else {
         setError(response.error || 'Failed to load history');
       }
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to load history');
+    } catch (err) {
+      setError(apiErrorMessage(err, 'Failed to load history'));
     } finally {
       setLoading(false);
     }
@@ -45,8 +57,8 @@ const PdfHistoryList: React.FC<PdfHistoryListProps> = ({ onVersionChange }) => {
       } else {
         alert(response.error || 'Failed to activate version');
       }
-    } catch (err: any) {
-      alert(err.response?.data?.error || 'Failed to activate version');
+    } catch (err) {
+      alert(apiErrorMessage(err, 'Failed to activate version'));
     } finally {
       setActionLoading(null);
     }
@@ -68,117 +80,88 @@ const PdfHistoryList: React.FC<PdfHistoryListProps> = ({ onVersionChange }) => {
       } else {
         alert(response.error || 'Failed to delete version');
       }
-    } catch (err: any) {
-      alert(err.response?.data?.error || 'Failed to delete version');
+    } catch (err) {
+      alert(apiErrorMessage(err, 'Failed to delete version'));
     } finally {
       setActionLoading(null);
     }
   };
 
-  const toggleMenu = (versionId: number) => {
-    setOpenMenuId(openMenuId === versionId ? null : versionId);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-  const formatFileSize = (bytes: number) => {
-    return (bytes / 1024 / 1024).toFixed(2) + ' MB';
-  };
-
   if (loading) {
     return (
-      <div role="status" aria-label="Loading PDF history" className="flex justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
-      </div>
+      <p
+        role="status"
+        aria-label="Loading PDF history"
+        className="m-0 font-mono text-[11px] leading-none uppercase tracking-[0.12em] text-acct"
+      >
+        ● Loading versions
+      </p>
     );
   }
 
   if (error) {
     return (
-      <div role="alert" className="bg-red-50 border border-red-200 rounded-lg p-4">
-        <p className="text-red-600">{error}</p>
+      <div role="alert" className={ERROR_BOX}>
+        {error}
       </div>
     );
   }
 
   if (versions.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500">
-        <p>No PDF versions uploaded yet</p>
-      </div>
+      <p className="m-0 font-mono text-[12px] leading-[1.5] text-mut">No PDF versions uploaded yet.</p>
     );
   }
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-2.5">
       {versions.map((version) => {
         return (
           <div
             key={version.id}
-            className={`border rounded-lg p-4 ${
-              version.isActive
-                ? 'border-orange-500 bg-orange-50'
-                : 'border-gray-300'
-            }`}
+            className={`border p-3.5 ${version.isActive ? 'border-acct bg-s1' : 'border-ln'}`}
           >
-            <div className="flex items-start justify-between">
+            <div className="flex items-start justify-between gap-3">
               {/* Version Info */}
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <h4 className="font-medium text-gray-900">
+              <div className="flex-1 min-w-0 flex flex-col gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h4 className="m-0 font-mono text-[13px] leading-none text-ink break-all">
                     {version.fileName}
                   </h4>
                   {version.isActive && (
-                    <span className="px-2 py-1 text-xs font-medium bg-orange-500 text-white rounded">
-                      Active
-                    </span>
+                    <span className={`${CHIP} border-acct text-acct whitespace-nowrap`}>Active</span>
                   )}
                 </div>
-                <div className="mt-2 space-y-1 text-sm text-gray-600">
-                  <p>
-                    <span className="font-medium">Uploaded:</span>{' '}
-                    {formatDate(version.createdAt)}
+                <div className="flex flex-col gap-1">
+                  <p className={META_ROW}>
+                    <span className="text-ink2">Uploaded</span>
+                    <span>{new Date(version.createdAt).toLocaleString('en-US', DATE_FORMAT)}</span>
                   </p>
-                  <p>
-                    <span className="font-medium">Size:</span>{' '}
-                    {formatFileSize(version.fileSize)}
+                  <p className={META_ROW}>
+                    <span className="text-ink2">Size</span>
+                    <span>{(version.fileSize / 1024 / 1024).toFixed(2)} MB</span>
                   </p>
                   {version.uploadedBy && (
-                    <p>
-                      <span className="font-medium">By:</span>{' '}
-                      {version.uploadedBy.username}
+                    <p className={META_ROW}>
+                      <span className="text-ink2">By</span>
+                      <span>{version.uploadedBy.username}</span>
                     </p>
                   )}
                 </div>
               </div>
 
               {/* Actions */}
-              <div className="relative ml-4">
+              <div className="relative shrink-0">
                 <button
-                  onClick={() => toggleMenu(version.id)}
+                  onClick={() => setOpenMenuId(openMenuId === version.id ? null : version.id)}
                   disabled={actionLoading === version.id}
-                  className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-transparent border border-ln2 text-mut font-mono text-[13px] leading-none px-2.5 py-2 cursor-pointer hover:text-ink hover:border-ink disabled:opacity-50 disabled:cursor-not-allowed"
                   aria-label={`Actions for ${version.fileName}`}
                   aria-haspopup="menu"
                   aria-expanded={openMenuId === version.id}
                   aria-controls={`menu-pdf-${version.id}`}
                 >
-                  <svg
-                    className="w-5 h-5"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                    aria-hidden="true"
-                  >
-                    <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                  </svg>
+                  <span aria-hidden="true">⋯</span>
                 </button>
 
                 {/* Dropdown Menu */}
@@ -191,13 +174,13 @@ const PdfHistoryList: React.FC<PdfHistoryListProps> = ({ onVersionChange }) => {
                     <div
                       role="menu"
                       id={`menu-pdf-${version.id}`}
-                      className="absolute right-0 mt-1 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-20"
+                      className="absolute right-0 mt-1 w-40 bg-bg border border-ln2 z-20"
                     >
                       {version.isActive ? (
                         <button
                           role="menuitem"
                           onClick={() => handleDelete(version.id)}
-                          className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          className="w-full bg-transparent border-0 px-3 py-2.5 text-left font-mono text-[11px] leading-none uppercase tracking-[0.1em] text-[#b3261e] cursor-pointer hover:bg-s1"
                         >
                           Deactivate
                         </button>
@@ -205,7 +188,7 @@ const PdfHistoryList: React.FC<PdfHistoryListProps> = ({ onVersionChange }) => {
                         <button
                           role="menuitem"
                           onClick={() => handleActivate(version.id)}
-                          className="w-full px-4 py-2 text-left text-sm text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                          className="w-full bg-transparent border-0 px-3 py-2.5 text-left font-mono text-[11px] leading-none uppercase tracking-[0.1em] text-acct cursor-pointer hover:bg-s1"
                         >
                           Activate
                         </button>

@@ -1,5 +1,16 @@
 import { useState, useEffect } from 'react';
 import * as aboutRepository from '../repositories/aboutRepository.ts';
+import { apiErrorMessage } from '../repositories/apiError.ts';
+import Modal from './Modal.tsx';
+import {
+  BTN_MUTED,
+  BTN_PRIMARY,
+  DIALOG_TITLE,
+  ERROR_BOX,
+  FIELD,
+  HINT,
+  LABEL,
+} from './formStyles.ts';
 import type { AboutData } from '../types/index.ts';
 
 interface AboutFormModalProps {
@@ -27,25 +38,6 @@ const AboutFormModal: React.FC<AboutFormModalProps> = ({
     }
   }, [isOpen, currentData]);
 
-  // Close modal on ESC key
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'hidden';
-    }
-
-    return () => {
-      document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'unset';
-    };
-  }, [isOpen, onClose]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -61,99 +53,74 @@ const AboutFormModal: React.FC<AboutFormModalProps> = ({
       } else {
         setError(response.error || 'Failed to save about content');
       }
-    } catch (error: any) {
-      setError(error.response?.data?.error || 'Failed to save about content');
+    } catch (err) {
+      setError(apiErrorMessage(err, 'Failed to save about content'));
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
-  };
-
-  if (!isOpen) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-lg"
-      onClick={handleBackdropClick}
-    >
-      <div className="bg-white dark:bg-[#252525] rounded-lg shadow-xl p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+    <Modal isOpen={isOpen} onClose={onClose} titleId="about-form-title">
+      <div className="p-6">
         {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Edit About Section</h2>
+        <div className="flex justify-between items-start gap-4 mb-6">
+          <h2 id="about-form-title" className={DIALOG_TITLE}>
+            Edit about
+          </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-            aria-label="Close modal"
+            type="button"
+            className="bg-transparent border border-ln2 text-mut font-mono text-[12px] leading-none px-2.5 py-2 cursor-pointer hover:text-ink hover:border-ink"
+            aria-label="Close dialog"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <span aria-hidden="true">×</span>
           </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           {/* About Content */}
           <div>
-            <label htmlFor="content" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              About Text
+            <label htmlFor="about-content" className={LABEL}>
+              About text
             </label>
             <textarea
-              id="content"
+              id="about-content"
               value={content}
               onChange={(e) => setContent(e.target.value)}
               rows={8}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              className={FIELD}
               placeholder="Write about yourself..."
             />
-            <p className="mt-1 text-xs text-gray-500">
-              Plain text only - no formatting or markdown supported.
-            </p>
+            <p className={HINT}>Plain text only — no formatting or markdown supported.</p>
           </div>
 
           {/* Error */}
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-sm text-red-600">{error}</p>
+            <div role="alert" className={ERROR_BOX}>
+              {error}
             </div>
           )}
 
           {/* Action Buttons */}
-          <div className="flex gap-3 justify-end pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={submitting}
-              className="px-5 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
+          <div className="flex gap-3 justify-end pt-1">
+            <button type="button" onClick={onClose} disabled={submitting} className={BTN_MUTED}>
               Cancel
             </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="px-6 py-2 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-              style={{ background: 'var(--accent)' }}
-              onMouseEnter={e => !e.currentTarget.disabled && (e.currentTarget.style.background = 'var(--accent-hover)')}
-              onMouseLeave={e => !e.currentTarget.disabled && (e.currentTarget.style.background = 'var(--accent)')}
-            >
+            <button type="submit" disabled={submitting} className={BTN_PRIMARY}>
               {submitting ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  Saving...
-                </>
+                <span role="status" aria-label="Saving about content">
+                  ● Saving
+                </span>
               ) : (
-                'Save Changes'
+                'Save changes'
               )}
             </button>
           </div>
         </form>
       </div>
-    </div>
+    </Modal>
   );
 };
 

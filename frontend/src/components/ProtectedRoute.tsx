@@ -16,8 +16,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   // Show loading spinner while checking authentication
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-16 h-16 border-4 border-orange-400 border-t-transparent rounded-full animate-spin"></div>
+      <div className="min-h-screen flex items-center justify-center bg-bg">
+        <span className="font-mono text-[12px] tracking-[0.12em] uppercase text-mut">
+          ● verifying session…
+        </span>
       </div>
     );
   }

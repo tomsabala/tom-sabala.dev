@@ -18,7 +18,7 @@ resume_bp = Blueprint('resume', __name__)
 
 
 @resume_bp.route('/cv', methods=['GET'])
-@require_tab_visible('cv')
+@require_tab_visible('about')
 def getCv():
     """
     Get CV/Resume data (public endpoint)
@@ -99,7 +99,7 @@ def updateCv():
 # ========================================
 
 @resume_bp.route('/cv/pdf', methods=['GET'])
-@require_tab_visible('cv')
+@require_tab_visible('about')
 def getActivePdf():
     """
     Get currently active PDF resume metadata (public endpoint)

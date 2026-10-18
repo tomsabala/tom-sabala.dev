@@ -3,6 +3,7 @@ Data Access Object for Project model
 """
 from sqlalchemy import func
 from app.models import Project
+from app.utils.slugify import uniqueSlug
 
 
 class ProjectDAO:
@@ -25,7 +26,19 @@ class ProjectDAO:
         except Exception as e:
             raise Exception(f"Failed to fetch project: {str(e)}")
 
-    def createProject(self, title, description, technologies, githubUrl=None, liveUrl=None, imageUrl=None, content=None, docsSlug=None, isInProgress=False):
+    def getBySlug(self, slug):
+        try:
+            return self.session.query(Project).filter_by(slug=slug).first()
+        except Exception as e:
+            raise Exception(f"Failed to fetch project by slug: {str(e)}")
+
+    def _deriveSlug(self, title):
+        taken = {s for (s,) in self.session.query(Project.slug).filter(Project.slug.isnot(None)).all()}
+        return uniqueSlug(title, taken)
+
+    def createProject(self, title, description, technologies, githubUrl=None, liveUrl=None, imageUrl=None, content=None, docsSlug=None, isInProgress=False, slug=None,
+                      field=None, lede=None, facts=None, aboutParagraphs=None, steps=None,
+                      rulesTitle=None, rules=None, runCode=None, specimen=None, accessLabel=None):
         try:
             maxOrder = self.session.query(func.max(Project.displayOrder)).scalar() or -1
             project = Project(
@@ -37,6 +50,17 @@ class ProjectDAO:
                 imageUrl=imageUrl,
                 content=content,
                 docsSlug=docsSlug,
+                slug=slug or self._deriveSlug(title),
+                field=field,
+                lede=lede,
+                facts=facts,
+                aboutParagraphs=aboutParagraphs,
+                steps=steps,
+                rulesTitle=rulesTitle,
+                rules=rules,
+                runCode=runCode,
+                specimen=specimen,
+                accessLabel=accessLabel,
                 displayOrder=maxOrder + 1,
                 isVisible=True,
                 isInProgress=isInProgress
@@ -88,6 +112,18 @@ class ProjectDAO:
         except Exception as e:
             self.session.rollback()
             raise Exception(f"Failed to toggle visibility: {str(e)}")
+
+    def setVisibility(self, projectId, isVisible):
+        try:
+            project = self.session.get(Project, projectId)
+            if not project:
+                return None
+            project.isVisible = bool(isVisible)
+            self.session.commit()
+            return project
+        except Exception as e:
+            self.session.rollback()
+            raise Exception(f"Failed to set visibility: {str(e)}")
 
     def updateDisplayOrder(self, orderUpdates):
         try:

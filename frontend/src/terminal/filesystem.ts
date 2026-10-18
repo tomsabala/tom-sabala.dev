@@ -65,6 +65,16 @@ function slugify(title: string): string {
     .replace(/^-|-$/g, '');
 }
 
+/**
+ * Directory name for a project. The `slug` column is what `/work/<slug>` uses, so the
+ * terminal addresses the same project by the same name; a row predating the column falls
+ * back to a slugified title.
+ */
+export function projectSlug(project: PortfolioItem): string {
+  const slug = project.slug?.trim();
+  return slug ? slug : slugify(project.title);
+}
+
 export function populateProjects(root: FSNode, projects: PortfolioItem[]): void {
   const projectsDir = root.children?.find(c => c.name === 'projects');
   if (!projectsDir) return;
@@ -83,7 +93,7 @@ export function populateProjects(root: FSNode, projects: PortfolioItem[]): void 
       children.push({ name: 'url.txt', type: 'file', content: urls.join('\n') });
     }
     return {
-      name: slugify(p.title),
+      name: projectSlug(p),
       type: 'dir' as const,
       children,
     };

@@ -328,14 +328,34 @@ def getSubmission(submissionId):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@contact_bp.route('/contact/submissions/read-all', methods=['POST'])
+@jwt_required()
+def markAllSubmissionsRead():
+    """
+    Mark every unarchived unread submission as read (admin only)
+
+    Returns:
+        200: { success: true, data: { updated: N } }
+        500: Server error
+    """
+    try:
+        updated = ContactSubmissionDAO(db.session).markAllRead()
+        return jsonify({'success': True, 'data': {'updated': updated}}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @contact_bp.route('/contact/submissions/<int:submissionId>/read', methods=['PATCH'])
 @jwt_required()
-def toggleSubmissionRead(submissionId):
+def setSubmissionRead(submissionId):
     """
-    Toggle read/unread status (admin only)
+    Set or toggle read status (admin only)
 
     Args:
         submissionId (int): Submission ID
+
+    Body (optional):
+        {"read": true}  — sets explicitly. With no body, read status toggles.
 
     Returns:
         200: { success: true, data: {...} }
@@ -343,7 +363,12 @@ def toggleSubmissionRead(submissionId):
         500: Server error
     """
     try:
-        submission = ContactSubmissionDAO(db.session).toggleReadStatus(submissionId)
+        data = request.get_json(silent=True)
+        dao = ContactSubmissionDAO(db.session)
+        if isinstance(data, dict) and 'read' in data:
+            submission = dao.setReadStatus(submissionId, data['read'])
+        else:
+            submission = dao.toggleReadStatus(submissionId)
         if not submission:
             return jsonify({'success': False, 'error': 'Submission not found'}), 404
 

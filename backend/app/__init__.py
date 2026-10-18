@@ -103,6 +103,11 @@ def create_app():
     app.config['JWT_ACCESS_COOKIE_NAME'] = 'access_token'
     app.config['JWT_REFRESH_COOKIE_NAME'] = 'refresh_token'
 
+    # Rate limiting is on everywhere except where a developer explicitly turns it off:
+    # a local browser sweep reloads the admin console far more often than a human does,
+    # and the 20/hour ceilings on the jobs routes make that impossible to drive.
+    app.config['RATELIMIT_ENABLED'] = os.getenv('RATELIMIT_ENABLED', 'True') == 'True'
+
     # Initialize extensions with app
     db.init_app(app)
     migrate.init_app(app, db)
@@ -159,6 +164,7 @@ def create_app():
     from app.routes.jobs_routes import jobs_bp
     from app.routes.ideas_routes import ideas_bp
     from app.routes.agent_routes import agent_bp
+    from app.routes.hangar_routes import hangar_bp
 
     app.register_blueprint(portfolio_bp, url_prefix='/api')
     app.register_blueprint(resume_bp, url_prefix='/api')
@@ -172,6 +178,7 @@ def create_app():
     app.register_blueprint(jobs_bp, url_prefix='/api')
     app.register_blueprint(ideas_bp, url_prefix='/api')
     app.register_blueprint(agent_bp, url_prefix='/api')
+    app.register_blueprint(hangar_bp, url_prefix='/api')
 
     # JWT error handlers
     @jwt.unauthorized_loader

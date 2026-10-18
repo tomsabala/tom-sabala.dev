@@ -18,7 +18,7 @@ portfolio_bp = Blueprint('portfolio', __name__)
 
 
 @portfolio_bp.route('/portfolio', methods=['GET'])
-@require_tab_visible('portfolio')
+@require_tab_visible('work')
 def getPortfolio():
     """
     Get portfolio projects
@@ -75,9 +75,16 @@ def createProject():
             "title": "Project Title",
             "description": "Project description",
             "technologies": ["Tech1", "Tech2"],
-            "githubUrl": "https://github.com/...",  # optional
-            "liveUrl": "https://...",  # optional
-            "imageUrl": "https://..."  # optional
+            "github_url": "https://github.com/...",  # optional
+            "live_url": "https://...",  # optional
+            "image_url": "https://...",  # optional
+            "content": "markdown",  # optional
+            "docsSlug": "cgeo",  # optional
+            "is_in_progress": false,  # optional
+            "slug": "cgeo",  # optional, derived from the title when absent
+            # Detail-page content, all optional:
+            "field", "lede", "facts", "aboutParagraphs", "steps",
+            "rulesTitle", "rules", "runCode", "specimen", "accessLabel"
         }
 
     Returns:
@@ -101,7 +108,18 @@ def createProject():
             imageUrl=data.get('image_url'),
             content=data.get('content'),
             docsSlug=data.get('docsSlug'),
-            isInProgress=data.get('is_in_progress', False)
+            isInProgress=data.get('is_in_progress', False),
+            slug=data.get('slug'),
+            field=data.get('field'),
+            lede=data.get('lede'),
+            facts=data.get('facts'),
+            aboutParagraphs=data.get('aboutParagraphs'),
+            steps=data.get('steps'),
+            rulesTitle=data.get('rulesTitle'),
+            rules=data.get('rules'),
+            runCode=data.get('runCode'),
+            specimen=data.get('specimen'),
+            accessLabel=data.get('accessLabel')
         )
         return jsonify({'success': True, 'data': project.toDict()}), 201
     except Exception as e:
@@ -109,7 +127,7 @@ def createProject():
 
 
 @portfolio_bp.route('/portfolio/<int:projectId>', methods=['GET'])
-@require_tab_visible('portfolio')
+@require_tab_visible('work')
 def getProjectById(projectId):
     """
     Get a single portfolio project by ID (public endpoint)
@@ -229,23 +247,30 @@ def deleteProject(projectId):
 
 @portfolio_bp.route('/portfolio/<int:projectId>/visibility', methods=['PATCH'])
 @jwt_required()
-def toggleProjectVisibility(projectId):
+def setProjectVisibility(projectId):
     """
-    Toggle project visibility (show/hide) (admin only)
+    Set or toggle project visibility (admin only)
 
     Requires: Valid JWT access token
 
     Args:
-        projectId (int): ID of the project to toggle
+        projectId (int): ID of the project
+
+    Body (optional):
+        {"isVisible": true}  — sets explicitly. With no body, visibility toggles.
 
     Returns:
-        200: Visibility toggled successfully
+        200: Visibility updated successfully
         404: Project not found
         500: Server error
     """
     try:
+        data = request.get_json(silent=True)
         projectDAO = ProjectDAO(db.session)
-        project = projectDAO.toggleVisibility(projectId)
+        if isinstance(data, dict) and 'isVisible' in data:
+            project = projectDAO.setVisibility(projectId, data['isVisible'])
+        else:
+            project = projectDAO.toggleVisibility(projectId)
         if not project:
             return jsonify({'success': False, 'error': 'Project not found'}), 404
         return jsonify({'success': True, 'data': project.toDict()}), 200
@@ -390,7 +415,7 @@ def serveProjectImage(filename):
 
 
 @portfolio_bp.route('/portfolio/<int:projectId>/deep-dive', methods=['GET'])
-@require_tab_visible('portfolio')
+@require_tab_visible('work')
 def getProjectDeepDive(projectId):
     """
     Return the deep-dive markdown and TOC for a project.

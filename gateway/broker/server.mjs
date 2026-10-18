@@ -1,8 +1,10 @@
 /**
  * apps.tom-sabala.dev instance broker.
  *
- * Serves two things behind Caddy:
+ * Serves behind Caddy:
  *   GET /manifest.json  — the app list this viewer is allowed to see
+ *   GET /boot/<slug>    — boot progress of *this* caller's instance, for the launcher overlay
+ *   GET /instances      — every instance on the box; admin session or X-Hangar-Token only
  *   ALL /a/<slug>/*     — proxied to a container started on demand for this viewer
  *
  * Zero npm dependencies on purpose: this process is internet-facing and long-lived, and
@@ -10,11 +12,12 @@
  */
 
 import http from 'node:http';
+import { timingSafeEqual } from 'node:crypto';
 import { loadConfig } from './lib/config.mjs';
 import { createDockerClient } from './lib/docker.mjs';
-import { createIdentityResolver, instanceKey, tenantKey } from './lib/identity.mjs';
-import { createInstanceManager } from './lib/instances.mjs';
-import { createManifestStore, publicManifest } from './lib/manifest.mjs';
+import { createIdentityResolver, containerName, instanceKey, tenantKey } from './lib/identity.mjs';
+import { BOOT_PHASES, createInstanceManager, getInstanceState } from './lib/instances.mjs';
+import { createManifestStore, isValidSlug, publicManifest } from './lib/manifest.mjs';
 import { parseServicePath } from './lib/paths.mjs';
 import { createProxy } from './lib/proxy.mjs';
 import { mintSessionId, readCookie, sessionCookie, signSession, verifySession } from './lib/session.mjs';
@@ -139,6 +142,73 @@ async function main() {
     }
   }
 
+  /**
+   * Boot progress of the caller's own instance. Unauthenticated on purpose — the overlay
+   * runs before any app has loaded — so it answers only about the instance the same caller
+   * would be proxied to, and carries nothing from the manifest's runtime block: no image,
+   * no port, no memory. Those are exactly the fields publicManifest() strips.
+   */
+  function handleBoot(res, slug, viewer, sessionState) {
+    const app = isValidSlug(slug) ? manifest.service(slug) : null;
+    // An admin-only app stays invisible here, unlike /a/<slug>, because nothing forces a
+    // caller through sign-in first: a 404 is the honest answer to "is there one of these".
+    if (!app || (app.access === 'admin' && !viewer.admin)) {
+      return respond(res, 404, { body: 'No such app.\n', setCookie: sessionState.setCookie });
+    }
+
+    const key = instanceKey({
+      mode: app.mode,
+      admin: viewer.admin,
+      email: viewer.email,
+      sessionId: sessionState.id,
+    });
+    const state = getInstanceState(containerName(app.slug, key));
+    const elapsedMs = state ? (state.readyAt ?? Date.now()) - state.startedAt : null;
+
+    return respond(res, 200, {
+      type: 'application/json; charset=utf-8',
+      setCookie: sessionState.setCookie,
+      body: JSON.stringify({
+        slug: app.slug,
+        mode: app.mode,
+        state: state?.state ?? 'absent',
+        // Phase timings are relative to the start of this attempt: an absolute clock would
+        // say when the box last booted an instance, which is nobody's business out here.
+        phases: (state?.phases ?? []).map(phase => ({ name: phase.name, at: phase.at - state.startedAt })),
+        phaseCount: BOOT_PHASES.length,
+        elapsedMs,
+        readyMs: state?.readyAt ? state.readyAt - state.startedAt : null,
+        error: state?.error ?? null,
+      }),
+    });
+  }
+
+  /**
+   * Either an admin oauth2-proxy session (the launcher's inspector, same origin, cookie
+   * works) or the shared token the portfolio backend uses server-to-server — a browser on
+   * tom-sabala.dev cannot send the __Host-apps_* cookie cross-site, so that hop is the only
+   * way the admin console can show this.
+   */
+  function statusAuthorised(req, viewer) {
+    if (viewer.admin) return true;
+    const presented = req.headers['x-hangar-token'];
+    if (!config.statusToken || typeof presented !== 'string') return false;
+    const a = Buffer.from(presented);
+    const b = Buffer.from(config.statusToken);
+    return a.length === b.length && timingSafeEqual(a, b);
+  }
+
+  async function handleInstances(req, res, viewer) {
+    if (!statusAuthorised(req, viewer)) {
+      return respond(res, 401, { body: 'Admin sign-in or status token required.\n' });
+    }
+    const report = await instances.statusReport();
+    return respond(res, 200, {
+      type: 'application/json; charset=utf-8',
+      body: JSON.stringify(report),
+    });
+  }
+
   const server = http.createServer((req, res) => {
     stripClientIdentityHeaders(req);
 
@@ -158,6 +228,22 @@ async function main() {
             setCookie: sessionState.setCookie,
             body: JSON.stringify(publicManifest(manifest.all(), viewer.admin)),
           });
+        }
+
+        const [pathname] = (req.url ?? '').split('?');
+
+        if (pathname === '/instances') {
+          if (req.method !== 'GET' && req.method !== 'HEAD') {
+            return respond(res, 405, { body: 'Method not allowed.\n', headers: { allow: 'GET, HEAD' } });
+          }
+          return await handleInstances(req, res, viewer);
+        }
+
+        if (pathname.startsWith('/boot/')) {
+          if (req.method !== 'GET' && req.method !== 'HEAD') {
+            return respond(res, 405, { body: 'Method not allowed.\n', headers: { allow: 'GET, HEAD' } });
+          }
+          return handleBoot(res, pathname.slice('/boot/'.length), viewer, sessionState);
         }
 
         const parsed = parseServicePath(req.url);

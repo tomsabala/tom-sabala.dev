@@ -7,6 +7,9 @@ interface ThemeContextValue {
   toggleTheme: () => void;
 }
 
+const STORAGE_KEY = 'ts-theme';
+const LEGACY_STORAGE_KEY = 'theme';
+
 const ThemeContext = createContext<ThemeContextValue>({
   theme: 'light',
   toggleTheme: () => {},
@@ -14,21 +17,17 @@ const ThemeContext = createContext<ThemeContextValue>({
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setTheme] = useState<Theme>(() => {
-    const stored = localStorage.getItem('theme');
+    const stored = localStorage.getItem(STORAGE_KEY);
     if (stored === 'light' || stored === 'dark') return stored;
+    // One-time migration off the pre-redesign key.
+    const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
+    if (legacy === 'light' || legacy === 'dark') return legacy;
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   });
 
   useEffect(() => {
-    const root = document.documentElement;
-    if (theme === 'dark') {
-      root.classList.add('dark');
-      document.body.style.backgroundColor = '#111111';
-    } else {
-      root.classList.remove('dark');
-      document.body.style.backgroundColor = '#f8f8f7';
-    }
-    localStorage.setItem('theme', theme);
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem(STORAGE_KEY, theme);
   }, [theme]);
 
   const toggleTheme = () => setTheme(prev => (prev === 'light' ? 'dark' : 'light'));

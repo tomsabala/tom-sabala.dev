@@ -40,10 +40,11 @@ export async function deleteProject(id: number) {
 }
 
 /**
- * Toggle project visibility (admin - requires auth)
+ * Set project visibility explicitly (admin - requires auth).
+ * An omitted body still toggles server-side; the console never relies on that.
  */
-export async function toggleProjectVisibility(id: number) {
-  const response = await apiClient.patch(`/portfolio/${id}/visibility`);
+export async function setProjectVisibility(id: number, isVisible: boolean) {
+  const response = await apiClient.patch(`/portfolio/${id}/visibility`, { isVisible });
   return response.data;
 }
 

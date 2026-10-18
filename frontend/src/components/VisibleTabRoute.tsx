@@ -19,10 +19,29 @@ function VisibleTabRoute({ tabKey, children }: VisibleTabRouteProps) {
 
   if (!isVisible) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] text-center px-4">
-        <p className="text-6xl font-bold text-gray-200 dark:text-gray-700 mb-4">404</p>
-        <p className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">Page not found</p>
-        <p className="text-sm text-gray-500 dark:text-gray-400">This page is not available.</p>
+      <div className="flex flex-col items-center justify-center min-h-screen text-center px-4 gap-4 bg-bg">
+        <p
+          className="m-0 uppercase text-ln2"
+          style={{
+            fontFamily: "'Archivo', sans-serif",
+            fontStretch: '125%',
+            fontWeight: 800,
+            fontSize: 'clamp(64px,14vw,160px)',
+            lineHeight: 0.86,
+            letterSpacing: '-0.035em',
+          }}
+        >
+          404
+        </p>
+        <p className="m-0 font-mono text-[12px] tracking-[0.12em] uppercase text-mut">
+          This page is not available.
+        </p>
+        <a
+          href="/"
+          className="bg-acc text-onacc no-underline font-mono text-[12px] leading-none uppercase tracking-[0.06em] px-5 py-3.5"
+        >
+          ← tom-sabala.dev
+        </a>
       </div>
     );
   }

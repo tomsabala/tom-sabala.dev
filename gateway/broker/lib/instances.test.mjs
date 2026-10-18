@@ -3,7 +3,13 @@ import assert from 'node:assert/strict';
 import { mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createInstanceManager, envFingerprint } from './instances.mjs';
+import http from 'node:http';
+import {
+  createInstanceManager,
+  envFingerprint,
+  forgetInstanceState,
+  getInstanceState,
+} from './instances.mjs';
 import { LABELS } from './identity.mjs';
 
 const silent = { info() {}, warn() {}, error() {} };
@@ -411,4 +417,157 @@ test('the image digest is not looked up on every request', async () => {
   clock += 60_000;
   await instances.ensure(APP, 'shared');
   assert.equal(docker.calls.imageLookups, 2, 'and refreshed after it');
+});
+
+test('a start records its phases in order, so the boot overlay can show real progress', async () => {
+  const app = { ...APP, slug: 'phases', mode: 'session' };
+  const name = 'apps-phases-anon-aaaa';
+  forgetInstanceState(name);
+
+  // The container exists only after create(): the first inspect must say "no such thing",
+  // the one inside waitReady must report a healthy, addressed container.
+  let created = false;
+  const ready = http.createServer((_req, res) => res.end('ok'));
+  await new Promise(resolve => ready.listen(0, '127.0.0.1', resolve));
+  const runtime = { ...app.runtime, port: ready.address().port };
+
+  const docker = {
+    async list() {
+      return [];
+    },
+    async inspect() {
+      return created
+        ? {
+            Id: 'id',
+            State: { Running: true },
+            NetworkSettings: { Networks: { 'apps-instances': { IPAddress: '127.0.0.1' } } },
+          }
+        : null;
+    },
+    async inspectImage() {
+      return { Id: 'sha256:current' };
+    },
+    async create() {
+      created = true;
+      return 'id';
+    },
+    async start() {},
+    async remove() {},
+    async logs() {
+      return '';
+    },
+  };
+  const instances = createInstanceManager({ docker, config: config({}), log: silent });
+
+  await instances.ensure({ ...app, runtime }, 'anon-aaaa');
+  await new Promise(resolve => ready.close(resolve));
+
+  const state = getInstanceState(name);
+  assert.deepEqual(
+    state.phases.map(phase => phase.name),
+    ['claim', 'create', 'start', 'health', 'probe', 'ready']
+  );
+  assert.equal(state.state, 'ready');
+  assert.equal(state.mode, 'session');
+  assert.ok(state.coldStartMs !== null, 'a real start reports a cold-start time');
+});
+
+test('a warm reuse is recorded as a reuse, not as another cold start', async () => {
+  const name = 'apps-demo-shared';
+  forgetInstanceState(name);
+  const docker = fakeDocker([], { existing: existingContainer() });
+  const instances = createInstanceManager({ docker, config: config({}), log: silent });
+
+  await instances.ensure(APP, 'shared');
+
+  const state = getInstanceState(name);
+  assert.deepEqual(
+    state.phases.map(phase => phase.name),
+    ['claim', 'reuse', 'ready']
+  );
+  assert.equal(state.coldStartMs, null, 'nothing was started, so there is no start to time');
+});
+
+test('a failed start keeps the reason, which is all the overlay has to show', async () => {
+  const name = 'apps-demo-anon-bbbb';
+  forgetInstanceState(name);
+  const docker = fakeDocker([]);
+  const instances = createInstanceManager({ docker, config: config({}), log: silent });
+
+  await assert.rejects(instances.ensure(APP, 'anon-bbbb'));
+
+  const state = getInstanceState(name);
+  assert.equal(state.state, 'failed');
+  assert.equal(state.phases.at(-1).name, 'failed');
+  assert.match(state.error, /vanished|exited|ready/);
+});
+
+test('the reaper forgets the boot state of a container it removes', async () => {
+  const containers = [
+    { Id: 'a', Names: ['/apps-demo-anon-cccc'], Labels: { [LABELS.kind]: 'anon' }, State: 'running' },
+  ];
+  const docker = fakeDocker(containers);
+  let clock = 1_000;
+  const instances = createInstanceManager({ docker, config: config({}), log: silent, now: () => clock });
+
+  await assert.rejects(instances.ensure(APP, 'anon-cccc'));
+  assert.ok(getInstanceState('apps-demo-anon-cccc'), 'the failure is readable while the overlay polls');
+
+  await instances.adopt();
+  clock += 999_999;
+  await instances.reapOnce();
+  assert.deepEqual(docker.calls.removed, ['a']);
+  assert.equal(getInstanceState('apps-demo-anon-cccc'), null);
+});
+
+test('the status report joins live containers to what the broker remembers', async () => {
+  const containers = [
+    {
+      Id: 'a',
+      Names: ['/apps-demo-shared'],
+      Labels: { [LABELS.slug]: 'demo', [LABELS.kind]: 'shared' },
+      State: 'running',
+    },
+  ];
+  const docker = {
+    ...fakeDocker(containers, { existing: existingContainer() }),
+    async stats() {
+      return { usage: 123, limit: 456 };
+    },
+  };
+  let clock = 1_000;
+  const instances = createInstanceManager({ docker, config: config({}), log: silent, now: () => clock });
+
+  forgetInstanceState('apps-demo-shared');
+  await instances.ensure(APP, 'shared');
+  clock += 5_000;
+
+  const report = await instances.statusReport();
+  assert.deepEqual(report.caps, { anon: 2, admin: 2, total: 4 });
+  assert.equal(report.instances.length, 1);
+  assert.deepEqual(report.instances[0], {
+    slug: 'demo',
+    name: 'apps-demo-shared',
+    kind: 'shared',
+    mode: 'session',
+    state: 'ready',
+    memUsedBytes: 123,
+    memLimitBytes: 456,
+    // No State.StartedAt from this fake daemon, so the broker's own clock stands in.
+    startedAt: new Date(1_000).toISOString(),
+    lastSeenMs: 5_000,
+    coldStartMs: null,
+  });
+});
+
+test('a socket proxy that refuses stats still yields every other field', async () => {
+  const containers = [
+    { Id: 'a', Names: ['/apps-demo-anon-dddd'], Labels: { [LABELS.slug]: 'demo', [LABELS.kind]: 'anon' }, State: 'exited' },
+  ];
+  const instances = createInstanceManager({ docker: fakeDocker(containers), config: config({}), log: silent });
+
+  const report = await instances.statusReport();
+  assert.equal(report.instances[0].memUsedBytes, null);
+  assert.equal(report.instances[0].memLimitBytes, null);
+  assert.equal(report.instances[0].state, 'exited');
 });

@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useMemo } from 'react';
-import type { OutputBlock, CommandResult, SideEffect } from '../commands/types';
+import type { OutputBlock, CommandResult, SideEffect, ProjectsSnapshot } from '../commands/types';
 import { execute, getAllCommands } from '../commands/registry';
 import { useCommandHistory } from './useCommandHistory';
 import { useTabCompletion } from './useTabCompletion';
@@ -9,9 +9,20 @@ import { getPrompt } from '../constants';
 interface UseTerminalOptions {
   setTheme: (name: string) => boolean;
   currentThemeName: () => string;
+  getProjects: () => ProjectsSnapshot;
+  setFieldVisible: (visible: boolean) => void;
+  isFieldVisible: () => boolean;
+  resetField: () => void;
 }
 
-export function useTerminal({ setTheme, currentThemeName }: UseTerminalOptions) {
+export function useTerminal({
+  setTheme,
+  currentThemeName,
+  getProjects,
+  setFieldVisible,
+  isFieldVisible,
+  resetField,
+}: UseTerminalOptions) {
   const [outputHistory, setOutputHistory] = useState<OutputBlock[]>([]);
   const [currentInput, setCurrentInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -95,6 +106,10 @@ export function useTerminal({ setTheme, currentThemeName }: UseTerminalOptions) 
         },
         getFilesystem: () => filesystem,
         currentThemeName,
+        getProjects,
+        setFieldVisible,
+        isFieldVisible,
+        resetField,
       });
 
       if (result.output.length > 0) {
@@ -111,7 +126,7 @@ export function useTerminal({ setTheme, currentThemeName }: UseTerminalOptions) 
     } finally {
       setIsProcessing(false);
     }
-  }, [addOutput, addToHistory, clearTerminal, filesystem, handleSideEffect, resetNavigation, resetCompletion, setTheme, currentThemeName]);
+  }, [addOutput, addToHistory, clearTerminal, filesystem, handleSideEffect, resetNavigation, resetCompletion, setTheme, currentThemeName, getProjects, setFieldVisible, isFieldVisible, resetField]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -147,5 +162,6 @@ export function useTerminal({ setTheme, currentThemeName }: UseTerminalOptions) 
     addOutput,
     inputRef,
     currentDir,
+    filesystem,
   };
 }

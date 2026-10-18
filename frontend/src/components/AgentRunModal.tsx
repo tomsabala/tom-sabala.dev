@@ -1,7 +1,17 @@
 import { useEffect, useState } from 'react';
-import axios from 'axios';
 import * as agentRepository from '../repositories/agentRepository.ts';
+import { apiErrorMessage } from '../repositories/apiError.ts';
 import Modal from './Modal.tsx';
+import {
+  BTN_GHOST,
+  BTN_PRIMARY,
+  DIALOG_TITLE,
+  ERROR_BOX,
+  FIELD,
+  FIELD_MONO,
+  HINT,
+  LABEL,
+} from './formStyles.ts';
 import type { AgentRun } from '../types/index.ts';
 
 interface AgentRunModalProps {
@@ -60,10 +70,7 @@ const AgentRunModal: React.FC<AgentRunModalProps> = ({ isOpen, onClose, onStarte
         setError(res.error || 'Could not start the run.');
       }
     } catch (err: unknown) {
-      const serverError = axios.isAxiosError<{ error?: string }>(err)
-        ? err.response?.data?.error
-        : undefined;
-      setError(serverError || 'Could not start the run.');
+      setError(apiErrorMessage(err, 'Could not start the run.'));
     } finally {
       setSubmitting(false);
     }
@@ -72,26 +79,22 @@ const AgentRunModal: React.FC<AgentRunModalProps> = ({ isOpen, onClose, onStarte
   return (
     <Modal isOpen={isOpen} onClose={onClose} titleId="agent-run-title">
       <div className="p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h2 id="agent-run-title" className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-            Run Agent
-          </h2>
+        <div className="flex justify-between items-start gap-4 mb-6">
+          <h2 id="agent-run-title" className={DIALOG_TITLE}>Run scout</h2>
           <button
             onClick={onClose}
             type="button"
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-            aria-label="Close modal"
+            className="bg-transparent border border-ln2 text-mut hover:text-ink font-mono text-[12px] leading-none px-2.5 py-2 cursor-pointer"
+            aria-label="Close dialog"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            ✕
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <div>
-            <label htmlFor="agent-interests" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              What are you looking for? <span className="text-red-500" aria-hidden="true">*</span>
+            <label htmlFor="agent-interests" className={LABEL}>
+              What are you looking for? <span className="text-acct" aria-hidden="true">*</span>
               <span className="sr-only">(required)</span>
             </label>
             <textarea
@@ -102,18 +105,16 @@ const AgentRunModal: React.FC<AgentRunModalProps> = ({ isOpen, onClose, onStarte
               onChange={e => setInterests(e.target.value)}
               disabled={loadingProfile}
               aria-required="true"
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm disabled:opacity-60"
+              className={`${FIELD} disabled:opacity-60`}
               placeholder={PLACEHOLDER}
             />
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            <p className={HINT}>
               Saved as the default for next time, and snapshotted onto this run.
             </p>
           </div>
 
           <div>
-            <label htmlFor="agent-min-score" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Minimum score
-            </label>
+            <label htmlFor="agent-min-score" className={LABEL}>Minimum score</label>
             <input
               type="number"
               id="agent-min-score"
@@ -122,49 +123,28 @@ const AgentRunModal: React.FC<AgentRunModalProps> = ({ isOpen, onClose, onStarte
               max={100}
               value={minScore}
               onChange={e => setMinScore(Number(e.target.value))}
-              className="w-28 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              className={`${FIELD_MONO} w-28`}
             />
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              Postings scored below this are not shown.
-            </p>
+            <p className={HINT}>Postings scored below this are not shown.</p>
           </div>
 
-          <p className="text-xs text-gray-500 dark:text-gray-400">
+          <p className="m-0 font-mono text-[11px] leading-[1.5] text-mut">
             Runs against all tracked companies. Positions you have already applied to are
             never listed; aggregators like LinkedIn and Indeed are never fetched.
           </p>
 
-          {error && (
-            <div role="alert" className="p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-md">
-              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-            </div>
-          )}
+          {error && <div role="alert" className={ERROR_BOX}>{error}</div>}
 
-          <div className="flex gap-3 justify-end pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={submitting}
-              className="px-5 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
+          <div className="flex gap-2 justify-end pt-2">
+            <button type="button" onClick={onClose} disabled={submitting} className={BTN_GHOST}>
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting || loadingProfile}
-              className="px-6 py-2 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-              style={{ background: 'var(--accent)' }}
-              onMouseEnter={e => !e.currentTarget.disabled && (e.currentTarget.style.background = 'var(--accent-hover)')}
-              onMouseLeave={e => !e.currentTarget.disabled && (e.currentTarget.style.background = 'var(--accent)')}
+              className={BTN_PRIMARY}
             >
-              {submitting ? (
-                <>
-                  <div role="status" aria-label="Starting" className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  Starting...
-                </>
-              ) : (
-                'Run'
-              )}
+              {submitting ? 'Starting…' : 'Run'}
             </button>
           </div>
         </form>

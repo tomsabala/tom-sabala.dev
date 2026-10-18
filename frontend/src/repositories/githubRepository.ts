@@ -12,3 +12,16 @@ export async function getGitHubStats(): Promise<{ success: boolean; data?: GitHu
   const response = await apiClient.get('/github-stats');
   return response.data;
 }
+
+/**
+ * Whether the GitHub feature is configured at all (always public, never tab-guarded).
+ * The landing page uses it to decide whether to mount the activity strip.
+ */
+export async function getGitHubStatsEnabled(): Promise<boolean> {
+  try {
+    const response = await apiClient.get('/github-stats/status');
+    return response.data?.enabled === true;
+  } catch {
+    return false;
+  }
+}

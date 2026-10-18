@@ -42,6 +42,16 @@ export function loadConfig(env = process.env) {
     throw new Error('broker: SESSION_SECRET must be at least 32 characters');
   }
 
+  /**
+   * Optional: lets a server-side caller (the portfolio backend's /api/hangar/instances)
+   * read instance status without an oauth2-proxy session. Held to the same length rule as
+   * the session secret — a short one is a guessable bearer token on a public origin.
+   */
+  const statusToken = env.STATUS_TOKEN?.trim() ?? '';
+  if (statusToken && statusToken.length < 32) {
+    throw new Error('broker: STATUS_TOKEN must be at least 32 characters');
+  }
+
   const port = Number(env.PORT);
   if (!Number.isInteger(port) || port <= 0) {
     throw new Error(`broker: PORT must be a positive integer, got ${env.PORT}`);
@@ -89,5 +99,6 @@ export function loadConfig(env = process.env) {
       admin: numbers.MAX_ADMIN_INSTANCES,
       total: numbers.MAX_TOTAL_INSTANCES || numbers.MAX_ANON_INSTANCES + numbers.MAX_ADMIN_INSTANCES,
     },
+    statusToken: statusToken || null,
   };
 }

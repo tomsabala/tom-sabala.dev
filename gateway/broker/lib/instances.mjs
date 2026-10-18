@@ -45,6 +45,77 @@ export class ReadyTimeoutError extends Error {
   }
 }
 
+/**
+ * Boot state, in memory, keyed by container name.
+ *
+ * The launcher's boot overlay and the admin console's health table both want to know what
+ * the broker is actually doing, and nothing durable records it: a container is either there
+ * or not, and `docker inspect` cannot say "the image's healthcheck passed 300ms ago but the
+ * port has not answered yet". So the phases are recorded here as they happen. It is
+ * deliberately not persisted — after a broker restart every instance is simply adopted, and
+ * an unknown boot history reads as `absent`, which is honest.
+ */
+const states = new Map();
+
+/** Ordered phases a start goes through; the overlay divides by this to draw progress. */
+export const BOOT_PHASES = ['claim', 'create', 'start', 'health', 'probe', 'ready'];
+
+function beginState(name, { slug, kind, mode }, at) {
+  const previous = states.get(name);
+  const state = {
+    slug,
+    kind,
+    mode,
+    state: 'starting',
+    phases: [],
+    startedAt: at,
+    readyAt: null,
+    /**
+     * How long the last start that actually touched a container took. Carried across a
+     * warm reuse on purpose: reusing a running instance costs nothing, and reporting 0 ms
+     * would erase the only number that says what a real start costs on this box.
+     */
+    coldStartMs: previous?.coldStartMs ?? null,
+    error: null,
+  };
+  states.set(name, state);
+  return state;
+}
+
+function recordPhase(name, phase, at) {
+  const entry = states.get(name);
+  if (!entry) return;
+  entry.phases.push({ name: phase, at });
+  if (phase === 'ready') {
+    entry.state = 'ready';
+    entry.readyAt = at;
+    if (entry.phases.some(p => p.name === 'start')) entry.coldStartMs = at - entry.startedAt;
+  }
+}
+
+function recordFailure(name, error, at) {
+  const entry = states.get(name);
+  if (!entry) return;
+  entry.phases.push({ name: 'failed', at });
+  entry.state = 'failed';
+  entry.error = error?.message ?? String(error);
+}
+
+/** The caller's own instance, or null when the broker has never started one. */
+export function getInstanceState(name) {
+  return states.get(name) ?? null;
+}
+
+/** Every instance this broker process has started, newest state as it stands now. */
+export function listInstances() {
+  return [...states.entries()].map(([name, entry]) => ({ name, ...entry }));
+}
+
+/** Used by the reaper, and by tests that need a clean slate. */
+export function forgetInstanceState(name) {
+  states.delete(name);
+}
+
 export function createInstanceManager({ docker, config, log, now = () => Date.now() }) {
   /** name → promise, so the iframe's parallel asset requests create exactly one container. */
   const inflight = new Map();
@@ -216,8 +287,10 @@ export function createInstanceManager({ docker, config, log, now = () => Date.no
     return `http://${ip}:${runtime.port}`;
   }
 
+  /** `id` is the container *name* here, which is also the key boot state is recorded under. */
   async function waitReady(id, runtime, deadline) {
     let detail = null;
+    recordPhase(id, 'health', now());
 
     // Phase 1: the image's own HEALTHCHECK, which knows when the internal backend is up.
     for (;;) {
@@ -233,6 +306,7 @@ export function createInstanceManager({ docker, config, log, now = () => Date.no
 
     // Phase 2: the public port answers. A 404 counts as ready — an app built with a
     // basePath has no route at "/", and all we need to know is that it is serving.
+    recordPhase(id, 'probe', now());
     const endpoint = endpointOf(detail, runtime);
     for (;;) {
       try {
@@ -253,6 +327,8 @@ export function createInstanceManager({ docker, config, log, now = () => Date.no
     const kind = keyKind(key);
     const name = containerName(app.slug, key);
     const deadline = now() + config.readyTimeoutMs;
+    beginState(name, { slug: app.slug, kind, mode: app.mode ?? 'session' }, now());
+    recordPhase(name, 'claim', now());
 
     let detail = await docker.inspect(name);
     const env = await instanceEnvState(app.slug, kind);
@@ -269,6 +345,8 @@ export function createInstanceManager({ docker, config, log, now = () => Date.no
       const running = detail.State?.Running === true;
 
       if (running && !staleImage && !staleEnv) {
+        recordPhase(name, 'reuse', now());
+        recordPhase(name, 'ready', now());
         return { name, endpoint: endpointOf(detail, app.runtime), secret: env.secret };
       }
 
@@ -285,19 +363,25 @@ export function createInstanceManager({ docker, config, log, now = () => Date.no
 
     if (!detail) {
       await assertCapacity(kind);
+      recordPhase(name, 'create', now());
       const id = await docker.create(name, await containerSpec(app, key, kind));
       log.info(`created ${name} (${kind}) from ${app.runtime.image}`);
+      recordPhase(name, 'start', now());
       await docker.start(id);
     } else {
       await assertCapacity(kind);
       log.info(`restarting ${name} (${kind})`);
+      recordPhase(name, 'reuse', now());
+      recordPhase(name, 'start', now());
       await docker.start(detail.Id);
     }
 
     try {
       const endpoint = await waitReady(name, app.runtime, deadline);
+      recordPhase(name, 'ready', now());
       return { name, endpoint, secret: env.secret };
     } catch (error) {
+      recordFailure(name, error, now());
       // Read before anything is torn down. "exited while starting" says only that the app
       // died, not why; the why is in the container's own output, and for an anon instance
       // the next line deletes it. Without this an app that crashes on boot is invisible
@@ -311,6 +395,8 @@ export function createInstanceManager({ docker, config, log, now = () => Date.no
         const current = await docker.inspect(name);
         if (current) await docker.remove(current.Id, { force: true });
         lastSeen.delete(name);
+        // The boot state is deliberately kept: the container is gone, but the overlay that
+        // is polling /boot still has to be told *why* it will never go ready.
       } else {
         log.error(`${kind} instance ${name} failed to become ready; keeping it for inspection`);
       }
@@ -342,15 +428,66 @@ export function createInstanceManager({ docker, config, log, now = () => Date.no
         if (kind === 'anon') {
           await docker.remove(container.Id, { force: true });
           lastSeen.delete(name);
+          forgetInstanceState(name);
           log.info(`removed idle anonymous instance ${name}`);
         } else if (running) {
           await docker.stop(container.Id);
+          const tracked = getInstanceState(name);
+          if (tracked) tracked.state = 'stopped';
           log.info(`stopped idle ${kind} instance ${name}; volume retained`);
         }
       } catch (error) {
         log.error(`reaping ${name} failed: ${error.message}`);
       }
     }
+  }
+
+  /**
+   * The admin status view: every instance container on the box, joined to whatever boot
+   * state this broker process remembers about it.
+   *
+   * Memory comes from `GET /containers/<id>/stats?stream=0`, which the socket proxy allows
+   * under CONTAINERS. A proxy configured without it, or an older daemon, simply yields
+   * nulls here — the console renders a dash rather than a bar, and the rest of the row
+   * (state, cold start, counts) is unaffected.
+   */
+  async function statusReport() {
+    const containers = await docker.list({ label: [LABELS.slug], all: true });
+    const instances = [];
+
+    for (const container of containers) {
+      const name = (container.Names?.[0] ?? '').replace(/^\//, '');
+      if (!name) continue;
+      const kind = container.Labels?.[LABELS.kind] ?? 'anon';
+      const tracked = getInstanceState(name);
+      const running = container.State === 'running';
+
+      let state = running ? 'running' : (container.State ?? 'unknown');
+      if (tracked?.state === 'starting' || tracked?.state === 'failed') state = tracked.state;
+      else if (running && tracked?.state === 'ready') state = 'ready';
+
+      const [detail, stats] = await Promise.all([
+        running ? docker.inspect(container.Id).catch(() => null) : null,
+        running && docker.stats ? docker.stats(container.Id) : null,
+      ]);
+      const startedAt = detail?.State?.StartedAt ?? (tracked ? new Date(tracked.startedAt).toISOString() : null);
+      const seen = lastSeen.get(name);
+
+      instances.push({
+        slug: container.Labels?.[LABELS.slug] ?? tracked?.slug ?? null,
+        name,
+        kind,
+        mode: tracked?.mode ?? (kind === 'shared' ? 'shared' : 'session'),
+        state,
+        memUsedBytes: stats?.usage ?? null,
+        memLimitBytes: stats?.limit ?? null,
+        startedAt,
+        lastSeenMs: seen === undefined ? null : now() - seen,
+        coldStartMs: tracked?.coldStartMs ?? null,
+      });
+    }
+
+    return { instances, caps: { ...config.maxInstances } };
   }
 
   return {
@@ -381,6 +518,7 @@ export function createInstanceManager({ docker, config, log, now = () => Date.no
     },
 
     reapOnce,
+    statusReport,
 
     startReaper() {
       reaperTimer = setInterval(() => {

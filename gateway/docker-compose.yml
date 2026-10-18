@@ -86,6 +86,8 @@ services:
       MANIFEST_PATH: /etc/apps-manifest/apps.json
       DOCKER_API: http://socket-proxy:2375
       SESSION_SECRET: ${SESSION_SECRET}
+      # Optional; without it GET /instances accepts an admin session only.
+      STATUS_TOKEN: ${STATUS_TOKEN:-}
       COOKIE_NAME: __Host-apps_sid
       COOKIE_SECURE: 'true'
       AUTH_VERIFY_URL: http://oauth2-proxy:4180/oauth2/auth

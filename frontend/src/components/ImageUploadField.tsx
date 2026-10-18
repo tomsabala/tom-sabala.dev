@@ -1,5 +1,7 @@
 import { useState, useRef } from 'react';
 import * as portfolioRepository from '../repositories/portfolioRepository.ts';
+import { apiErrorMessage } from '../repositories/apiError.ts';
+import { BTN_GHOST, HINT } from './formStyles.ts';
 
 interface ImageUploadFieldProps {
   currentImageUrl?: string;
@@ -22,14 +24,14 @@ const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
     // Validate file type
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
     if (!allowedTypes.includes(file.type)) {
-      onUploadError?.('Please select an image file (JPG, PNG, WEBP, or GIF)');
+      onUploadError?.('Please select a valid image file (JPG, PNG, WEBP, or GIF)');
       return;
     }
 
     // Validate file size (5MB max)
     const maxSize = 5 * 1024 * 1024;
     if (file.size > maxSize) {
-      onUploadError?.('Image too large. Maximum size is 5MB');
+      onUploadError?.('File too large. Maximum size is 5MB');
       return;
     }
 
@@ -82,9 +84,8 @@ const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
       } else {
         onUploadError?.(response.error || 'Upload failed');
       }
-    } catch (error: any) {
-      const errorMsg = error.response?.data?.error || 'Upload failed';
-      onUploadError?.(errorMsg);
+    } catch (error) {
+      onUploadError?.(apiErrorMessage(error, 'Upload failed'));
     } finally {
       setUploading(false);
     }
@@ -100,30 +101,28 @@ const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
   };
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-3">
       {/* Preview or Upload Area */}
       {previewUrl ? (
         <div className="relative">
           <img
             src={previewUrl}
             alt="Preview"
-            className="w-full h-48 object-cover rounded-lg border-2 border-gray-300"
+            className="w-full h-48 object-cover border border-ln2 block"
           />
           <button
             onClick={handleRemove}
             type="button"
             aria-label="Remove project image"
-            className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors shadow-lg"
+            className="absolute top-2 right-2 bg-bg text-ink border border-ln2 font-mono text-[12px] leading-none px-2.5 py-2 cursor-pointer hover:border-ink"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            ×
           </button>
         </div>
       ) : (
         <div
-          className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
-            dragActive ? 'border-orange-500 bg-orange-50' : 'border-gray-300 hover:border-gray-400'
+          className={`border border-dashed p-6 text-center transition-colors ${
+            dragActive ? 'border-acct bg-s1' : 'border-ln2 hover:border-ink'
           }`}
           onDragEnter={handleDrag}
           onDragLeave={handleDrag}
@@ -140,35 +139,33 @@ const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
             className="hidden"
             id="image-upload"
           />
-          <svg className="mx-auto h-10 w-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-          <p className="mt-2 text-sm text-gray-600">
-            <label htmlFor="image-upload" className="font-medium text-orange-500 hover:text-orange-600 cursor-pointer">
+          <p className="m-0 font-mono text-[12px] leading-none uppercase tracking-[0.1em] text-ink2">
+            <label htmlFor="image-upload" className="text-acct cursor-pointer">
               Click to upload
             </label>{' '}
             or drag and drop
           </p>
-          <p id="image-upload-constraints" className="text-xs text-gray-500 mt-1">JPG, PNG, WEBP, or GIF (max 5MB)</p>
+          <p id="image-upload-constraints" className={HINT}>
+            JPG, PNG, WEBP, or GIF (max 5MB)
+          </p>
         </div>
       )}
 
       {/* Upload Button */}
       {selectedFile && !uploading && (
-        <button
-          onClick={handleUpload}
-          type="button"
-          className="w-full px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
-        >
-          Upload Image
+        <button onClick={handleUpload} type="button" className={`${BTN_GHOST} w-full`}>
+          Upload image
         </button>
       )}
 
       {uploading && (
-        <div role="status" aria-label="Uploading image" className="flex items-center justify-center gap-2 text-sm text-gray-600">
-          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-500" aria-hidden="true"></div>
-          Uploading...
-        </div>
+        <p
+          role="status"
+          aria-label="Uploading image"
+          className="m-0 font-mono text-[11px] leading-none uppercase tracking-[0.12em] text-acct"
+        >
+          ● Uploading
+        </p>
       )}
     </div>
   );

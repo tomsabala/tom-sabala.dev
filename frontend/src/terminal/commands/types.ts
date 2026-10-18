@@ -1,4 +1,15 @@
 import type { FSNode } from '../filesystem';
+import type { PortfolioItem } from '../../types/index';
+
+/**
+ * What the terminal knows about the published project list. `loading` is the window
+ * between mount and the first `/portfolio` response; `unavailable` means that request
+ * failed, and the `projects` directory stays empty.
+ */
+export type ProjectsSnapshot =
+  | { status: 'loading' }
+  | { status: 'ready'; items: PortfolioItem[] }
+  | { status: 'unavailable' };
 
 export interface OutputLine {
   text: string;
@@ -34,6 +45,12 @@ export interface TerminalContext {
   setCurrentDir: (path: string) => void;
   getFilesystem: () => FSNode;
   currentThemeName: () => string;
+  getProjects: () => ProjectsSnapshot;
+  /** Show or hide the LiDAR pane (`field on|off`). */
+  setFieldVisible: (visible: boolean) => void;
+  isFieldVisible: () => boolean;
+  /** Regenerate the LiDAR world (`field reset`). */
+  resetField: () => void;
 }
 
 export interface Command {

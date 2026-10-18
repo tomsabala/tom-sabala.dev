@@ -49,25 +49,37 @@
 .hljs-emphasis           { font-style: italic; }
 .hljs-strong             { font-weight: bold; }
 
-@custom-variant dark (&:where(.dark, .dark *));
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ── Design tokens (Claude Design handoff) ── */
+:root{--bg:#eef0e6;--s1:#e3e7da;--ln:#cdd5c3;--ln2:#aab79f;--ink:#0d150f;--ink2:#2f3d33;
+      --mut:#56655a;--acc:#c8f53c;--acct:#3f5a00;--onacc:#0d150f;color-scheme:light}
+:root[data-theme="dark"]{--bg:#0a0f0b;--s1:#0f1611;--ln:#1d2a21;--ln2:#2f4134;--ink:#e8f0e3;
+      --ink2:#b7c6b9;--mut:#93a596;--acc:#c8f53c;--acct:#c8f53c;--onacc:#0a0f0b;color-scheme:dark}
+
+/* Tailwind v4 token bridge: real utilities instead of arbitrary values everywhere */
+@theme inline {
+  --color-bg: var(--bg);   --color-s1: var(--s1);     --color-ln: var(--ln);
+  --color-ln2: var(--ln2); --color-ink: var(--ink);   --color-ink2: var(--ink2);
+  --color-mut: var(--mut); --color-acc: var(--acc);   --color-acct: var(--acct);
+  --color-onacc: var(--onacc);
+  --font-display: 'Archivo', system-ui, sans-serif;
+  --font-mono: 'DM Mono', ui-monospace, SFMono-Regular, monospace;
+}
 
 :root {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-family: var(--font-display);
   line-height: 1.5;
   font-weight: 400;
-
-  --accent: hsl(210, 65%, 60%);
-  --accent-hover: hsl(210, 55%, 52%);
 }
+
+::selection{background:var(--acc);color:var(--onacc)}
 
 body {
   margin: 0;
   min-height: 100vh;
-  background-color: #f8f8f7;
-}
-
-html.dark body {
-  background-color: #111111;
+  background: var(--bg);
+  color: var(--ink);
 }
 
 

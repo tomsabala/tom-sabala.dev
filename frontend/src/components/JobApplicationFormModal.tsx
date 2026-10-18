@@ -1,6 +1,17 @@
 import { useState, useEffect } from 'react';
 import * as jobsRepository from '../repositories/jobsRepository.ts';
+import { apiErrorMessage } from '../repositories/apiError.ts';
 import Modal from './Modal.tsx';
+import {
+  BTN_GHOST,
+  BTN_PRIMARY,
+  DIALOG_TITLE,
+  ERROR_BOX,
+  ERROR_TEXT,
+  FIELD,
+  FIELD_ERROR,
+  LABEL,
+} from './formStyles.ts';
 import type { JobApplication, Company } from '../types/index.ts';
 
 const VALID_STATUSES = [
@@ -120,8 +131,8 @@ const JobApplicationFormModal: React.FC<JobApplicationFormModalProps> = ({
       } else {
         setErrors({ submit: response.error || 'Failed to save application' });
       }
-    } catch (error: any) {
-      setErrors({ submit: error.response?.data?.error || 'Failed to save application' });
+    } catch (error: unknown) {
+      setErrors({ submit: apiErrorMessage(error, 'Failed to save application') });
     } finally {
       setSubmitting(false);
     }
@@ -152,26 +163,24 @@ const JobApplicationFormModal: React.FC<JobApplicationFormModalProps> = ({
   return (
     <Modal isOpen={isOpen} onClose={onClose} titleId="job-application-form-title">
       <div className="p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h2 id="job-application-form-title" className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-            {mode === 'add' ? 'Add Application' : 'Edit Application'}
+        <div className="flex justify-between items-start gap-4 mb-6">
+          <h2 id="job-application-form-title" className={DIALOG_TITLE}>
+            {mode === 'add' ? 'Add application' : 'Edit application'}
           </h2>
           <button
             onClick={onClose}
             type="button"
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-            aria-label="Close modal"
+            className="bg-transparent border border-ln2 text-mut hover:text-ink font-mono text-[12px] leading-none px-2.5 py-2 cursor-pointer"
+            aria-label="Close dialog"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            ✕
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <div>
-            <label htmlFor="company_id" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Company <span className="text-red-500" aria-hidden="true">*</span>
+            <label htmlFor="company_id" className={LABEL}>
+              Company <span className="text-acct" aria-hidden="true">*</span>
               <span className="sr-only">(required)</span>
             </label>
             <select
@@ -182,9 +191,7 @@ const JobApplicationFormModal: React.FC<JobApplicationFormModalProps> = ({
               aria-required="true"
               aria-describedby={errors.company_id ? 'company-id-error' : undefined}
               disabled={loadingCompanies}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 disabled:opacity-50 ${
-                errors.company_id ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-              }`}
+              className={`${FIELD} disabled:opacity-50 ${errors.company_id ? FIELD_ERROR : ''}`}
             >
               <option value="">
                 {loadingCompanies ? 'Loading companies…' : 'Select a company…'}
@@ -193,12 +200,14 @@ const JobApplicationFormModal: React.FC<JobApplicationFormModalProps> = ({
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
-            {errors.company_id && <p id="company-id-error" role="alert" className="mt-1 text-sm text-red-600">{errors.company_id}</p>}
+            {errors.company_id && (
+              <p id="company-id-error" role="alert" className={ERROR_TEXT}>{errors.company_id}</p>
+            )}
           </div>
 
           <div>
-            <label htmlFor="position" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Position <span className="text-red-500" aria-hidden="true">*</span>
+            <label htmlFor="position" className={LABEL}>
+              Position <span className="text-acct" aria-hidden="true">*</span>
               <span className="sr-only">(required)</span>
             </label>
             <input
@@ -209,17 +218,17 @@ const JobApplicationFormModal: React.FC<JobApplicationFormModalProps> = ({
               onChange={handleInputChange}
               aria-required="true"
               aria-describedby={errors.position ? 'position-error' : undefined}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
-                errors.position ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-              }`}
+              className={`${FIELD} ${errors.position ? FIELD_ERROR : ''}`}
               placeholder="Software Engineer"
             />
-            {errors.position && <p id="position-error" role="alert" className="mt-1 text-sm text-red-600">{errors.position}</p>}
+            {errors.position && (
+              <p id="position-error" role="alert" className={ERROR_TEXT}>{errors.position}</p>
+            )}
           </div>
 
           <div>
-            <label htmlFor="status" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Status <span className="text-red-500" aria-hidden="true">*</span>
+            <label htmlFor="status" className={LABEL}>
+              Status <span className="text-acct" aria-hidden="true">*</span>
               <span className="sr-only">(required)</span>
             </label>
             <select
@@ -228,7 +237,7 @@ const JobApplicationFormModal: React.FC<JobApplicationFormModalProps> = ({
               value={formData.status}
               onChange={handleInputChange}
               aria-required="true"
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              className={FIELD}
             >
               {VALID_STATUSES.map(s => (
                 <option key={s} value={s}>{STATUS_LABELS[s]}</option>
@@ -237,9 +246,7 @@ const JobApplicationFormModal: React.FC<JobApplicationFormModalProps> = ({
           </div>
 
           <div>
-            <label htmlFor="job_url" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Job Posting URL
-            </label>
+            <label htmlFor="job_url" className={LABEL}>Job posting URL</label>
             <input
               type="text"
               id="job_url"
@@ -247,74 +254,49 @@ const JobApplicationFormModal: React.FC<JobApplicationFormModalProps> = ({
               value={formData.job_url}
               onChange={handleInputChange}
               aria-describedby={errors.job_url ? 'job-url-error' : undefined}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
-                errors.job_url ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-              }`}
+              className={`${FIELD} ${errors.job_url ? FIELD_ERROR : ''}`}
               placeholder="https://jobs.acme.com/..."
             />
-            {errors.job_url && <p id="job-url-error" role="alert" className="mt-1 text-sm text-red-600">{errors.job_url}</p>}
+            {errors.job_url && (
+              <p id="job-url-error" role="alert" className={ERROR_TEXT}>{errors.job_url}</p>
+            )}
           </div>
 
           <div>
-            <label htmlFor="date_applied" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Date Applied
-            </label>
+            <label htmlFor="date_applied" className={LABEL}>Date applied</label>
             <input
               type="date"
               id="date_applied"
               name="date_applied"
               value={formData.date_applied}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              className={`${FIELD} font-mono`}
             />
           </div>
 
           <div>
-            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Notes
-            </label>
+            <label htmlFor="notes" className={LABEL}>Notes</label>
             <textarea
               id="notes"
               name="notes"
               value={formData.notes}
               onChange={handleInputChange}
               rows={4}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              className={FIELD}
               placeholder="Any notes about this application..."
             />
           </div>
 
           {errors.submit && (
-            <div role="alert" className="p-3 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-sm text-red-600">{errors.submit}</p>
-            </div>
+            <div role="alert" className={ERROR_BOX}>{errors.submit}</div>
           )}
 
-          <div className="flex gap-3 justify-end pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={submitting}
-              className="px-5 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
+          <div className="flex gap-2 justify-end pt-2">
+            <button type="button" onClick={onClose} disabled={submitting} className={BTN_GHOST}>
               Cancel
             </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="px-6 py-2 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-              style={{ background: 'var(--accent)' }}
-              onMouseEnter={e => !e.currentTarget.disabled && (e.currentTarget.style.background = 'var(--accent-hover)')}
-              onMouseLeave={e => !e.currentTarget.disabled && (e.currentTarget.style.background = 'var(--accent)')}
-            >
-              {submitting ? (
-                <>
-                  <div role="status" aria-label="Saving" className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  Saving...
-                </>
-              ) : (
-                mode === 'add' ? 'Add Application' : 'Save Changes'
-              )}
+            <button type="submit" disabled={submitting} className={BTN_PRIMARY}>
+              {submitting ? 'Saving…' : mode === 'add' ? 'Add application' : 'Save changes'}
             </button>
           </div>
         </form>

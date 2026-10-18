@@ -15,6 +15,7 @@ class About(db.Model):
         return {
             'id': self.id,
             'content': self.content,
+            'profilePhotoUrl': self.profilePhotoUrl,
             'updatedAt': self.updatedAt.isoformat() if self.updatedAt else None
         }
 
