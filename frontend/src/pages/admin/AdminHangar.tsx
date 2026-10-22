@@ -29,6 +29,17 @@ function cardState(down: boolean, isBundle: boolean, liveCount: number): string 
   return liveCount > 0 ? 'healthy' : 'idle';
 }
 
+/**
+ * Seconds/minutes, never a clock: the broker reports an age, and the only question this
+ * answers is whether an instance is still being used.
+ */
+function formatAge(ms: number): string {
+  const seconds = Math.round(ms / 1000);
+  if (seconds < 90) return `${seconds}s`;
+  const minutes = Math.round(seconds / 60);
+  return minutes < 90 ? `${minutes}m` : `${Math.round(minutes / 60)}h`;
+}
+
 export default function AdminHangar(): JSX.Element {
   const { notify } = useAdminChrome();
   const [status, setStatus] = useState<HangarStatus | null>(null);
@@ -122,6 +133,26 @@ export default function AdminHangar(): JSX.Element {
                 </span>
                 <Bar pct={limit > 0 ? Math.round((used / limit) * 100) : 0} />
               </div>
+              {units.length > 0 && (
+                <div className="flex flex-col gap-1 font-mono text-[11px] leading-none">
+                  {units.map(unit => (
+                    <span key={unit.name} className="flex justify-between gap-2">
+                      <span className={unit.kind === 'anon' ? 'text-mut' : 'text-acct'}>
+                        {unit.kind}
+                      </span>
+                      <span className="text-mut truncate">
+                        {[
+                          unit.state,
+                          typeof unit.memUsedBytes === 'number' ? formatBytes(unit.memUsedBytes) : null,
+                          unit.lastSeenMs === null ? null : `seen ${formatAge(unit.lastSeenMs)}`,
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </span>
+                    </span>
+                  ))}
+                </div>
+              )}
               <div className="flex gap-1.5 flex-wrap">
                 <MonoButton disabled title={NO_MUTATION}>
                   Restart

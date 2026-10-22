@@ -344,8 +344,9 @@ null `coldStartMs` until it is next started.
    for the app. `deploy.sh` checks this and says `UNREADABLE …` rather than letting you find
    out from a 503.
 4. Commit, then on the VPS run `gateway/deploy.sh` — it pulls the checkout, pulls every
-   image the manifest names, rebuilds the launcher if `frontend/` changed and reloads Caddy
-   if the routing did. By hand, the same thing is:
+   image the manifest names, rebuilds the launcher if `frontend/` changed, reloads Caddy,
+   and then asks the live site whether `/manifest.json`, `/boot/<slug>` and `/instances`
+   really come from the broker. By hand, the same thing is:
 
    ```bash
    git pull
@@ -355,6 +356,11 @@ null `coldStartMs` until it is next started.
 
    # anything else under frontend/ (or to refresh the launcher's own bundled fallback list):
    docker compose -f gateway/docker-compose.yml run --rm launcher-build
+
+   # ALWAYS, if the Caddyfile moved at all. Caddy serves the config it loaded, not the file
+   # on disk: this step is how /boot/* and /instances spent weeks being answered by the
+   # launcher's HTML while the checkout, the broker and the launcher build were all current.
+   docker compose -f gateway/docker-compose.yml exec caddy caddy reload --config /etc/caddy/Caddyfile
    ```
 
 Anonymous instances get no `LLM_API_KEY` by design. Give one out and any visitor can spend
@@ -410,8 +416,9 @@ docker volume ls --filter name=apps-
 docker rm -f $(docker ps -aq --filter label=dev.tom-sabala.apps.kind=anon)
 
 # Deploy everything: git pull, pull every image the manifest names, rebuild the launcher if
-# frontend/ changed, reload Caddy if the routing did, converge the stack. Idempotent, and
-# the expensive steps are skipped when nothing relevant changed.
+# frontend/ changed, reload Caddy, converge the stack, then verify the live routes. The
+# reload and the verify are unconditional; the expensive steps are skipped when nothing
+# relevant changed.
 gateway/deploy.sh
 
 # Just the images. The broker compares each container's resolved image digest against what
@@ -490,6 +497,7 @@ pull fails and instances 503 with "did not start in time".
 | Launcher 404s while `/a/*` works | `launcher-build` never ran, so `/srv/launcher` is empty | `docker compose … run --rm launcher-build` |
 | Launcher shows an old app list | the build volume predates the last `git pull` | same — rebuild |
 | App still serves the old build after a pull | the digest cache has up to 30 s left, or the instance is mid-request | wait, or `docker rm -f` the instance; a `503` "did not start in time" right after a pull usually means the pull failed on auth |
+| Boot overlay never fills in, admin inspector has no MEMORY/INSTANCES/COLD START, `/admin/hangar` says status unavailable | Caddy is running a config that predates the `/boot/*` and `/instances` routes, so both fall through to the launcher and answer `200 text/html` | `curl -s -o /dev/null -w '%{http_code} %{content_type}' https://apps.tom-sabala.dev/instances` — anything but `401 text/plain` means stale. `gateway/deploy.sh` reloads and then checks this |
 | Cert never issued | DNS not on the VPS yet, or Cloudflare is proxying (orange cloud) | HTTP-01 needs port 80 reaching Caddy directly; set the `apps` record to DNS-only |
 
 ## Invariants — do not break these

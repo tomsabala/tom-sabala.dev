@@ -4,8 +4,8 @@
  *
  * The panel sits at 93% opacity so the live field shows through faintly, and carries
  * `data-panel="1"` — the field's click handler reads that to tell a click aimed at content
- * from one aimed at the simulation. `data-field="1"` marks the opposite: the surrounding
- * area where a click does reach the field.
+ * from one aimed at the simulation. Everything outside a panel is field: the page sets the
+ * crosshair, the panel turns it off again.
  */
 import type { ReactNode } from 'react';
 
@@ -24,7 +24,7 @@ interface SectionProps {
 
 export default function Section({ id, index, title, aside, lede, children, className = '' }: SectionProps) {
   return (
-    <section id={id} data-field="1" className={`pt-[clamp(64px,22vh,240px)] scroll-mt-[60px] ${className}`}>
+    <section id={id} className={`pt-[clamp(64px,22vh,240px)] scroll-mt-[60px] ${className}`}>
       <div
         data-panel="1"
         className="border border-ln2 p-[clamp(20px,3.2vw,44px)] cursor-auto"

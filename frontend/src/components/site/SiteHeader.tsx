@@ -1,10 +1,12 @@
 /**
  * Landing-page header: sticky, blurred, one row on desktop and two on a phone (identity +
  * controls, then a horizontally scrollable nav strip). The `TS` mark is also the hidden
- * admin entrance — seven clicks inside two seconds.
+ * admin entrance — seven clicks inside two seconds. Once a session exists the gesture is
+ * redundant: the console gets a plain link, because a signed-in admin re-performing a
+ * secret handshake to reach their own dashboard is a puzzle, not a safeguard.
  */
 import { useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext.tsx';
 import ThemeToggle from './ThemeToggle.tsx';
 import LoginModal from '../LoginModal.tsx';
@@ -35,7 +37,8 @@ export default function SiteHeader({ links }: SiteHeaderProps) {
 
   return (
     <header
-      className="sticky top-0 z-30 border-b border-ln"
+      data-panel="1"
+      className="sticky top-0 z-30 border-b border-ln cursor-auto"
       style={{
         background: 'color-mix(in oklab, var(--bg) 84%, transparent)',
         backdropFilter: 'blur(10px)',
@@ -59,6 +62,7 @@ export default function SiteHeader({ links }: SiteHeaderProps) {
           </div>
           <div className="flex items-center gap-2 md:hidden shrink-0">
             <ThemeToggle />
+            {isAuthenticated && <AdminChip />}
             <TerminalChip />
           </div>
         </div>
@@ -71,6 +75,7 @@ export default function SiteHeader({ links }: SiteHeaderProps) {
           ))}
           <div className="hidden md:flex items-center gap-[clamp(14px,2.2vw,30px)]">
             <ThemeToggle />
+            {isAuthenticated && <AdminChip />}
             <TerminalChip />
           </div>
         </nav>
@@ -78,6 +83,18 @@ export default function SiteHeader({ links }: SiteHeaderProps) {
 
       <LoginModal isOpen={loginOpen} onClose={() => setLoginOpen(false)} />
     </header>
+  );
+}
+
+/** Only rendered for a live session, so it discloses nothing to an anonymous visitor. */
+function AdminChip() {
+  return (
+    <Link
+      to="/admin"
+      className="text-acct no-underline border border-acct px-3 py-2.5 font-mono text-[13px] leading-none shrink-0 hover:bg-acc hover:text-onacc hover:border-acc"
+    >
+      admin
+    </Link>
   );
 }
 

@@ -8,7 +8,7 @@
  */
 export default function SiteFooter() {
   return (
-    <footer data-panel="1" className="relative z-[1] border-t border-ln bg-bg">
+    <footer data-panel="1" className="relative z-[1] border-t border-ln bg-bg cursor-auto">
       <div className="max-w-[1360px] mx-auto px-[clamp(16px,4vw,48px)] py-7 pb-[72px] md:pb-7 grid grid-cols-1 md:grid-cols-3 items-center gap-4 font-mono text-[12px] leading-none text-mut tracking-[0.04em]">
         <a
           href="https://terminal.tom-sabala.dev"

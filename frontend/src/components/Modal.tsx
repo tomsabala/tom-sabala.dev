@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 
 interface ModalProps {
@@ -39,7 +40,11 @@ const Modal: React.FC<ModalProps> = ({
 
   if (!isOpen) return null;
 
-  return (
+  // Portalled to <body> on purpose: `position: fixed` resolves against the nearest ancestor
+  // with a filter/backdrop-filter/transform, and SiteHeader has `backdrop-filter: blur(10px)`.
+  // Rendered in place, the dialog centres itself inside the 59px header strip instead of the
+  // viewport, and the header's z-index caps it. Both go away once it lives outside that tree.
+  return createPortal(
     <div data-panel="1" className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
@@ -59,7 +64,8 @@ const Modal: React.FC<ModalProps> = ({
       >
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
 

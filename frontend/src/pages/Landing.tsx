@@ -2,9 +2,10 @@
  * The landing page: one long scroll over the live algorithm field.
  *
  * Everything with real content sits in `position:relative; z-index:1` above the fixed
- * canvas, and every section that should let a click through to the simulation carries
- * `data-field="1"`. Sections the visitor cannot see are not rendered at all — the tab guard
- * is enforced again on the backend, so this is cosmetic, not a security boundary.
+ * canvas. Clicks reach the field from anywhere that is not a control or a `data-panel="1"`
+ * surface, so the crosshair belongs on the whole page and the panels turn it off again.
+ * Sections the visitor cannot see are not rendered at all — the tab guard is enforced again
+ * on the backend, so this is cosmetic, not a security boundary.
  */
 import { FieldCanvas, FieldDock, FieldProvider, LearnModal, useField } from '../field/index.ts';
 import { useIsTabVisible } from '../contexts/TabConfigContext.tsx';
@@ -44,13 +45,12 @@ function LandingBody() {
     <>
       <FieldCanvas />
 
-      <div className="relative z-[1]">
+      <div className="relative z-[1] md:cursor-crosshair">
         <SiteHeader links={links} />
 
         <section
           data-screen-label="Hero"
-          data-field="1"
-          className="relative overflow-hidden md:cursor-crosshair"
+          className="relative overflow-hidden"
           style={{
             height: 'calc(100svh - 59px)',
             minHeight: '560px',
@@ -123,10 +123,7 @@ function LandingBody() {
           </div>
         </section>
 
-        <main
-          data-field="1"
-          className="max-w-[1360px] mx-auto px-[clamp(16px,4vw,48px)] md:cursor-crosshair"
-        >
+        <main className="max-w-[1360px] mx-auto px-[clamp(16px,4vw,48px)]">
           {showWork && (
             <WorkSection projects={projects} loading={loadingProjects} error={projectsError} />
           )}

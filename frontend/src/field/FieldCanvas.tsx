@@ -21,10 +21,15 @@ type FieldState = PlannerState | VoronoiState | LidarState | ArmState;
 
 const IMPL: Record<FieldKind, FieldAlgo<FieldState>> = { planner, voronoi, lidar, arm };
 
-/** Elements a click must land inside of to count as a field interaction. */
-const FIELD_SELECTOR = '[data-field]';
-/** …and elements that swallow the click instead. */
-const EXCLUDE_SELECTOR = 'a,button,input,textarea,label,select,form,[data-panel]';
+/**
+ * A click reaches the field unless it lands on something that owns it: a control, or a
+ * content panel (`data-panel="1"` — every section card, the header, the footer, the dock,
+ * any dialog). This is a deny-list on purpose. The allow-list it replaces missed every
+ * part of the page that is visibly nothing but field: the margins either side of the
+ * 1360px content column, the strip under the footer, the body itself. Those are exactly
+ * where "go ahead, poke it" invites a click, and they did nothing.
+ */
+const PANEL_SELECTOR = 'a,button,input,textarea,label,select,form,[data-panel]';
 
 export default function FieldCanvas() {
   const field = useField();
@@ -139,7 +144,7 @@ export default function FieldCanvas() {
     const onClick = (e: MouseEvent) => {
       const target = e.target as Element | null;
       if (!target || typeof target.closest !== 'function') return;
-      if (!target.closest(FIELD_SELECTOR) || target.closest(EXCLUDE_SELECTOR)) return;
+      if (target.closest(PANEL_SELECTOR)) return;
 
       const st = fieldRef.current;
       const x = e.clientX,

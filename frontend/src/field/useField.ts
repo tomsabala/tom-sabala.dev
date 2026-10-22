@@ -96,9 +96,9 @@ export function FieldProvider({ children }: { children: ReactNode }) {
   // `prefers-reduced-motion` starts the field paused; the dock shows "▶ Resume".
   const [paused, setPaused] = useState(() => matches(REDUCED_MOTION_QUERY));
   const [learnOpen, setLearnOpen] = useState(false);
-  const [dockOpen, setDockOpen] = useState(
-    () => typeof window === 'undefined' || window.innerWidth >= 760,
-  );
+  // Collapsed everywhere until asked for: the dock is a 44px title bar over the hero, and
+  // the field is meant to be looked at before it is configured.
+  const [dockOpen, setDockOpen] = useState(false);
   const [resetSeq, setResetSeq] = useState(0);
   const hudRef = useRef<HTMLPreElement | null>(null);
 

@@ -5,7 +5,8 @@
 #   /srv/apps/gateway/deploy.sh --images-only  # just pull app images (what cron runs)
 #
 # The expensive steps are conditional on what `git pull` actually changed, so a run with
-# nothing new costs a few seconds and touches nothing. Everything here is idempotent.
+# nothing new costs a few seconds. The Caddy reload and the front-door check are not: they
+# are cheap, and skipping them is how a correct checkout ends up behind a stale front door.
 set -euo pipefail
 
 REPO=$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)
@@ -141,6 +142,59 @@ check_instance_envs() {
   return 0
 }
 
+# ── The live front door ─────────────────────────────────────────────────────────────
+#
+# Every container can be healthy and the site still serve the wrong thing: Caddy answers
+# from the config it loaded, not from the file on disk, so "the checkout is current" says
+# nothing about routing. This asks the running site what it does with the three broker
+# routes and reads the answer. The failure it exists to catch is silent — a stale config
+# sends /boot/* and /instances to the launcher, which returns 200 text/html, and the only
+# visible symptom is an app inspector with no numbers in it.
+#
+# Probed over the real hostname, pinned to this box, so it exercises TLS and the same
+# vhost a visitor hits. Missing curl is a skipped check, not a failed deploy.
+verify_routes() {
+  local site slug status type failed=0
+  if ! command -v curl >/dev/null 2>&1; then
+    note 'curl not installed — skipping (install it to have deploys check their own work)'
+    return 0
+  fi
+  site=$(sed -n 's/^APPS_SITE_ADDRESS=//p' "$REPO/gateway/.env" 2>/dev/null | tail -1)
+  if [ -z "$site" ]; then
+    note 'no APPS_SITE_ADDRESS in gateway/.env — skipping'
+    return 0
+  fi
+  slug=$(manifest_services | head -1 | cut -f1)
+
+  probe() { # path, expected status, expected content-type fragment
+    local path=$1 want=$2 wanttype=$3 out
+    out=$(curl -sS -o /dev/null --max-time 10 --resolve "$site:443:127.0.0.1" \
+      -w '%{http_code} %{content_type}' "https://$site$path" 2>/dev/null) || {
+      note "FAIL $path — no answer from the site"
+      failed=1
+      return 0
+    }
+    status=${out%% *}
+    type=${out#* }
+    case "$type" in
+      *"$wanttype"*) ;;
+      *)
+        note "FAIL $path — $status $type (expected $wanttype; Caddy is serving an old config: reload it)"
+        failed=1
+        return 0 ;;
+    esac
+    [ "$status" = "$want" ] || { note "FAIL $path — $status (expected $want)"; failed=1; return 0; }
+    note "ok   $path — $status $type"
+  }
+
+  probe /manifest.json 200 json
+  [ -n "$slug" ] && probe "/boot/$slug" 200 json
+  # 401 is the broker refusing an unauthenticated status read — i.e. the broker answered.
+  probe /instances 401 text/plain
+
+  [ "$failed" = 0 ] || return 1
+}
+
 if [ "$IMAGES_ONLY" = 1 ]; then
   pull_images
   exit 0
@@ -182,18 +236,16 @@ else
   note 'launcher build not needed'
 fi
 
-# A Caddyfile change needs a reload; the file is bind-mounted, so there is nothing to
-# rebuild and no reason to restart the container (a restart drops in-flight requests and
-# re-reads the cert store for nothing).
-if touched '^gateway/\(Caddyfile\|caddy/\)'; then
-  if [ -n "$("${COMPOSE[@]}" ps -q caddy 2>/dev/null)" ]; then
-    step 'Reloading Caddy (routing changed)'
-    "${COMPOSE[@]}" exec caddy caddy reload --config /etc/caddy/Caddyfile
-  else
-    note 'caddy not running — `up -d` below starts it with the new config'
-  fi
+# Reload Caddy on every deploy. It is cheap (a graceful in-process config swap, no dropped
+# connections, no cert work) and the alternative has already cost us: the Caddyfile gained
+# /boot/* and /instances, the checkout was updated, the launcher was rebuilt by hand — and
+# the front door kept running its old config for weeks, answering both routes with the
+# launcher's HTML. Caddy holds its config in memory; a correct file on disk proves nothing.
+if [ -n "$("${COMPOSE[@]}" ps -q caddy 2>/dev/null)" ]; then
+  step 'Reloading Caddy'
+  "${COMPOSE[@]}" exec caddy caddy reload --config /etc/caddy/Caddyfile
 else
-  note 'caddy reload not needed'
+  note 'caddy not running — `up -d` below starts it with the current config'
 fi
 
 step 'Converging the stack'
@@ -208,5 +260,15 @@ step 'State'
 "${COMPOSE[@]}" ps --format 'table {{.Service}}\t{{.Status}}'
 docker ps --filter label=dev.tom-sabala.apps.slug \
   --format 'table {{.Names}}\t{{.Status}}\t{{.Image}}'
+
+# Last, and fatal: a deploy that leaves the front door answering the wrong thing has not
+# deployed. The state above is printed first so a failure here is diagnosable from the
+# same output.
+step 'Verifying the front door'
+verify_routes || {
+  printf '\n\033[1mFAILED\033[0m — the stack is up but the site is not routing to the broker.\n'
+  printf '  Try: docker compose -f %s/gateway/docker-compose.yml exec caddy caddy reload --config /etc/caddy/Caddyfile\n' "$REPO"
+  exit 1
+}
 
 printf '\n\033[1mdone\033[0m — https://apps.tom-sabala.dev/\n'
