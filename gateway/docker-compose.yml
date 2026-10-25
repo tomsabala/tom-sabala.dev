@@ -110,9 +110,12 @@ services:
     networks:
       # edge: reachable from caddy. instances: can reach the containers it starts.
       # socket: the only path to the Docker API.
-      - edge
-      - instances
-      - socket
+      edge:
+      # Fixed address: firewall.sh allows broker-originated traffic by source IP, so a
+      # recreate must not move the broker inside apps-instances.
+      instances:
+        ipv4_address: 172.31.240.2
+      socket:
     healthcheck:
       test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:8081/healthz']
       interval: 30s
@@ -161,6 +164,11 @@ networks:
     name: apps-edge
   instances:
     name: apps-instances
+    # Pinned so firewall.sh can name the broker by address: the rules allow broker-originated
+    # traffic and drop everything else leaving an instance for a private range.
+    ipam:
+      config:
+        - subnet: 172.31.240.0/24
   socket:
     name: apps-socket
     internal: true

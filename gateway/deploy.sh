@@ -256,6 +256,11 @@ if touched '^gateway/broker/'; then
 fi
 "${COMPOSE[@]}" up -d
 
+# Reapplied on every deploy, not just at boot: the rules name the instances subnet, and a
+# `down`/`up` of the stack recreates the bridge the rules filter on.
+step 'Applying instance firewall rules'
+"$REPO/gateway/firewall.sh"
+
 step 'State'
 "${COMPOSE[@]}" ps --format 'table {{.Service}}\t{{.Status}}'
 docker ps --filter label=dev.tom-sabala.apps.slug \
