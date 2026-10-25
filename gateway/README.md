@@ -214,9 +214,10 @@ cp gateway/instances/resume-matcher.anon.env.example  gateway/instances/resume-m
 cp gateway/instances/resume-matcher.admin.env.example gateway/instances/resume-matcher.admin.env
 cp gateway/instances/trek.shared.env.example          gateway/instances/trek.shared.env
 
-# 4. App images (the broker never pulls; it only starts what is already local)
-docker pull ghcr.io/tomsabala/resume-matcher:apps-mount
-docker pull ghcr.io/tomsabala/trek:apps-mount
+# 4. App images (the broker never pulls; it only starts what is already local). The tags are
+#    pinned in frontend/src/apps/apps.json — `gateway/deploy.sh --images-only` pulls exactly
+#    what the manifest names, and refuses a moving tag:
+gateway/deploy.sh --images-only
 
 # 5. The launcher itself: builds frontend/ into the volume Caddy serves.
 #    Reads the checkout read-only and writes nothing back into it.
@@ -447,37 +448,34 @@ inlined at build time, so these images are deployment-specific — and pushes tw
 | TREK | `TREK_BASE_PATH=/a/trek` | push to `main` of the fork (`tomsabala/TREK`) |
 | FamilyCFO | `FAMILYCFO_BASE_PATH=/a/familycfo` | push to `main` |
 
-`deploy.sh` reads `apps.json` itself, so an app added there is picked up by both forms below
-without editing anything here. Getting a new build onto the box, cheapest first:
+`deploy.sh` reads `apps.json` itself, so an app added there is picked up without editing
+anything here. The manifest names `:apps-mount-<sha>`; `:apps-mount` is only what the app
+repo's CI moves, and `deploy.sh` refuses it. Getting a new build onto the box:
 
 ```bash
-# Manual, from the VPS checkout:
-/srv/apps/gateway/deploy.sh --images-only     # new app build only
-/srv/apps/gateway/deploy.sh                   # new app build + anything committed here
+# A new app build is a commit here: bump the pinned tag in frontend/src/apps/apps.json to the
+# sha the app repo's CI published, then on the VPS:
+/srv/apps/gateway/deploy.sh                   # git pull + pull the newly pinned image + converge
 
-# Automatic: a timer, so nothing needs inbound access to the VPS. cron.d files take a user
-# field, must be mode 0644 and root-owned, and the filename must contain no dot.
-cat > /etc/cron.d/apps-deploy <<'CRON'
+# The sha is the app repo's main HEAD, provided its apps-image workflow succeeded for it:
+#   ghcr.io/tomsabala/trek:apps-mount-$(git -C <app checkout> rev-parse main)
+
+# Firewall rules live in iptables, which does not survive a reboot:
+cat > /etc/cron.d/apps-firewall <<'CRON'
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 # m h dom mon dow user command
-17 * * * * root /srv/apps/gateway/deploy.sh --images-only >> /var/log/apps-deploy.log 2>&1
+@reboot root /srv/apps/gateway/firewall.sh >> /var/log/apps-firewall.log 2>&1
 CRON
-chmod 0644 /etc/cron.d/apps-deploy
+chmod 0644 /etc/cron.d/apps-firewall
 ```
 
-`--images-only` on the timer and the full script by hand is the right split: an image pull is
-safe unattended (worst case an instance restarts), while `git pull` + launcher build is a
-change you want to watch. Run it at :17 rather than :00 — every other cron on the internet
-fires on the hour, and GHCR rate-limits anonymous pulls.
+> There is deliberately no unattended deploy timer. The images these containers run hold
+> visitors' bank logins and API keys, and an hourly `docker pull` of a moving tag means a
+> compromised app-repo CI reaches this box unreviewed within the hour, with live instances
+> recreated within 30 s. A release is a reviewed commit; `deploy.sh` refuses an unpinned image.
 
-A cron beats wiring CI to SSH in: no deploy key, no secret in GitHub, and nothing that can
-reach the box from outside. The cost is up to an hour's delay — run the script by hand when
-that matters.
-
-Pin `:apps-mount-<sha>` in `apps.json` instead if you would rather deploys be explicit: the
-image reference changes, so the broker recreates on the next request and a rollback is an
-`apps.json` edit plus `git pull`.
+If an `/etc/cron.d/apps-deploy` file exists on the box from an earlier setup, delete it.
 
 GHCR packages start **private**. Either make the package public (GitHub → Packages → …  →
 Package settings) or `docker login ghcr.io` on the VPS with a read-only PAT — otherwise the

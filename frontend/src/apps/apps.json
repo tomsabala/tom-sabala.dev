@@ -12,7 +12,7 @@
         "text": "Forked from srbhr/Resume-Matcher",
         "url": "https://github.com/srbhr/Resume-Matcher"
       },
-      "image": "ghcr.io/tomsabala/resume-matcher:apps-mount",
+      "image": "ghcr.io/tomsabala/resume-matcher:apps-mount-79782f850dc0319f4388a8b93ff3bce0bca0ff6e",
       "port": 3000,
       "mode": "session",
       "memoryMb": 768,
@@ -34,7 +34,7 @@
         "text": "Forked from liketrek/TREK",
         "url": "https://github.com/liketrek/TREK"
       },
-      "image": "ghcr.io/tomsabala/trek:apps-mount",
+      "image": "ghcr.io/tomsabala/trek:apps-mount-b93cbddda92a30fe9f317832b8525da1f53b6207",
       "port": 3000,
       "mode": "shared",
       "memoryMb": 768,
@@ -56,7 +56,7 @@
         "text": "Forked from nmazuz/familycfo",
         "url": "https://github.com/nmazuz/familycfo"
       },
-      "image": "ghcr.io/tomsabala/familycfo:apps-mount",
+      "image": "ghcr.io/tomsabala/familycfo:apps-mount-0af76b61090b24a48e27dd6e682ff9377948ff83",
       "port": 4310,
       "mode": "session",
       "memoryMb": 1024,

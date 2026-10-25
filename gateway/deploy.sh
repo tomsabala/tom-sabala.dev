@@ -2,7 +2,7 @@
 # Deploy apps.tom-sabala.dev from the VPS checkout. Run it as root, from anywhere:
 #
 #   /srv/apps/gateway/deploy.sh                # full deploy
-#   /srv/apps/gateway/deploy.sh --images-only  # just pull app images (what cron runs)
+#   /srv/apps/gateway/deploy.sh --images-only  # just pull the app images apps.json pins
 #
 # The expensive steps are conditional on what `git pull` actually changed, so a run with
 # nothing new costs a few seconds. The Caddy reload and the front-door check are not: they
@@ -45,8 +45,8 @@ note() { printf '   %s\n' "$*"; }
 # It tracks brace depth instead of splitting on "}" because an app entry may contain a
 # nested object (`credit`), and splitting on the first closing brace tore one entry into
 # two half-records: the half holding `image` had no `kind`, so it was skipped, and every
-# app silently reported "no image in the manifest". That froze the whole CD path — the
-# hourly `--images-only` cron stopped pulling — without failing. Only the entry's own
+# app silently reported "no image in the manifest". That froze the whole CD path — an
+# `--images-only` run stopped pulling — without failing. Only the entry's own
 # keys are collected (chars are kept at depth 2), so a nested object can never supply a
 # field: `credit.text` containing the word image is still just text.
 manifest_services() {
@@ -87,6 +87,13 @@ pull_images() {
   local slug mode image before after found=0
   while IFS=$'\t' read -r slug mode image; do
     [ -n "$image" ] || { note "$slug has no image in the manifest — skipped"; continue; }
+    # A moving tag means an app repo's CI reaches this box unreviewed: the broker recreates
+    # live instances as soon as the local image id moves. A release is a reviewed commit
+    # that bumps the pin in apps.json, so refuse anything that is not one.
+    if ! [[ "$image" =~ (@sha256:[0-9a-f]{64}|-[0-9a-f]{40})$ ]]; then
+      echo "deploy: $image is a moving tag — pin :apps-mount-<sha> or @sha256:<digest>" >&2
+      exit 1
+    fi
     found=1
     before=$(docker image inspect --format '{{.Id}}' "$image" 2>/dev/null || true)
     docker pull -q "$image" >/dev/null
