@@ -58,6 +58,8 @@ services:
       # without an admin cookie. Production reads it from gateway/.env.
       STATUS_TOKEN: ${STATUS_TOKEN:-dev-only-status-token-not-for-production-0123456789}
       COOKIE_NAME: apps_sid
+      # The dev auth stub's admin cookie (`dev_admin=1`); stripped like the real one.
+      ADMIN_COOKIE_NAME: dev_admin
       COOKIE_SECURE: 'false'
       AUTH_VERIFY_URL: http://dev-auth:4180/oauth2/auth
       AUTH_SIGNIN_PATH: /oauth2/start

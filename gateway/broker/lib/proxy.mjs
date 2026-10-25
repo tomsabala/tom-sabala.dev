@@ -4,14 +4,15 @@
  * Bodies are piped, never buffered: the apps behind this stream LLM output, and a request
  * can legitimately run for tens of minutes. Two invariants matter here:
  *
- *   - the session cookie is removed on the way in and any attempt to set it is dropped on
- *     the way out, so an app can neither read nor overwrite the gateway's own credential;
+ *   - the gateway's own cookies — the broker session and the oauth2-proxy admin session —
+ *     are removed on the way in and dropped on the way out, so an app can neither read nor
+ *     overwrite a gateway credential;
  *   - the inbound `Host` header is preserved, because Next.js compares `Origin` against it
  *     when validating Server Actions.
  */
 
 import http from 'node:http';
-import { stripCookie } from './session.mjs';
+import { isGatewayCookie, stripCookies } from './session.mjs';
 
 const HOP_BY_HOP = [
   'connection',
@@ -25,16 +26,22 @@ const HOP_BY_HOP = [
 ];
 
 /**
- * Rewrites an upstream response's headers: hop-by-hop dropped, any attempt to set the
- * gateway's own session cookie discarded, and the freshly minted session appended. An app
- * that could overwrite this cookie could hand every visitor the same instance.
+ * Rewrites an upstream response's headers: hop-by-hop dropped, any attempt to set one of the
+ * gateway's own cookies discarded, and the freshly minted session appended. An app that could
+ * overwrite the session cookie could hand every visitor the same instance.
  */
-export function filterResponseHeaders(upstreamHeaders, cookieName, setCookie) {
+export function filterResponseHeaders(upstreamHeaders, cookieNames, setCookie) {
   const headers = {};
   for (const [name, value] of Object.entries(upstreamHeaders)) {
     if (HOP_BY_HOP.includes(name)) continue;
     if (name === 'set-cookie') {
-      const kept = value.filter(entry => !entry.startsWith(`${cookieName}=`));
+      const kept = value.filter(entry => {
+        const index = entry.indexOf('=');
+        return !isGatewayCookie(
+          entry.slice(0, index < 0 ? entry.length : index).trim(),
+          cookieNames
+        );
+      });
       if (kept.length > 0) headers['set-cookie'] = kept;
       continue;
     }
@@ -46,7 +53,7 @@ export function filterResponseHeaders(upstreamHeaders, cookieName, setCookie) {
 
 /**
  * Builds the headers sent upstream. Two things are deliberate here: the gateway's own
- * session cookie is removed (an app may neither read nor replay it), and the viewer's
+ * cookies are removed (an app may neither read nor replay one), and the viewer's
  * identity is *added* — the broker is the only thing that can set `X-Apps-*`, since
  * server.mjs deletes any inbound copy before this runs.
  *
@@ -56,14 +63,14 @@ export function filterResponseHeaders(upstreamHeaders, cookieName, setCookie) {
  * tenancy from a header refuses to trust an unsigned one. Absent for an app that does not
  * use header tenancy, and then the header is not sent at all rather than sent empty.
  */
-export function requestHeaders(req, { cookieName, tenant, keepUpgrade = false }) {
+export function requestHeaders(req, { cookieNames, tenant, keepUpgrade = false }) {
   const headers = { ...req.headers };
   for (const name of HOP_BY_HOP) {
     if (keepUpgrade && (name === 'connection' || name === 'upgrade')) continue;
     delete headers[name];
   }
 
-  const cookie = stripCookie(headers.cookie, cookieName);
+  const cookie = stripCookies(headers.cookie, cookieNames);
   if (cookie) headers.cookie = cookie;
   else delete headers.cookie;
 
@@ -75,7 +82,7 @@ export function requestHeaders(req, { cookieName, tenant, keepUpgrade = false })
   return headers;
 }
 
-export function createProxy({ cookieName, log }) {
+export function createProxy({ cookieNames, log }) {
   const agent = new http.Agent({ keepAlive: true, maxSockets: 128 });
 
   function target(endpoint) {
@@ -93,11 +100,11 @@ export function createProxy({ cookieName, log }) {
           port,
           method: req.method,
           path: req.url,
-          headers: requestHeaders(req, { cookieName, tenant }),
+          headers: requestHeaders(req, { cookieNames, tenant }),
           agent,
         },
         proxyRes => {
-          const headers = filterResponseHeaders(proxyRes.headers, cookieName, setCookie);
+          const headers = filterResponseHeaders(proxyRes.headers, cookieNames, setCookie);
           res.writeHead(proxyRes.statusCode ?? 502, headers);
           res.socket?.setNoDelay(true);
           proxyRes.pipe(res);
@@ -125,7 +132,7 @@ export function createProxy({ cookieName, log }) {
         port,
         method: req.method,
         path: req.url,
-        headers: requestHeaders(req, { cookieName, tenant, keepUpgrade: true }),
+        headers: requestHeaders(req, { cookieNames, tenant, keepUpgrade: true }),
       });
 
       upstream.on('upgrade', (proxyRes, proxySocket, proxyHead) => {
@@ -133,7 +140,9 @@ export function createProxy({ cookieName, log }) {
         for (const [name, value] of Object.entries(proxyRes.headers)) {
           if (name === 'set-cookie') {
             for (const entry of value) {
-              if (!entry.startsWith(`${cookieName}=`)) lines.push(`set-cookie: ${entry}`);
+              const index = entry.indexOf('=');
+              const entryName = entry.slice(0, index < 0 ? entry.length : index).trim();
+              if (!isGatewayCookie(entryName, cookieNames)) lines.push(`set-cookie: ${entry}`);
             }
             continue;
           }

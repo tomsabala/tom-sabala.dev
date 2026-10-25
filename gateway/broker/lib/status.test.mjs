@@ -89,6 +89,7 @@ before(async () => {
       SESSION_SECRET: 'test-only-session-secret-0123456789abcdef',
       STATUS_TOKEN,
       COOKIE_NAME: 'apps_sid',
+      ADMIN_COOKIE_NAME: 'apps_admin',
       COOKIE_SECURE: 'false',
       AUTH_VERIFY_URL: `${auth}/oauth2/auth`,
       AUTH_SIGNIN_PATH: '/oauth2/start',

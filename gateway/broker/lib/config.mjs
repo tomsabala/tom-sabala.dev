@@ -10,6 +10,7 @@ const REQUIRED = [
   'DOCKER_API',
   'SESSION_SECRET',
   'COOKIE_NAME',
+  'ADMIN_COOKIE_NAME',
   'AUTH_VERIFY_URL',
   'AUTH_SIGNIN_PATH',
   'INSTANCE_NETWORK',
@@ -74,6 +75,12 @@ export function loadConfig(env = process.env) {
   }
 
   const cookieName = env.COOKIE_NAME.trim();
+  /**
+   * oauth2-proxy's own cookie name. Required, not defaulted: the broker strips it before
+   * proxying, and a broker that silently forwarded a live admin session into a third-party
+   * app container is the bug this value exists to prevent.
+   */
+  const adminCookieName = env.ADMIN_COOKIE_NAME.trim();
   const cookieSecure = env.COOKIE_SECURE === 'true';
   if (cookieName.startsWith('__Host-') && !cookieSecure) {
     throw new Error('broker: a __Host- cookie requires COOKIE_SECURE=true');
@@ -85,6 +92,7 @@ export function loadConfig(env = process.env) {
     dockerApi: env.DOCKER_API.trim().replace(/\/+$/, ''),
     sessionSecret: env.SESSION_SECRET,
     cookieName,
+    adminCookieName,
     cookieSecure,
     authVerifyUrl: env.AUTH_VERIFY_URL.trim(),
     authSigninPath: env.AUTH_SIGNIN_PATH.trim(),

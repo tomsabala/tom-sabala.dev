@@ -5,7 +5,7 @@ import {
   readCookie,
   sessionCookie,
   signSession,
-  stripCookie,
+  stripCookies,
   verifySession,
 } from './session.mjs';
 
@@ -60,9 +60,19 @@ test('readCookie does not match a cookie whose name merely ends with the target'
   assert.equal(readCookie('not_apps_sid=evil', 'apps_sid'), null);
 });
 
-test('stripCookie removes only the session cookie', () => {
-  assert.equal(stripCookie('a=1; apps_sid=x; b=2', 'apps_sid'), 'a=1; b=2');
-  assert.equal(stripCookie('apps_sid=x', 'apps_sid'), undefined);
-  assert.equal(stripCookie('a=1', 'apps_sid'), 'a=1');
-  assert.equal(stripCookie(undefined, 'apps_sid'), undefined);
+test('stripCookies removes every gateway cookie, chunks included', () => {
+  const names = ['apps_sid', 'apps_admin'];
+  assert.equal(stripCookies('a=1; apps_sid=x; b=2', names), 'a=1; b=2');
+  assert.equal(
+    stripCookies('a=1; apps_sid=x; apps_admin=y; apps_admin_0=z; b=2', names),
+    'a=1; b=2'
+  );
+  assert.equal(stripCookies('apps_sid=x', names), undefined);
+  assert.equal(stripCookies('a=1', names), 'a=1');
+  assert.equal(stripCookies(undefined, names), undefined);
+});
+
+test('stripCookies keeps a cookie whose name merely ends with a gateway name', () => {
+  assert.equal(stripCookies('not_apps_sid=keep', ['apps_sid']), 'not_apps_sid=keep');
+  assert.equal(stripCookies('apps_admin_x=keep', ['apps_admin']), 'apps_admin_x=keep');
 });

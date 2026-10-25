@@ -53,16 +53,29 @@ export function readCookie(header, name) {
 }
 
 /**
- * Drops one cookie from a Cookie header. The session cookie is the gateway's own credential;
- * an app behind the broker must never see it, let alone be able to replay it.
+ * Whether this cookie name is one of the gateway's own. oauth2-proxy splits a cookie larger
+ * than 4 KB into `<name>_0`, `<name>_1`, …, so a chunk of an owned cookie is owned too.
  */
-export function stripCookie(header, name) {
+export function isGatewayCookie(name, names) {
+  if (names.includes(name)) return true;
+  const base = /^(.+)_\d+$/.exec(name);
+  return Boolean(base && names.includes(base[1]));
+}
+
+/**
+ * Drops the gateway's own cookies from a Cookie header. Both the broker session cookie and
+ * the oauth2-proxy admin cookie are gateway credentials; an app behind the broker must never
+ * see either, let alone be able to replay one.
+ */
+export function stripCookies(header, names) {
   if (!header) return undefined;
   const kept = header
     .split(';')
     .filter(pair => {
       const index = pair.indexOf('=');
-      return index < 0 ? pair.trim().length > 0 : pair.slice(0, index).trim() !== name;
+      const name = (index < 0 ? pair : pair.slice(0, index)).trim();
+      if (name.length === 0) return false;
+      return !isGatewayCookie(name, names);
     })
     .map(pair => pair.trim());
   return kept.length > 0 ? kept.join('; ') : undefined;

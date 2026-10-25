@@ -63,7 +63,7 @@ async function main() {
     ttlMs: config.identityTtlMs,
     log,
   });
-  const proxy = createProxy({ cookieName: config.cookieName, log });
+  const proxy = createProxy({ cookieNames: [config.cookieName, config.adminCookieName], log });
 
   await instances.adopt();
   instances.startReaper();

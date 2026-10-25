@@ -89,6 +89,9 @@ services:
       # Optional; without it GET /instances accepts an admin session only.
       STATUS_TOKEN: ${STATUS_TOKEN:-}
       COOKIE_NAME: __Host-apps_sid
+      # Must equal oauth2-proxy's --cookie-name above: the broker strips it (and its _0/_1
+      # chunks) before proxying, so a live admin session never reaches an app container.
+      ADMIN_COOKIE_NAME: __Host-apps_admin
       COOKIE_SECURE: 'true'
       AUTH_VERIFY_URL: http://oauth2-proxy:4180/oauth2/auth
       AUTH_SIGNIN_PATH: /oauth2/start
