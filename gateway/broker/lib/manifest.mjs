@@ -55,10 +55,23 @@ function positiveInt(value, fallback) {
   return typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : null;
 }
 
+/**
+ * The only capabilities an app may ask for. TREK's entrypoint needs CHOWN on its data dirs
+ * and SETUID/SETGID to gosu-drop to `node`; nothing here has a reason for more, and a
+ * manifest edit must not be able to hand a container SYS_ADMIN.
+ */
+const ALLOWED_CAPS = ['CHOWN', 'SETGID', 'SETUID'];
+
 function parseRuntime(entry, slug, dropped) {
   const capAddRaw = entry.capAdd ?? [];
   const capAdd =
-    Array.isArray(capAddRaw) && capAddRaw.every(cap => typeof cap === 'string') ? capAddRaw : null;
+    Array.isArray(capAddRaw) && capAddRaw.every(cap => ALLOWED_CAPS.includes(cap))
+      ? capAddRaw
+      : null;
+  if (!capAdd) {
+    dropped.push(`${slug}: capAdd may only contain ${ALLOWED_CAPS.join(', ')}`);
+    return null;
+  }
 
   const image = nonEmptyString(entry.image);
   const dataPath = nonEmptyString(entry.dataPath);
@@ -68,7 +81,7 @@ function parseRuntime(entry, slug, dropped) {
   const shmSizeMb = positiveInt(entry.shmSizeMb, 64);
   const dataTmpfsMb = positiveInt(entry.dataTmpfsMb, 256);
 
-  if (!image || !port || !dataPath || !readyPath || !memoryMb || !shmSizeMb || !dataTmpfsMb || !capAdd) {
+  if (!image || !port || !dataPath || !readyPath || !memoryMb || !shmSizeMb || !dataTmpfsMb) {
     dropped.push(`${slug}: incomplete container settings (needs image, port, dataPath)`);
     return null;
   }

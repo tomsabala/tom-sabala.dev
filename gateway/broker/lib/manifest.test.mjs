@@ -70,6 +70,19 @@ test('a service the broker could not start is dropped, not advertised', () => {
   assert.equal(parseManifest({ apps: [{ ...service, dataPath: 'relative' }] }).apps.length, 0);
 });
 
+test('capAdd may only name the three capabilities an app has a reason for', () => {
+  const { apps: granted } = parseManifest({
+    apps: [{ ...service, capAdd: ['CHOWN', 'SETGID', 'SETUID'] }],
+  });
+  assert.deepEqual(granted[0].runtime.capAdd, ['CHOWN', 'SETGID', 'SETUID']);
+
+  for (const capAdd of [['SYS_ADMIN'], ['CHOWN', 'NET_ADMIN'], ['sys_admin'], 'CHOWN']) {
+    const { apps, dropped } = parseManifest({ apps: [{ ...service, capAdd }] });
+    assert.equal(apps.length, 0, `accepted ${JSON.stringify(capAdd)}`);
+    assert.deepEqual(dropped, ['secret-tool: capAdd may only contain CHOWN, SETGID, SETUID']);
+  }
+});
+
 test('unsafe slugs, unknown kinds and unknown access levels are dropped', () => {
   for (const patch of [
     { slug: '../etc' },
