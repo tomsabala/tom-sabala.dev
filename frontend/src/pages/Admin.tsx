@@ -213,7 +213,9 @@ export default function Admin(): JSX.Element {
             ↗ View public site
           </Link>
           <a
-            href="https://apps.tom-sabala.dev"
+            // Everyone reading this page is an authenticated admin (ProtectedRoute), but the
+            // apps origin has its own session: ?signin=1 makes the launcher establish it.
+            href="https://apps.tom-sabala.dev/?signin=1"
             target="_blank"
             rel="noopener noreferrer"
             className="text-ink2 no-underline px-2.5 py-2.5"

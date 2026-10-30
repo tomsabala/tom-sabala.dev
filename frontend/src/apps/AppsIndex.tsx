@@ -5,6 +5,7 @@ import RequestPathDiagram from './RequestPathDiagram.tsx';
 import ThemeToggle from './ThemeToggle.tsx';
 import { launchLabel, specRows, unitIndex } from './units.ts';
 import { useBrokerInstances } from './useBrokerInstances.ts';
+import { useInstanceKind } from './useInstanceKind.ts';
 
 /** Below this the diagram stacks vertically and the inspector moves above it. */
 const NARROW_PX = 640;
@@ -47,7 +48,10 @@ function AppsIndex({
     ? (width < 480 ? 620 : 760) + Math.max(0, list.length - 3) * 110
     : null;
   const liveCount = list.filter(entry => entry.status === 'live').length;
-  const rows = app ? specRows(app, admin, instances) : [];
+  // Asked of the broker, not inferred from the manifest: the same visitor gets a volume or a
+  // tmpfs depending on whether this origin has a session, which the manifest does not say.
+  const kind = useInstanceKind(app?.slug ?? null, app?.kind === 'service');
+  const rows = app ? specRows(app, admin, instances, kind) : [];
   const source = app?.sourceUrl ?? app?.credit?.url ?? null;
   const cta = launchLabel(app);
 

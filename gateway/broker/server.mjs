@@ -15,7 +15,7 @@ import http from 'node:http';
 import { timingSafeEqual } from 'node:crypto';
 import { loadConfig } from './lib/config.mjs';
 import { createDockerClient } from './lib/docker.mjs';
-import { createIdentityResolver, containerName, instanceKey, tenantKey } from './lib/identity.mjs';
+import { createIdentityResolver, containerName, instanceKey, keyKind, tenantKey } from './lib/identity.mjs';
 import { BOOT_PHASES, createInstanceManager, getInstanceState } from './lib/instances.mjs';
 import { createManifestStore, isValidSlug, publicManifest } from './lib/manifest.mjs';
 import { parseServicePath } from './lib/paths.mjs';
@@ -147,6 +147,11 @@ async function main() {
    * runs before any app has loaded — so it answers only about the instance the same caller
    * would be proxied to, and carries nothing from the manifest's runtime block: no image,
    * no port, no memory. Those are exactly the fields publicManifest() strips.
+   *
+   * `kind` is the caller's own identity ('anon' | 'admin' | 'shared'), which
+   * /manifest.json already discloses to the same caller as `admin: true|false`; it says
+   * whether the instance they would get keeps its data, and is defined even when there is
+   * no instance yet.
    */
   function handleBoot(res, slug, viewer, sessionState) {
     const app = isValidSlug(slug) ? manifest.service(slug) : null;
@@ -171,6 +176,7 @@ async function main() {
       body: JSON.stringify({
         slug: app.slug,
         mode: app.mode,
+        kind: keyKind(key),
         state: state?.state ?? 'absent',
         // Phase timings are relative to the start of this attempt: an absolute clock would
         // say when the box last booted an instance, which is nobody's business out here.

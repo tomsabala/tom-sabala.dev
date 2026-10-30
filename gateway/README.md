@@ -276,9 +276,9 @@ overlay and the portfolio's admin console were otherwise reduced to inventing it
 `GET /boot/<slug>` is **unauthenticated** — it is polled while an iframe is still blank, so
 there is no session to require — and in exchange it answers about one instance only: the one
 the same caller would be proxied to, resolved from their own cookie exactly as `/a/<slug>/`
-does. It returns `{slug, mode, state, phases, phaseCount, elapsedMs, readyMs, error}`, where
-`state` is `absent | starting | ready | failed | stopped` and each phase is `{name, at}` with
-`at` in milliseconds since this attempt began. The phase names, in order:
+does. It returns `{slug, mode, kind, state, phases, phaseCount, elapsedMs, readyMs, error}`,
+where `state` is `absent | starting | ready | failed | stopped` and each phase is
+`{name, at}` with `at` in milliseconds since this attempt began. The phase names, in order:
 
 | phase | meaning |
 |---|---|
@@ -294,6 +294,12 @@ does. It returns `{slug, mode, state, phases, phaseCount, elapsedMs, readyMs, er
 Nothing from the manifest's runtime block (`image`, `port`, `memoryMb`, `shmSizeMb`,
 `dataPath`, `readyPath`) appears in that payload — the same stripping `publicManifest()`
 enforces, asserted in `lib/status.test.mjs`.
+
+`kind` is `anon | admin | shared` — the identity the caller's own `instanceKey` resolves to,
+and therefore whether the instance they are about to use keeps its data (`admin`: a named
+volume) or throws it away (`anon`: tmpfs, removed by the reaper). It is the same fact
+`/manifest.json` already tells the same caller as `admin: true|false`, and the launcher
+prints it as the frame's EPHEMERAL/PERSISTENT/SHARED badge and the inspector's `STATE` row.
 
 `GET /instances` is the admin view: every instance container on the box joined to the
 broker's in-memory boot state, plus the capacity ceilings. It takes **either** an admin

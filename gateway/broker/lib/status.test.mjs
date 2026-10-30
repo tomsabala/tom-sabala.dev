@@ -166,6 +166,13 @@ test('/boot reports absent before anything has been started', async () => {
   assert.equal(body.error, null);
 });
 
+test('/boot names the kind of instance the caller would get', async () => {
+  // The auth stub here is never-admin, so a session app resolves to an anonymous
+  // (tmpfs, reaped) instance while a shared app is the one warm container for everybody.
+  assert.equal(JSON.parse((await get('/boot/resume-matcher')).text).kind, 'anon');
+  assert.equal(JSON.parse((await get(`/boot/${SLUG}`)).text).kind, 'shared');
+});
+
 test('/boot leaks nothing from the runtime block', async () => {
   const { text } = await get(`/boot/${SLUG}`);
   for (const forbidden of ['ghcr.io', 'image', 'memoryMb', 'shmSizeMb', 'dataPath', 'readyPath']) {

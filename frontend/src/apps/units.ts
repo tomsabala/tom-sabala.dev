@@ -1,6 +1,7 @@
 import { appEntryUrl } from './registry.ts';
 import type { HostedApp } from './registry.ts';
 import type { BrokerInstance } from './useBrokerInstances.ts';
+import type { InstanceKind } from './useInstanceKind.ts';
 
 /**
  * How a unit is worded in the launcher.
@@ -62,17 +63,28 @@ function memoryRow(running: BrokerInstance[]): string {
   return `${formatBytes(used)} / ${formatBytes(limit * running.length)}`;
 }
 
+/** What the caller's own instance does with its data, once the broker has told us. */
+const STATE_BY_KIND: Record<InstanceKind, string> = {
+  admin: 'persistent · your own volume',
+  shared: 'shared · one volume for everyone',
+  anon: 'ephemeral · reset when the instance goes idle',
+};
+
 /**
  * Six honest rows for everybody; the three that need the Docker daemon only when the
- * gateway has already told us this session is an admin.
+ * gateway has already told us this session is an admin. A seventh, STATE, appears only for
+ * a service whose kind the broker has actually reported — a bundle has no instance, and an
+ * unknown kind prints nothing rather than a guess.
  */
 export function specRows(
   app: HostedApp,
   admin: boolean,
   instances: BrokerInstance[] | null,
+  kind: InstanceKind | null,
 ): SpecRow[] {
   const rows: SpecRow[] = [
     { k: 'MODE', v: modeLabel(app) },
+    ...(app.kind === 'service' && kind !== null ? [{ k: 'STATE', v: STATE_BY_KIND[kind] }] : []),
     { k: 'ACCESS', v: app.access },
     { k: 'STATUS', v: app.status === 'live' ? 'live' : 'work in progress' },
     { k: 'STACK', v: app.tech.join(' · ') || '—' },

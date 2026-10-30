@@ -3,6 +3,7 @@ import AppFrame from './AppFrame.tsx';
 import AppsIndex from './AppsIndex.tsx';
 import { HOSTED_APPS, parseAppHash, parseManifest, resolveApp } from './registry.ts';
 import type { HostedApp } from './registry.ts';
+import { consumePendingSlug, requestSignin, wantsSignin } from './signin.ts';
 
 function useHashSlug(): string | null {
   const [slug, setSlug] = useState(() => parseAppHash(window.location.hash));
@@ -37,11 +38,19 @@ function useSecretClick(onTrigger: () => void): () => void {
  * oauth2-proxy session identifies a whitelisted admin. With no gateway in front (plain
  * `npm run dev`) the request fails and the bundled public entries stand in, so the launcher
  * still works from Vercel alone. Admin-only apps are never part of that fallback.
+ *
+ * `fromGateway` separates those two worlds: it is the only evidence that `/oauth2/*` exists
+ * at all, and nothing may redirect there without it.
  */
-function useManifest(): { apps: HostedApp[] | null; admin: boolean } {
-  const [state, setState] = useState<{ apps: HostedApp[] | null; admin: boolean }>({
+function useManifest(): { apps: HostedApp[] | null; admin: boolean; fromGateway: boolean } {
+  const [state, setState] = useState<{
+    apps: HostedApp[] | null;
+    admin: boolean;
+    fromGateway: boolean;
+  }>({
     apps: null,
     admin: false,
+    fromGateway: false,
   });
 
   useEffect(() => {
@@ -55,10 +64,14 @@ function useManifest(): { apps: HostedApp[] | null; admin: boolean } {
         if (cancelled) return;
         const admin =
           typeof body === 'object' && body !== null && 'admin' in body && body.admin === true;
-        setState({ apps: parseManifest(body), admin });
+        setState({ apps: parseManifest(body), admin, fromGateway: true });
       } catch {
         if (cancelled) return;
-        setState({ apps: HOSTED_APPS.filter(app => app.access === 'public'), admin: false });
+        setState({
+          apps: HOSTED_APPS.filter(app => app.access === 'public'),
+          admin: false,
+          fromGateway: false,
+        });
       }
     })();
 
@@ -72,10 +85,30 @@ function useManifest(): { apps: HostedApp[] | null; admin: boolean } {
 
 function AppsLauncher() {
   const slug = useHashSlug();
-  const { apps, admin } = useManifest();
+  const { apps, admin, fromGateway } = useManifest();
   const onSecretClick = useSecretClick(() => {
-    window.location.href = '/oauth2/start?rd=%2F';
+    requestSignin(parseAppHash(window.location.hash));
   });
+
+  // Restore the unit the visitor asked for before they were sent through oauth2-proxy:
+  // the round trip comes back to `rd=%2F`, which has no fragment. `useHashSlug` listens
+  // for `hashchange`, so writing the hash is enough to mount the frame.
+  useEffect(() => {
+    const pending = consumePendingSlug();
+    if (pending && !parseAppHash(window.location.hash)) window.location.hash = `#/${pending}`;
+  }, []);
+
+  // The portfolio's hangar links carry `?signin=1` for a visitor it knows is an admin.
+  // Every guard here is load-bearing: `fromGateway` keeps `vite dev` and the Vercel copy
+  // (no `/oauth2/*`) from bouncing to a 404; `!admin` makes it a no-op for someone already
+  // signed in, which matters because oauth2-proxy runs with `approval_prompt=force` and
+  // would otherwise show Google's consent screen on every launch; `apps !== null` waits for
+  // the manifest to settle. Coming back via `rd=%2F` drops `signin=1`, so a refused or
+  // non-whitelisted sign-in lands anonymously on the index and cannot loop.
+  useEffect(() => {
+    if (!fromGateway || admin || apps === null) return;
+    if (wantsSignin(window.location.search)) requestSignin(parseAppHash(window.location.hash));
+  }, [fromGateway, admin, apps]);
 
   // Resolved against the gateway's list, never the bundled one: an anonymous visitor
   // deep-linking an admin-only app must get the same "No app called X" as an unknown slug.

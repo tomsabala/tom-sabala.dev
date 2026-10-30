@@ -4,6 +4,8 @@ import type { HostedApp } from './registry.ts';
 import ThemeToggle from './ThemeToggle.tsx';
 import { bootLabel, unitIndex } from './units.ts';
 import { useBootPhases } from './useBootPhases.ts';
+import { useInstanceKind } from './useInstanceKind.ts';
+import type { InstanceKind } from './useInstanceKind.ts';
 
 /**
  * NOT a security boundary. `allow-scripts` + `allow-same-origin` on a same-origin frame
@@ -30,6 +32,29 @@ function chipTone(chip: StripChip): string {
   return chip.unit ? 'bg-acc text-onacc' : 'bg-ink text-bg';
 }
 
+/**
+ * Whether the instance behind this frame keeps anything. The three kinds are the broker's
+ * own (`lib/identity.mjs#keyKind`): an anonymous container is tmpfs-backed and reaped, so
+ * saying so before someone starts working in it is the point of the badge.
+ */
+const DURABILITY: Record<InstanceKind, { label: string; title: string; tone: string }> = {
+  anon: {
+    label: 'EPHEMERAL',
+    title: 'Not signed in — this instance and everything in it is discarded when it goes idle',
+    tone: 'border-acc text-acc',
+  },
+  admin: {
+    label: 'PERSISTENT',
+    title: 'Signed in — this instance keeps its data on its own volume',
+    tone: 'border-ln2 text-ink2',
+  },
+  shared: {
+    label: 'SHARED',
+    title: 'One instance serves everybody; the app separates visitors itself',
+    tone: 'border-ln2 text-ink2',
+  },
+};
+
 function AppFrame({ app, index }: { app: HostedApp; index: number }) {
   const [attempt, setAttempt] = useState(0);
   const [loaded, setLoaded] = useState(false);
@@ -41,6 +66,10 @@ function AppFrame({ app, index }: { app: HostedApp; index: number }) {
   const boot = useBootPhases(app.slug, starting, attempt);
   // A shared app is one instance for everybody; calling it private would be a lie.
   const bootStatus = bootLabel(app);
+  // Unlike boot progress, this has to outlive the overlay: the badge stays in the header
+  // for as long as the unit is open. `attempt` re-reads it after a retry.
+  const kind = useInstanceKind(app.slug, app.kind === 'service', attempt);
+  const durability = kind ? DURABILITY[kind] : null;
 
   const idx = unitIndex(index);
   const strip: StripChip[] = [
@@ -80,6 +109,18 @@ function AppFrame({ app, index }: { app: HostedApp; index: number }) {
               {i < strip.length - 1 && <span className="text-mut">→</span>}
             </span>
           ))}
+          {durability && (
+            <>
+              {/* Not a fifth hop in the request path — a different fact about the unit. */}
+              <span className="text-mut">·</span>
+              <span
+                title={durability.title}
+                className={`whitespace-nowrap border px-[7px] py-1.5 ${durability.tone}`}
+              >
+                {durability.label}
+              </span>
+            </>
+          )}
         </div>
 
         <div className="flex shrink-0 gap-1.5">
@@ -145,7 +186,14 @@ function AppFrame({ app, index }: { app: HostedApp; index: number }) {
                   </button>
                 </div>
               ) : (
-                <span className="font-mono text-[13px] leading-none text-acc">{bootStatus}</span>
+                <>
+                  <span className="font-mono text-[13px] leading-none text-acc">{bootStatus}</span>
+                  {kind === 'anon' && (
+                    <span className="font-mono text-[13px] leading-[1.4] text-acc">
+                      Not signed in — anything you do here is wiped when the instance goes idle.
+                    </span>
+                  )}
+                </>
               )}
             </div>
           </div>

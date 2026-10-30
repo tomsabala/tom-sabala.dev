@@ -8,6 +8,7 @@ import { HOSTED_APPS, appEntryUrl } from '../../../apps/registry.ts';
 import type { HostedApp } from '../../../apps/registry.ts';
 import Section from '../Section.tsx';
 import SpecGrid from '../SpecGrid.tsx';
+import { useAuth } from '../../../contexts/AuthContext.tsx';
 
 const APPS_ORIGIN = 'https://apps.tom-sabala.dev';
 const PUBLIC_APPS = HOSTED_APPS.filter(app => app.access === 'public');
@@ -17,7 +18,16 @@ function memoryLabel(app: HostedApp): string {
   return (app.runtime.memoryMb / 1024).toFixed(2).replace(/\.?0+$/, '') + ' GB';
 }
 
+/**
+ * `?signin=1` only for a visitor the portfolio already knows is an admin, and only for a
+ * service: the apps origin has its own session, so without the hop the broker resolves an
+ * admin as anonymous and hands them a tmpfs instance the reaper deletes. A bundle is static
+ * files with no instance, and an anonymous visitor sees byte-identical hrefs to before —
+ * which is what keeps this origin's hidden-admin property intact.
+ */
 export default function HangarSection() {
+  const { isAuthenticated } = useAuth();
+
   return (
     <Section
       id="hangar"
@@ -25,7 +35,7 @@ export default function HangarSection() {
       title="The hangar"
       aside={
         <a
-          href="https://apps.tom-sabala.dev"
+          href={isAuthenticated ? `${APPS_ORIGIN}/?signin=1` : APPS_ORIGIN}
           target="_blank"
           rel="noopener"
           className="font-mono text-[12px] leading-none text-mut tracking-[0.06em] uppercase no-underline hover:text-acct"
@@ -93,7 +103,11 @@ export default function HangarSection() {
             />
 
             <a
-              href={`${APPS_ORIGIN}${appEntryUrl(app)}`}
+              href={
+                isAuthenticated && app.kind === 'service'
+                  ? `${APPS_ORIGIN}/?signin=1#/${app.slug}`
+                  : `${APPS_ORIGIN}${appEntryUrl(app)}`
+              }
               target="_blank"
               rel="noopener"
               className="mt-auto border border-acct text-acct no-underline font-mono text-[12px] leading-none font-medium tracking-[0.1em] uppercase px-4 py-3.5 flex justify-between hover:bg-acc hover:border-acc hover:text-onacc"

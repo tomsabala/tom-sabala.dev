@@ -82,6 +82,17 @@ sees the same data — say so in the tagline if it stores anything).
 - The launcher fetches `/manifest.json` from the gateway at runtime; the bundled `apps.json`
   is the fallback when there is no gateway in front — plain `npm run dev`, or the copy of
   `apps.html` that Vercel still serves at `tom-sabala.dev` — filtered to `access: "public"`.
+- Signing in is this origin's own business: a portfolio JWT on `tom-sabala.dev` is invisible
+  here, so an admin who follows a plain `/a/<slug>/` link is resolved as anonymous and gets a
+  tmpfs instance the reaper deletes. The hangar links therefore carry `?signin=1` **only**
+  when the portfolio already knows the visitor is an admin (`HangarSection`), and
+  `AppsLauncher` turns that into one hop through `/oauth2/start?rd=%2F`, restoring the
+  requested slug from `sessionStorage` on the way back (`signin.ts`). It is a no-op without a
+  gateway in front and for a visitor who is already signed in; an anonymous visitor's links
+  are byte-identical to what they were, which is what keeps admin invisible here.
+- `useInstanceKind` reads `kind` from `GET /boot/<slug>` and the UI says it out loud: the
+  frame header badges EPHEMERAL / PERSISTENT / SHARED and the inspector adds a `STATE` row.
+  Unknown kind (no gateway, failed fetch) prints nothing rather than guessing.
 - The iframe `sandbox` attribute is **not** a boundary here: combined with `allow-same-origin`
   (needed for `localStorage`/IndexedDB) a bundle can reach `parent.document` and therefore owns
   the whole `apps.tom-sabala.dev` origin, launcher included. Keep this directory first-party
