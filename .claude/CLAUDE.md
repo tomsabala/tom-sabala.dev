@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Personal portfolio website with Flask backend API and React frontend. The public site is a single long landing page over a live interactive algorithm field (`/`), with per-project detail pages at `/work/:slug`. Everything editable lives behind one admin console at `/admin`: portfolio/work content, resume PDF versions, the contact inbox, job tracking (companies + applications with AI-generated category tags), the on-demand job-search agent that sweeps every tracked company's job board, live apps-hangar instance status, and tab visibility.
+Personal portfolio website with Flask backend API and React frontend. The public site is a single long landing page over a live interactive algorithm field (`/`), with per-project detail pages at `/work/:slug`. Everything editable lives behind one admin console at `/admin`: portfolio/work content, resume PDF versions, the contact inbox, job tracking (companies + applications with AI-generated category tags), the on-demand job-search agent that sweeps every tracked company's job board, first-party traffic analytics across all three origins (split anonymous vs admin), live apps-hangar instance status, and tab visibility.
 
 **Tech Stack:**
 - Backend: Python 3 + Flask + SQLAlchemy + PostgreSQL + Redis/RQ + SendGrid + Anthropic API
@@ -69,6 +69,9 @@ backend/app/
 │   ├── job_application.py  # Job applications (8 statuses)
 │   ├── idea.py          # Ideas list
 │   ├── tab_config.py    # Nav tab visibility config (tab_key, is_visible)
+│   ├── visit_session.py # One visit: daily visitor hash + site + identity (anon|admin)
+│   ├── page_view.py     # One page of one visit; source 'server'|'beacon'
+│   ├── analytics_event.py  # Named interaction + free-form JSON props
 │   ├── job_posting.py   # Board postings; firstSeenAt/closedAt drive New/Seen
 │   ├── agent_run.py     # Agent sweeps (RUN_STATUSES, activeLock single-run guard)
 │   ├── agent_run_company_result.py  # Per-company outcome of a sweep
@@ -84,6 +87,8 @@ backend/app/
 │   ├── job_application_dao.py
 │   ├── idea_dao.py
 │   ├── tab_config_dao.py  # getAll(), getVisible(), bulkUpsert()
+│   ├── analytics_dao.py   # Window(site, identity, bots) + every traffic aggregate;
+│   │                      #   writes serialized by a pg advisory lock per visitor
 │   ├── job_posting_dao.py      # upsert(), closeMissing(), setScore(), dismiss()
 │   │                           #   closeMissing spans all sources per company
 │   ├── agent_run_dao.py        # create/markRunning/bumpCounters/finish/findStale
@@ -95,6 +100,8 @@ backend/app/
 │   ├── file_storage_service.py   # Local file storage
 │   ├── s3_storage_service.py     # AWS S3 storage
 │   ├── storage_factory.py        # Storage provider selection
+│   ├── analytics_service.py      # Daily visitor hash, site/identity resolution,
+│   │                             #   the unblockable after_request page-view tier
 │   ├── board_discovery_service.py # Regex detection, then a bounded tool-use loop
 │   ├── ats/                       # Board APIs: greenhouse, lever, ashby,
 │   │                              #   workable, smartrecruiters (+ registry);
@@ -115,10 +122,14 @@ backend/app/
 │   ├── about_routes.py       # /api/about/*
 │   ├── docs_routes.py        # /api/docs/*
 │   ├── github_stats_routes.py # /api/github-stats*
-│   └── hangar_routes.py      # /api/hangar/instances (server-to-server broker proxy)
+│   ├── hangar_routes.py      # /api/hangar/instances (server-to-server broker proxy)
+│   └── analytics_routes.py   # POST /api/_e (public beacon) + /api/analytics/overview
 └── utils/
     ├── csrf_protection.py    # CSRF token handling
     ├── slugify.py            # slugify()/uniqueSlug(), shared by migration 015 + ProjectDAO
+    ├── user_agent.py         # classify()/detectBot() — coarse labels, no versions
+    ├── admin_identity.py     # isAdminRequest(): the JWT cookie probe, shared by
+    │                         #   tab_guard and the analytics service
     └── tab_guard.py          # require_tab_visible() decorator
 
 backend/queue.py           # app/queue.py: Redis connection + RQ queue helpers
@@ -138,7 +149,7 @@ frontend/src/
 │   ├── WorkDetail.tsx   # /work/:slug — hero, specimen, facts, steps, rules, deep dive
 │   ├── Admin.tsx        # /admin shell: rail (off-canvas below lg) + AdminScreenRoute
 │   ├── admin/           # Screens: AdminOverview, AdminPipeline, AdminContent,
-│   │                    #   AdminInbox, AdminHangar, AdminVisibility
+│   │                    #   AdminInbox, AdminTraffic, AdminHangar, AdminVisibility
 │   │                    #   + chrome.tsx (ADMIN_SCREENS/ADMIN_NAV), ui.tsx, applicationStatus.ts
 │   └── jobsSearch.ts    # Shared company/application filtering for the pipeline screen
 ├── field/               # The live algorithm field behind the landing page
@@ -157,6 +168,10 @@ frontend/src/
 ├── about/
 │   ├── skills.ts        # SKILLS — also the source for the terminal's skills/*.txt
 │   └── radar.ts         # Radar polygon + label geometry (fixed 400×300 viewBox)
+├── analytics/           # The client half of first-party traffic measurement
+│   ├── track.ts         # Engagement-gated beacon; sendBeacon, DNT/GPC honoured
+│   ├── endpoints.ts     # Backend beacon (portfolio/terminal) vs gateway beacon (apps)
+│   └── RouteViews.tsx   # Reports SPA navigation the server-observed tier cannot see
 ├── components/
 │   ├── site/                 # Public chrome: SiteHeader (hidden login), SiteFooter,
 │   │                         #   Panel, SectionHeading, SpecGrid, SpecimenCanvas
@@ -188,6 +203,7 @@ frontend/src/
 │   ├── jobsRepository.ts     # Companies + applications + suggestCategories()
 │   ├── agentRepository.ts    # Agent profile, runs, findings, dismiss/bookmark
 │   ├── hangarRepository.ts   # getInstances() via the backend broker proxy
+│   ├── analyticsRepository.ts # getOverview() — admin read; the beacon does not use axios
 │   └── settingsRepository.ts # getVisibleTabs() (public), getAdminTabConfigs(), updateTabConfigs()
 ├── terminal/                 # Interactive terminal view (/terminal)
 │   ├── TerminalApp.tsx       # Main component; feeds live projects via populateProjects()
@@ -219,8 +235,8 @@ frontend/src/
 | `/work/:slug` | `WorkDetail` | `VisibleTabRoute tabKey="work"` |
 | `/admin`, `/admin/:screen` | `Admin` + `AdminScreenRoute` | `ProtectedRoute` |
 
-Admin screens: `overview`, `pipeline`, `content`, `inbox`, `hangar`, `visibility`. `/admin`
-and any unrecognised `:screen` resolve to `overview`.
+Admin screens: `overview`, `pipeline`, `content`, `inbox`, `traffic`, `hangar`,
+`visibility`. `/admin` and any unrecognised `:screen` resolve to `overview`.
 
 Pre-redesign URLs stay resolvable: `/portfolio → /#work`, `/portfolio/:id → /work/<slug>`
 (resolved against the project list; an id that no longer exists lands on `/#work`),
@@ -249,6 +265,89 @@ Pre-redesign URLs stay resolvable: `/portfolio → /#work`, `/portfolio/:id → 
 **Admin Console**: one shell (`pages/Admin.tsx`) with a 232px rail that becomes an off-canvas drawer below `lg`; `pages/admin/chrome.tsx` owns `ADMIN_SCREENS` (crumb, title, glyph, label, path) and `ADMIN_NAV` grouping, and `resolveScreenKey()` sends an unknown `:screen` to the overview rather than a blank page. The public pages are read-only — all editing lives here.
 
 **Hangar Status**: `GET /api/hangar/instances` (`hangar_routes.py`) is a server-to-server hop to the gateway broker's `/instances`, carrying `X-Hangar-Token`. The browser cannot make that call itself: different origin, deliberately absent from `CORS_ORIGINS`, and the broker's `__Host-apps_admin` cookie is `SameSite=Lax`. Any failure or missing env var answers `503 {"success": false, "error": "Hangar status unavailable"}`, which is the normal state until a broker with `/instances` is running — callers render a dash row, never a crash. `AdminHangar` lists each instance's `kind` (`admin`/`anon`/`shared`) with its state, memory and idle age: an aggregate count cannot tell a volume-backed admin container from an anonymous tmpfs one, and that is the question the screen exists to answer.
+
+**Traffic Analytics — measured here, not by Vercel**: `@vercel/analytics` is gone. It loads
+`/_vercel/insights/script.js`, which EasyPrivacy (on by default in uBlock Origin) blocks, so
+an engineering audience was never fully counted. Measurement now runs in two tiers against
+this project's own Postgres, and the console is `/admin/traffic`.
+
+*Tier 1 — unblockable.* `recordServerHit()` is an `after_request` hook that reads the
+content calls a page cannot render without (`/api/portfolio`, `/api/about`, `/api/cv`,
+`/api/dashboard/tabs`, `/api/github-stats`) plus three facts the server actually served:
+`resume.open` (`/api/cv/pdf/file`), `deep_dive.read`, `contact.sent`. `apiClient` appends
+`_p=<pathname>` to every request so the server knows which page asked — a query parameter,
+not a header, because a custom header would force a CORS preflight on every cross-origin
+GET. A page's parallel boot fetches collapse into one view via a 10 s dedupe window. A
+`_p` under `/admin` is skipped outright: the console is the tool, not the site.
+
+*Tier 2 — engagement.* `analytics/track.ts` sends nothing until the page has been visible
+for 2 s **and** the visitor has moved, scrolled, tapped or typed: headless scrapers load
+pages, they do not scroll — and the gate is enforced in `send()`, so the `pagehide` exit
+path cannot bypass it. It reports SPA route changes, dwell time, scroll depth and
+interactions (`field.algo`, `terminal.command`, `apps.open`). A beacon view attaches to the
+newest still-open row for that path rather than inserting, so a page seen by both tiers is
+one row — `summary.beaconCoverage` is then literally "100 minus the blocker rate". Hiding
+the tab reports what has been measured so far; coming back to the same page sends `resume`
+and a *cumulative* duration, which reopens that same row (`max(durationMs)` merges it)
+instead of minting a second view — counting it twice flipped bounces into non-bounces. A
+real navigation back to a path carries no flag and is a genuine second row. DNT and
+GPC silence the beacon; tier 1 still counts those visits, so the totals stay honest. Scroll
+depth is `null`, not 100%, on a page shorter than the viewport.
+
+**Analytics Identity — proven, never claimed**: `visit_sessions.identity` is `anon` or
+`admin`, with `identity_source` recording how it was established, because the three origins
+prove it in different ways. `tom-sabala.dev` and `terminal.tom-sabala.dev` talk to this
+backend directly, so the portfolio's HttpOnly JWT cookie is probed (`jwt`).
+`apps.tom-sabala.dev` cannot — separate origin, absent from `CORS_ORIGINS`, and its admin
+session is oauth2-proxy's `SameSite=Lax` `__Host-apps_admin` cookie. Its beacon therefore
+posts to the gateway's own `POST /_e`, and the broker relays the batch server-to-server with
+`X-Analytics-Identity` behind `X-Analytics-Token` (`gateway`). Without a token matching
+`ANALYTICS_INGEST_TOKEN` (constant-time compare; 32+ chars or it is refused), an identity
+header is ignored and the visit is anonymous. Admin is a *dimension*, not an exclusion: the
+console defaults to `identity=anon` so the owner's own reloads never inflate the headline,
+and the ANON vs ADMIN panel always shows the split — on the apps origin that split is what
+decides whether a visitor got a volume-backed instance or tmpfs the reaper deletes.
+`site` (`portfolio`/`apps`/`terminal`) is derived from the `Origin` header or the relay,
+never from the payload.
+
+**Analytics Privacy**: no cookie, no `localStorage`, no fingerprint. A visitor is
+`sha256(daily_salt + site + ip + user_agent)`, with 32 random bytes held in Redis under a
+48 h TTL (an HMAC of `SECRET_KEY` as fallback when Redis is down). Raw IP and User-Agent are
+never stored — only the derived hash and coarse device/browser/os labels. `site` is inside
+the digest on purpose: the same person on the portfolio and on the launcher is two visitors,
+because joining them is exactly the cross-site tracking this scheme exists to avoid. Nothing
+is stored on or read from the device, so the ePrivacy cookie rule is not triggered and there
+is no consent banner; GDPR still applies to the transient IP, hence
+`ANALYTICS_RETENTION_DAYS` (enforced once a day on an admin console load — there is no
+scheduler on the web service). `country` is only ever set from a CDN geo header, so it is
+NULL for direct Railway traffic and the console prints a dash rather than guessing from the
+IP. Bot rows are kept and filtered out, never dropped: a classifier you cannot re-run
+against history is one you can never fix.
+
+**Trusted Proxy Hops**: `ProxyFix(x_for=TRUSTED_PROXY_HOPS)` is installed in the app
+factory. Without it `REMOTE_ADDR` is Railway's edge for every request — every rate limit
+becomes global and every visitor hashes to the same identity. Two consequences followed and
+are already handled: Flask-Limiter's counters moved to `REDIS_URL` (`memory://` is
+per-gunicorn-worker and resets on deploy, which made every ceiling meaningless), and the
+default ceilings had to be resized, because they now bind *per visitor* for the first time
+— one landing-page load issues six limited GETs, so the old `50/hour` would have 429'd a
+real visitor after about eight page loads. They are `2000/day, 600/hour`; the tight
+per-route limits (contact 5/min, the agent routes, `/_e` 600/hr) are the actual controls.
+The limiter runs with `swallow_errors` and an in-memory fallback so a Redis blip cannot
+500 the contact form.
+
+**Analytics Write Concurrency**: a page load fans out into several concurrent content
+requests, each in its own worker with its own DB session. Unserialized they interleave —
+observed live as four visit rows for one visitor, and `page_count = 2` against three
+`page_views` rows. `AnalyticsDAO._lockVisitor()` takes a transaction-scoped
+`pg_advisory_xact_lock` keyed on (site, visitor hash) **once**, in `resolveSession`; the
+writes that follow run inside it and the caller commits once, so one request is one
+transaction. Row-level `FOR UPDATE` cannot substitute, because the visit row does not exist
+yet when it is being created. Two traps worth keeping in mind: it uses `session.get_bind()`,
+not `session.bind` (under Flask-SQLAlchemy the scoped session has no `bind` of its own, and
+reading it silently skipped the lock entirely), and the counters are incremented SQL-side
+(`VisitSession.pageCount + 1`) so a committed-then-refreshed ORM attribute cannot
+reintroduce the lost update.
 
 **Company Categories**: AI-generated tags via Anthropic API (`claude-haiku-4-5-20251001`). Stored as JSON array on `companies.categories`. Triggered explicitly by "Suggest with AI" button in `CompanyFormModal`. Normalized + deduplicated by `_normalizeCategories()` in `company_dao.py`.
 
@@ -307,7 +406,7 @@ worker died is force-finished as `failed` after `AGENT_RUN_STALE_MINUTES`.
 
 The iframe `sandbox` is not a security boundary (`allow-same-origin` lets a bundle reach `parent.document`), and that is accepted: `public/hosted/` and every `image` in `apps.json` are first-party only. What is enforced is (a) the origin — `vercel.json` redirects `/hosted/**` and `/apps.html` off `tom-sabala.dev`/`www`, so nothing here runs where the admin session is usable, and `apps.tom-sabala.dev` is never in `CORS_ORIGINS`; (b) for services, a separate container per session — own filesystem, own database, tmpfs-backed and reaped for anonymous visitors, volume-backed for admins. See `frontend/src/apps/README.md` and `gateway/README.md`.
 
-**Apps gateway** (`gateway/`): Caddy + oauth2-proxy + a zero-dependency Node broker on one VPS, serving `apps.tom-sabala.dev` end to end. Caddy routes `/oauth2/*` to oauth2-proxy, `/manifest.json`, `/boot/*`, `/instances` and `/a/*` to the broker, and everything else to the frontend build on disk — Vercel is not in this subdomain's request path, so the launcher and the bundles are published by `docker compose -f gateway/docker-compose.yml run --rm launcher-build` on the VPS after a `git pull`. The broker starts/reaps one container per (app, session), proxies to it, and never sees the Docker socket (a scoped socket proxy does). Hiding the `hangar` tab in `/admin/visibility` only removes the landing-page section — it has no effect on this subdomain.
+**Apps gateway** (`gateway/`): Caddy + oauth2-proxy + a zero-dependency Node broker on one VPS, serving `apps.tom-sabala.dev` end to end. Caddy routes `/oauth2/*` to oauth2-proxy, `/manifest.json`, `/boot/*`, `/instances`, `/_e` and `/a/*` to the broker, and everything else to the frontend build on disk — Vercel is not in this subdomain's request path, so the launcher and the bundles are published by `docker compose -f gateway/docker-compose.yml run --rm launcher-build` on the VPS after a `git pull`. The broker starts/reaps one container per (app, session), proxies to it, and never sees the Docker socket (a scoped socket proxy does). `POST /_e` is the analytics relay: it forwards this origin's visitor beacons to the portfolio backend with the oauth2-proxy anon/admin verdict attached, because that backend cannot see this origin's session. Hiding the `hangar` tab in `/admin/visibility` only removes the landing-page section — it has no effect on this subdomain.
 
 **Broker status surfaces**: `lib/instances.mjs` records real boot phases per container (`BOOT_PHASES = ['claim','create','start','health','probe','ready']`, with `reuse` instead of `create`/`start` for a warm hit and `failed` on any throw), which back two routes, both `no-store`:
 - `GET /boot/<slug>` — unauthenticated, resolves the caller's *own* `instanceKey` and returns `{slug, mode, kind, state, phases, phaseCount, elapsedMs, readyMs, error}` for that instance only (`state: "absent"` when there is none, 404 for an unknown or admin-only slug). `kind` is `keyKind(instanceKey)` — the same anon/admin fact `/manifest.json` already tells this caller, and what the launcher's durability labels are built on. Phase timings are relative to the start of the attempt, and it carries no `image`, `port` or `memoryMb`, because anyone can call it.
@@ -333,6 +432,7 @@ The iframe `sandbox` is not a security boundary (`allow-same-origin` lets a bund
 - `GET /api/github-stats` - GitHub contribution stats
 - `GET /api/github-stats/status` - Whether GitHub stats feature is enabled (always public)
 - `GET /api/dashboard/tabs` - List of visible tab keys (array, no hidden tabs disclosed)
+- `POST /api/_e` - Visitor beacon (600/hr per IP, always 204). Accepts `text/plain` so `sendBeacon` needs no CORS preflight. The apps origin reaches this through the gateway broker, which attaches `X-Analytics-Token` + a proven `X-Analytics-Identity`
 - `GET /api/ideas` - Ideas list (still served; the redesign dropped only its UI)
 
 **Admin (JWT required):**
@@ -356,6 +456,7 @@ The iframe `sandbox` is not a security boundary (`allow-same-origin` lets a bund
 - `PUT /api/about` + `POST /api/about/upload-profile-photo` - About content + portrait
 - `POST/PUT/DELETE /api/ideas/:id` - CRUD ideas
 - `GET /api/hangar/instances` - Live broker instance status; proxied server-side with `X-Hangar-Token`, 503 when the broker is unreachable or unconfigured
+- `GET /api/analytics/overview` - Everything `/admin/traffic` renders, in one round trip. `?days=1..365` (30), `?site=all|portfolio|apps|terminal` (all), `?identity=anon|admin|all` (anon), `?bots=1`. Garbage values fall back to the defaults
 - `GET /api/jobs/companies` - List companies
 - `POST /api/jobs/companies` - Create company (accepts `categories`, `careers_url`)
 - `PUT /api/jobs/companies/:id` - Update company (accepts `categories`, `careers_url`, `redetect_board`)
@@ -410,6 +511,11 @@ The iframe `sandbox` is not a security boundary (`allow-same-origin` lets a bund
 - `RATELIMIT_ENABLED` - `True` by default; set `False` only locally, where an admin-console reload loop would otherwise trip the ceilings
 - `HANGAR_BROKER_URL` - Apps gateway origin for the hangar proxy (e.g. `https://apps.tom-sabala.dev`)
 - `HANGAR_BROKER_TOKEN` - Sent as `X-Hangar-Token`; must equal the broker's `STATUS_TOKEN` (min 32 chars)
+- `TRUSTED_PROXY_HOPS` - Proxies in front of the app (`ProxyFix`); Railway alone is 1
+- `ANALYTICS_ENABLED` - `True` by default; the worker role never measures regardless
+- `ANALYTICS_INGEST_TOKEN` - Shared secret the gateway broker presents to prove an apps-origin visitor is an admin; must equal the broker's `ANALYTICS_TOKEN` (min 32 chars, else refused)
+- `ANALYTICS_RETENTION_DAYS` - Visits older than this are purged once a day on an admin console load (default 400; 0 disables)
+- `RATELIMIT_STORAGE_URI` - Overrides the limiter store; defaults to `REDIS_URL`, falls back to useless per-worker `memory://`
 - `BROWSER_FALLBACK_ENABLED` - Playwright fallback for client-rendered career pages
 - `AGENT_DISCOVERY_MODEL` - Board-discovery model (default `claude-sonnet-4-5-20250929`)
 - `AGENT_RANKING_MODEL` - Relevance model (default `claude-haiku-4-5-20251001`)
@@ -424,10 +530,11 @@ The iframe `sandbox` is not a security boundary (`allow-same-origin` lets a bund
 
 **Gateway (`gateway/.env`):**
 - `STATUS_TOKEN` - Optional; enables `GET /instances` for the backend's hangar proxy. Rejected at boot if set and shorter than 32 characters; without it `/instances` accepts an admin session only.
+- `ANALYTICS_URL` / `ANALYTICS_TOKEN` - Both or neither (the broker refuses to start with one). Where `POST /_e` relays this origin's beacons, and the secret that makes its `anon`/`admin` label believable. `ANALYTICS_TOKEN` must equal the backend's `ANALYTICS_INGEST_TOKEN`, min 32 chars.
 
 ## Security Features
 
-- Rate limiting via Flask-Limiter (200/day, 50/hour default; 5/min on contact; agent reads have their own ceilings); `RATELIMIT_ENABLED=False` turns it off for local development only
+- Rate limiting via Flask-Limiter, counters in Redis (2000/day, 600/hour default — they bind per visitor now that ProxyFix is installed; 5/min on contact; 600/hr per *visitor* on `/api/_e`; agent reads have their own ceilings); `RATELIMIT_ENABLED=False` turns it off for local development only
 - Security headers (XSS, HSTS, CSP, X-Frame-Options)
 - CSRF protection for state-changing operations
 - JWT tokens in HttpOnly cookies with secure flag in production
@@ -437,5 +544,7 @@ The iframe `sandbox` is not a security boundary (`allow-same-origin` lets a bund
 - `/api/hangar/instances` requires JWT and never forwards the caller's credentials; the broker token lives on the server only
 - The broker's `/boot/<slug>` is unauthenticated but scoped to the caller's own instance and carries no image, port or memory
 - Public tab config endpoint returns only visible tab keys — hidden tabs not disclosed
+- Analytics identity is server-proven only: a JWT cookie probe on the portfolio origin, the broker's oauth2-proxy verdict behind a constant-time token compare on the apps origin. A client-sent `X-Analytics-Identity` is stripped at the broker and ignored by the backend
+- Analytics stores no raw IP or User-Agent, no cookie and no device storage; the visitor id is a daily-rotating salted hash scoped per origin, and beacon props are flattened to scalars with capped keys and lengths
 - Agent egress is allow-listed: company domain + known ATS hosts only, aggregators always refused
 - Agent-reported postings are validated against fetched page text before they reach the database
