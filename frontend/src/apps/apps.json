@@ -2,6 +2,25 @@
   "apps": [
     {
       "kind": "service",
+      "slug": "breakmyrobot",
+      "name": "Resilient Autonomy Lab",
+      "tagline": "Two robots, two autonomy stacks, faults injected mid-mission — a recorded run you can replay",
+      "tech": ["ROS 2", "Gazebo", "Nav2", "ArduPilot", "React"],
+      "status": "live",
+      "access": "public",
+      "sourceUrl": "https://github.com/tomsabala/breakmyrobot",
+      "image": "ghcr.io/tomsabala/breakmyrobot:apps-mount-a2fa50d578af439c45aae180437453e2ec43a507",
+      "port": 8080,
+      "mode": "shared",
+      "memoryMb": 64,
+      "shmSizeMb": 64,
+      "dataPath": "/tmp/unused",
+      "dataTmpfsMb": 8,
+      "readyPath": "/healthz",
+      "capAdd": []
+    },
+    {
+      "kind": "service",
       "slug": "resume-matcher",
       "name": "Resume Matcher",
       "tagline": "Tailor a resume to a job description, then export PDF or LaTeX",
