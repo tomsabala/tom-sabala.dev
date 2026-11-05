@@ -10,7 +10,8 @@ import { createContext, useCallback, useContext, useEffect } from 'react';
 import { apiErrorMessage } from '../../repositories/apiError.ts';
 import type { DashboardStats } from '../../types/index.ts';
 
-export type AdminScreenKey = 'overview' | 'pipeline' | 'content' | 'inbox' | 'hangar' | 'visibility';
+export type AdminScreenKey =
+  | 'overview' | 'pipeline' | 'content' | 'inbox' | 'traffic' | 'hangar' | 'visibility';
 
 export interface AdminScreenMeta {
   /** Mono index rendered as the page-header crumb. */
@@ -30,15 +31,16 @@ export const ADMIN_SCREENS: Record<AdminScreenKey, AdminScreenMeta> = {
   pipeline: { crumb: '01', title: 'Pipeline', glyph: '▤', label: 'Pipeline', path: '/admin/pipeline' },
   content: { crumb: '02', title: 'Content', glyph: '▦', label: 'Content', path: '/admin/content' },
   inbox: { crumb: '03', title: 'Inbox', glyph: '✉', label: 'Inbox', path: '/admin/inbox' },
-  hangar: { crumb: '04', title: 'Hangar', glyph: '▣', label: 'Hangar', path: '/admin/hangar' },
-  visibility: { crumb: '05', title: 'Visibility', glyph: '⚙', label: 'Visibility', path: '/admin/visibility' },
+  traffic: { crumb: '04', title: 'Traffic', glyph: '◳', label: 'Traffic', path: '/admin/traffic' },
+  hangar: { crumb: '05', title: 'Hangar', glyph: '▣', label: 'Hangar', path: '/admin/hangar' },
+  visibility: { crumb: '06', title: 'Visibility', glyph: '⚙', label: 'Visibility', path: '/admin/visibility' },
 };
 
 /** Rail grouping, in render order. */
 export const ADMIN_NAV: Array<{ label: string; items: AdminScreenKey[] }> = [
   { label: 'COMMAND', items: ['overview'] },
   { label: 'JOB HUNT', items: ['pipeline'] },
-  { label: 'SITE', items: ['content', 'inbox', 'hangar', 'visibility'] },
+  { label: 'SITE', items: ['content', 'inbox', 'traffic', 'hangar', 'visibility'] },
 ];
 
 /**

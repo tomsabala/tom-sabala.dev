@@ -33,6 +33,7 @@ import AdminOverview from './admin/AdminOverview.tsx';
 import AdminPipeline from './admin/AdminPipeline.tsx';
 import AdminContent from './admin/AdminContent.tsx';
 import AdminInbox from './admin/AdminInbox.tsx';
+import AdminTraffic from './admin/AdminTraffic.tsx';
 import AdminHangar from './admin/AdminHangar.tsx';
 import AdminVisibility from './admin/AdminVisibility.tsx';
 
@@ -41,6 +42,7 @@ const SCREEN_COMPONENTS: Record<AdminScreenKey, () => JSX.Element> = {
   pipeline: AdminPipeline,
   content: AdminContent,
   inbox: AdminInbox,
+  traffic: AdminTraffic,
   hangar: AdminHangar,
   visibility: AdminVisibility,
 };

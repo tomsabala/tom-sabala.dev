@@ -149,6 +149,123 @@ export interface HangarStatus {
   caps: { total: number; anon: number; admin: number };
 }
 
+// Traffic Types — mirrors `GET /api/analytics/overview`.
+
+/** The three front doors, measured separately because they are separate products. */
+export type TrafficSite = 'portfolio' | 'apps' | 'terminal';
+/** `admin` is proven server-side (portfolio JWT, or the gateway's oauth2 verdict). */
+export type TrafficIdentity = 'anon' | 'admin';
+
+/** The windows the console offers; also what `?days=` accepts from it. */
+export type TrafficWindow = 7 | 30 | 90 | 365;
+
+export interface TrafficQuery {
+  days: TrafficWindow;
+  site: TrafficSite | 'all';
+  identity: TrafficIdentity | 'all';
+  includeBots: boolean;
+}
+
+export interface TrafficSummary {
+  visitors: number;
+  sessions: number;
+  pageViews: number;
+  bounceRate: number;
+  avgDurationMs: number | null;
+  /** Share of views the client beacon reached — i.e. 100 minus the blocker rate. */
+  beaconCoverage: number;
+  botSessions: number;
+}
+
+export interface TrafficPoint {
+  day: string;
+  visitors: number;
+  pageViews: number;
+}
+
+export interface TrafficSlice {
+  label: string;
+  sessions: number;
+  visitors: number;
+}
+
+export interface TrafficPage {
+  path: string;
+  views: number;
+  avgDurationMs: number | null;
+  avgScrollPct: number | null;
+}
+
+export interface TrafficReferrer {
+  host: string;
+  sessions: number;
+  visitors: number;
+}
+
+export interface TrafficEvent {
+  name: string;
+  count: number;
+  visits: number;
+}
+
+/** `pathStats` rows under `/work/`, joined to the project titles. */
+export interface TrafficWorkRow {
+  slug: string;
+  title: string;
+  visits: number;
+  avgDurationMs: number | null;
+}
+
+export interface TrafficAppRow {
+  slug: string;
+  opens: number;
+  anon: number;
+  admin: number;
+}
+
+export interface TrafficFunnelStep {
+  step: string;
+  visits: number;
+}
+
+/** One row of RECENT VISITS. Only what that panel renders is sent. */
+export interface TrafficVisit {
+  id: number;
+  site: string;
+  identity: string;
+  entryPath: string | null;
+  referrerHost: string | null;
+  device: string | null;
+  country: string | null;
+  timezone: string | null;
+  pageCount: number;
+  lastSeenAt: string | null;
+}
+
+export interface TrafficOverview {
+  from: string;
+  to: string;
+  site: TrafficSite | 'all';
+  summary: TrafficSummary;
+  series: TrafficPoint[];
+  /** Both splits ignore their own axis of the active filter, so they stay comparisons. */
+  sites: TrafficSlice[];
+  identities: TrafficSlice[];
+  pages: TrafficPage[];
+  referrers: TrafficReferrer[];
+  devices: TrafficSlice[];
+  browsers: TrafficSlice[];
+  // No `countries`: it is only ever populated by a CDN geo header, which
+  // Railway does not send, so the panel would be a column of "unknown".
+  timezones: TrafficSlice[];
+  events: TrafficEvent[];
+  work: TrafficWorkRow[];
+  apps: TrafficAppRow[];
+  funnel: TrafficFunnelStep[];
+  bots: TrafficSlice[];
+  recent: TrafficVisit[];
+}
+
 // Resume PDF Types
 export interface ResumePdfVersion {
   id: number;
