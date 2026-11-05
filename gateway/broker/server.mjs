@@ -6,6 +6,7 @@
  *   GET /boot/<slug>    — boot progress of *this* caller's instance, for the launcher overlay
  *   GET /instances      — every instance on the box; admin session or X-Hangar-Token only
  *   ALL /a/<slug>/*     — proxied to a container started on demand for this viewer
+ *   POST /_e            — this origin's analytics beacon, relayed with a proven identity
  *
  * Zero npm dependencies on purpose: this process is internet-facing and long-lived, and
  * Docker is spoken over plain HTTP to a scoped socket proxy.
@@ -13,6 +14,7 @@
 
 import http from 'node:http';
 import { timingSafeEqual } from 'node:crypto';
+import { createAnalyticsRelay } from './lib/analytics.mjs';
 import { loadConfig } from './lib/config.mjs';
 import { createDockerClient } from './lib/docker.mjs';
 import { createIdentityResolver, containerName, instanceKey, keyKind, tenantKey } from './lib/identity.mjs';
@@ -31,10 +33,17 @@ const log = {
 /**
  * Identity headers are produced by the broker's own auth subrequest, never accepted from a
  * client: without this, `curl -H 'X-Auth-Request-Email: me@example.com'` would be admin.
+ *
+ * `x-analytics-*` is on the list for the same reason. The relay builds those headers from
+ * the oauth2 verdict rather than copying the request's, so a forged one is already ignored
+ * — deleting it here means no downstream reader can ever be the one that trusts it.
  */
 function stripClientIdentityHeaders(req) {
   for (const name of Object.keys(req.headers)) {
-    if (name.startsWith('x-auth-request-') || name.startsWith('x-apps-')) delete req.headers[name];
+    if (name.startsWith('x-auth-request-') || name.startsWith('x-apps-') ||
+        name.startsWith('x-analytics-')) {
+      delete req.headers[name];
+    }
   }
 }
 
@@ -64,6 +73,11 @@ async function main() {
     log,
   });
   const proxy = createProxy({ cookieNames: [config.cookieName, config.adminCookieName], log });
+  const analyticsRelay = createAnalyticsRelay({
+    url: config.analyticsUrl,
+    token: config.analyticsToken,
+    log,
+  });
 
   await instances.adopt();
   instances.startReaper();
@@ -243,6 +257,16 @@ async function main() {
             return respond(res, 405, { body: 'Method not allowed.\n', headers: { allow: 'GET, HEAD' } });
           }
           return await handleInstances(req, res, viewer);
+        }
+
+        if (pathname === '/_e') {
+          if (req.method !== 'POST') {
+            return respond(res, 405, { body: 'Method not allowed.\n', headers: { allow: 'POST' } });
+          }
+          // 204 either way: with no ANALYTICS_URL configured the beacon is
+          // simply dropped, which is what an unmeasured deployment should do.
+          if (!analyticsRelay) return respond(res, 204, {});
+          return await analyticsRelay(req, res, viewer);
         }
 
         if (pathname.startsWith('/boot/')) {

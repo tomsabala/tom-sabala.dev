@@ -88,6 +88,11 @@ services:
       SESSION_SECRET: ${SESSION_SECRET}
       # Optional; without it GET /instances accepts an admin session only.
       STATUS_TOKEN: ${STATUS_TOKEN:-}
+      # Both or neither. Points at the portfolio backend's public beacon
+      # endpoint; ANALYTICS_TOKEN must equal its ANALYTICS_INGEST_TOKEN, and is
+      # what makes the relayed admin/anon label trustworthy there.
+      ANALYTICS_URL: ${ANALYTICS_URL:-}
+      ANALYTICS_TOKEN: ${ANALYTICS_TOKEN:-}
       COOKIE_NAME: __Host-apps_sid
       # Must equal oauth2-proxy's --cookie-name above: the broker strips it (and its _0/_1
       # chunks) before proxying, so a live admin session never reaches an app container.

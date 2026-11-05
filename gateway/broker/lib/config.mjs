@@ -53,6 +53,22 @@ export function loadConfig(env = process.env) {
     throw new Error('broker: STATUS_TOKEN must be at least 32 characters');
   }
 
+  /**
+   * Optional: where this origin's analytics beacons are relayed, and the shared
+   * secret that makes the relayed `admin`/`anon` label believable. Both or
+   * neither — a URL without a token would post batches the backend files as
+   * anonymous, silently losing the one fact only the gateway can establish.
+   * Same length rule as the other two secrets.
+   */
+  const analyticsUrl = env.ANALYTICS_URL?.trim() ?? '';
+  const analyticsToken = env.ANALYTICS_TOKEN?.trim() ?? '';
+  if (Boolean(analyticsUrl) !== Boolean(analyticsToken)) {
+    throw new Error('broker: ANALYTICS_URL and ANALYTICS_TOKEN must be set together');
+  }
+  if (analyticsToken && analyticsToken.length < 32) {
+    throw new Error('broker: ANALYTICS_TOKEN must be at least 32 characters');
+  }
+
   const port = Number(env.PORT);
   if (!Number.isInteger(port) || port <= 0) {
     throw new Error(`broker: PORT must be a positive integer, got ${env.PORT}`);
@@ -108,5 +124,7 @@ export function loadConfig(env = process.env) {
       total: numbers.MAX_TOTAL_INSTANCES || numbers.MAX_ANON_INSTANCES + numbers.MAX_ADMIN_INSTANCES,
     },
     statusToken: statusToken || null,
+    analyticsUrl: analyticsUrl || null,
+    analyticsToken: analyticsToken || null,
   };
 }

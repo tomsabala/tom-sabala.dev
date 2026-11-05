@@ -57,6 +57,10 @@ services:
       # Dev-only fixed status token, so `curl -H "X-Hangar-Token: …" :8080/instances` works
       # without an admin cookie. Production reads it from gateway/.env.
       STATUS_TOKEN: ${STATUS_TOKEN:-dev-only-status-token-not-for-production-0123456789}
+      # Unset by default: a dev gateway has no portfolio backend to relay to,
+      # and the broker answers /_e with 204 when these are absent.
+      ANALYTICS_URL: ${ANALYTICS_URL:-}
+      ANALYTICS_TOKEN: ${ANALYTICS_TOKEN:-}
       COOKIE_NAME: apps_sid
       # The dev auth stub's admin cookie (`dev_admin=1`); stripped like the real one.
       ADMIN_COOKIE_NAME: dev_admin

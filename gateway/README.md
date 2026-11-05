@@ -323,6 +323,41 @@ reclaimable page cache. A proxy without `CONTAINERS=1` on that route reports
 in-memory only: after a broker restart every instance is adopted and reports `running` with a
 null `coldStartMs` until it is next started.
 
+## Analytics relay
+
+`POST /_e` takes the launcher's own visitor beacon and forwards it to the portfolio
+backend, which is where all three origins' traffic is measured and read
+(`/admin/traffic`). Unauthenticated, always `204`, and a no-op unless both
+`ANALYTICS_URL` and `ANALYTICS_TOKEN` are set — the broker refuses to start with only
+one of them, because a URL without a token would silently file every visit here as
+anonymous.
+
+**That relay exists for exactly one fact: whether the caller is an admin.** This origin's
+admin session is oauth2-proxy's `SameSite=Lax` `__Host-apps_admin` cookie. The portfolio
+backend can neither see it nor verify it, and this origin is deliberately absent from its
+`CORS_ORIGINS`, so a beacon posted straight from the browser could only ever *claim* to
+be an admin. The broker already resolves that verdict for every request it serves, so it
+stamps the hop itself:
+
+```
+X-Analytics-Token     must equal the backend's ANALYTICS_INGEST_TOKEN (32+ chars,
+                      compared in constant time there)
+X-Analytics-Identity  anon | admin — from the oauth2-proxy subrequest, never the request
+X-Analytics-Site      apps
+X-Analytics-Ip        leftmost X-Forwarded-For entry, i.e. the peer Caddy saw
+User-Agent            passed through
+```
+
+Inbound `x-analytics-*` headers are deleted on arrival alongside `x-auth-request-*` and
+`x-apps-*`, and the upstream headers are built from the verdict rather than copied, so
+`curl -H 'X-Analytics-Identity: admin'` changes nothing. `lib/analytics.test.mjs` pins
+that end to end.
+
+Cookies, the gateway session id and the oauth2 email are **not** forwarded. The backend
+gets an anon/admin label plus the address and User-Agent, which it hashes with a
+daily-rotating salt into a visitor id and then discards — nothing is stored on the
+visitor's device, here or there, which is why this origin shows no consent banner.
+
 ## Adding an app
 
 1. Build an image whose HTTP server is mounted at `/a/<slug>` (for Next.js: `basePath`, baked

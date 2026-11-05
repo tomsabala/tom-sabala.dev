@@ -7,6 +7,7 @@
 #   /boot/*        broker — boot progress of the caller's own instance
 #   /instances     broker — instance status (admin session or status token)
 #   /a/*           broker — one container per (app, visitor session)
+#   /_e            broker — analytics beacon, relayed with a gateway-proven identity
 #   everything else the launcher, from ./caddy/launcher-{static,proxy}.caddy
 
 {$APPS_SITE_ADDRESS} {
@@ -34,6 +35,14 @@
 	}
 
 	handle /instances {
+		reverse_proxy {$BROKER_UPSTREAM}
+	}
+
+	# This origin's own analytics. The browser cannot post to the portfolio
+	# backend directly — different origin, absent from its CORS_ORIGINS, and the
+	# admin session here is a cookie that never leaves this host — so the broker
+	# relays the batch with the oauth2-proxy verdict attached.
+	handle /_e {
 		reverse_proxy {$BROKER_UPSTREAM}
 	}
 
