@@ -84,6 +84,25 @@
       "dataTmpfsMb": 128,
       "readyPath": "/a/familycfo/api/meta",
       "capAdd": []
+    },
+    {
+      "kind": "service",
+      "slug": "mlmp",
+      "name": "Multilevel Motion Planning",
+      "tagline": "Bundle-space planners for multi-robot arms: replay a recorded comparison, or edit a scene and solve it in your browser",
+      "tech": ["C++17", "OMPL", "WebAssembly", "Canvas"],
+      "status": "live",
+      "access": "public",
+      "sourceUrl": "https://github.com/tomsabala/MLMP",
+      "image": "ghcr.io/tomsabala/mlmp:apps-mount-81acc3fd5657a8adb6442f8a5ace9b8650038d76",
+      "port": 8080,
+      "mode": "shared",
+      "memoryMb": 64,
+      "shmSizeMb": 64,
+      "dataPath": "/tmp/unused",
+      "dataTmpfsMb": 8,
+      "readyPath": "/healthz",
+      "capAdd": []
     }
   ]
 }
