@@ -4,6 +4,7 @@ Kept deliberately thin: the web process only enqueues and sets cancel keys,
 the worker process consumes. Both read the same REDIS_URL.
 """
 import os
+from functools import lru_cache
 
 import redis
 from rq import Queue
@@ -18,6 +19,26 @@ def getRedisUrl():
 
 def getRedis():
     return redis.Redis.from_url(getRedisUrl())
+
+
+#: The measurement path runs inside `after_request`, so an unreachable Redis
+#: must not hold a content response that is already generated.
+ANALYTICS_TIMEOUT_SECONDS = 0.25
+
+
+@lru_cache(maxsize=1)
+def getAnalyticsRedis():
+    """Short-timeout client for the analytics salt and retention key.
+
+    Separate from `getRedis()`, which the RQ worker uses and which must keep
+    blocking semantics. Cached because `from_url()` builds a new connection
+    pool per call, and this one is called on every measured request.
+    """
+    return redis.Redis.from_url(
+        getRedisUrl(),
+        socket_connect_timeout=ANALYTICS_TIMEOUT_SECONDS,
+        socket_timeout=ANALYTICS_TIMEOUT_SECONDS,
+    )
 
 
 def getQueue():

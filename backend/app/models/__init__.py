@@ -13,5 +13,8 @@ from app.models.agent_run import AgentRun
 from app.models.agent_run_company_result import AgentRunCompanyResult
 from app.models.agent_run_finding import AgentRunFinding
 from app.models.job_search_profile import JobSearchProfile
+from app.models.visit_session import VisitSession
+from app.models.page_view import PageView
+from app.models.analytics_event import AnalyticsEvent
 
-__all__ = ['Project', 'Resume', 'About', 'ContactSubmission', 'User', 'ResumePdfVersion', 'Company', 'JobApplication', 'Idea', 'TabConfig', 'JobPosting', 'AgentRun', 'AgentRunCompanyResult', 'AgentRunFinding', 'JobSearchProfile']
+__all__ = ['Project', 'Resume', 'About', 'ContactSubmission', 'User', 'ResumePdfVersion', 'Company', 'JobApplication', 'Idea', 'TabConfig', 'JobPosting', 'AgentRun', 'AgentRunCompanyResult', 'AgentRunFinding', 'JobSearchProfile', 'VisitSession', 'PageView', 'AnalyticsEvent']

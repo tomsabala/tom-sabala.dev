@@ -5,6 +5,7 @@ from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from werkzeug.middleware.proxy_fix import ProxyFix
 from datetime import timedelta
 from dotenv import load_dotenv
 import os
@@ -22,6 +23,21 @@ logging.basicConfig(
     stream=sys.stdout,
 )
 
+def _scrubAnalyticsHeaders(event, hint):
+    """The relay secret and the visitor address it vouches for must not leave
+    the process in a crash report.
+
+    sentry-sdk scrubs only its own fixed list of sensitive headers, which does
+    not include `X-Analytics-Token` — the sole gate on minting admin-labelled
+    rows and on choosing the IP a visitor hash is derived from.
+    """
+    headers = (event.get('request') or {}).get('headers')
+    if isinstance(headers, dict):
+        for name in [k for k in headers if k.lower().startswith('x-analytics-')]:
+            headers.pop(name, None)
+    return event
+
+
 # Initialize Sentry (production only)
 if os.getenv('FLASK_ENV') == 'production' and os.getenv('SENTRY_DSN'):
     sentry_sdk.init(
@@ -30,6 +46,7 @@ if os.getenv('FLASK_ENV') == 'production' and os.getenv('SENTRY_DSN'):
         traces_sample_rate=0.1,  # 10% performance monitoring
         profiles_sample_rate=0.1,
         environment='production',
+        before_send=_scrubAnalyticsHeaders,
         release=os.getenv('GIT_COMMIT_SHA', 'unknown'),
     )
 
@@ -37,10 +54,23 @@ if os.getenv('FLASK_ENV') == 'production' and os.getenv('SENTRY_DSN'):
 db = SQLAlchemy()
 migrate = Migrate()
 jwt = JWTManager()
+#: ProxyFix (below) makes get_remote_address return the *visitor's* address
+#: rather than Railway's edge. That is correct, and it means the default
+#: ceilings bind per visitor for the first time — so they are sized for a real
+#: browsing session: one landing-page load issues six limited GETs, and the
+#: admin console polls. The tight per-route limits (contact 5/min, the agent
+#: routes, /_e 600/hr) are the actual controls; these are a backstop.
 limiter = Limiter(
     key_func=get_remote_address,
-    default_limits=["200 per day", "50 per hour"],
-    storage_uri="memory://"  # Use Redis in production for distributed rate limiting
+    default_limits=["2000 per day", "600 per hour"],
+    # Redis so the count survives a deploy and is shared across gunicorn
+    # workers; `memory://` is per-worker and resets, which makes every ceiling
+    # meaningless in production.
+    storage_uri=os.getenv('RATELIMIT_STORAGE_URI') or os.getenv('REDIS_URL') or 'memory://',
+    # A Redis blip must not 500 the contact form and every defaulted route.
+    # Flask-Limiter re-raises storage errors unless told otherwise.
+    swallow_errors=True,
+    in_memory_fallback_enabled=True,
 )
 
 
@@ -76,6 +106,25 @@ def normalizeDatabaseUrl(url):
 
 def create_app():
     app = Flask(__name__)
+
+    # ── Trust exactly as many proxies as are actually in front of us ─────────
+    # Without this, REMOTE_ADDR is Railway's edge for every request: rate
+    # limits become global and every visitor hashes to the same analytics
+    # identity. The count must match reality — trusting one hop too many lets a
+    # client forge the address by sending its own X-Forwarded-For entry, and
+    # one too few hashes everyone together. Railway alone is 1; add one per
+    # additional proxy. A typo here must not take the service down, so it falls
+    # back rather than raising out of create_app().
+    try:
+        trustedHops = int(os.getenv('TRUSTED_PROXY_HOPS', '1'))
+    except ValueError:
+        logging.getLogger(__name__).error(
+            'TRUSTED_PROXY_HOPS=%r is not an integer; using 1',
+            os.getenv('TRUSTED_PROXY_HOPS'))
+        trustedHops = 1
+    if trustedHops > 0:
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=trustedHops, x_proto=trustedHops,
+                                x_host=0, x_port=0, x_prefix=0)
 
     # Configuration
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -147,6 +196,17 @@ def create_app():
 
         return response
 
+    # The unblockable measurement tier: it reads the request and the status
+    # code, and returns the response untouched.
+    @app.after_request
+    def recordTraffic(response):
+        from app.services.analytics_service import recordServerHit
+        return recordServerHit(response)
+
+    with app.app_context():
+        from app.services.analytics_service import checkConfiguration
+        checkConfiguration()
+
     # Import models (required for Flask-Migrate to detect them)
     with app.app_context():
         from app import models  # noqa: F401 — import registers the tables with Flask-Migrate
@@ -165,6 +225,7 @@ def create_app():
     from app.routes.ideas_routes import ideas_bp
     from app.routes.agent_routes import agent_bp
     from app.routes.hangar_routes import hangar_bp
+    from app.routes.analytics_routes import analytics_bp
 
     app.register_blueprint(portfolio_bp, url_prefix='/api')
     app.register_blueprint(resume_bp, url_prefix='/api')
@@ -178,6 +239,7 @@ def create_app():
     app.register_blueprint(jobs_bp, url_prefix='/api')
     app.register_blueprint(ideas_bp, url_prefix='/api')
     app.register_blueprint(agent_bp, url_prefix='/api')
+    app.register_blueprint(analytics_bp, url_prefix='/api')
     app.register_blueprint(hangar_bp, url_prefix='/api')
 
     # JWT error handlers
