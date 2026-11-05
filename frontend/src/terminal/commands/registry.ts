@@ -1,3 +1,4 @@
+import { trackEvent } from '../../analytics/track.ts';
 import type { Command, CommandResult, TerminalContext } from './types';
 
 const commands = new Map<string, Command>();
@@ -27,6 +28,11 @@ export async function execute(rawInput: string, ctx: TerminalContext): Promise<C
   const args = parts.slice(1);
 
   const command = resolveCommand(commandName);
+  // The command name only, never the arguments: those are free text a visitor
+  // typed, and a measurement table is the wrong place for it. `resolved`
+  // separates "nobody uses `field`" from "everybody mistypes it".
+  trackEvent('terminal.command', { command: commandName.slice(0, 40), resolved: Boolean(command) });
+
   if (!command) {
     return {
       output: [

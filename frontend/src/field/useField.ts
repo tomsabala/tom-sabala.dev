@@ -22,6 +22,7 @@ import {
   type RefObject,
 } from 'react';
 
+import { trackEvent } from '../analytics/track.ts';
 import { defaultCfg } from './config';
 import type { FieldCfg, FieldKind, FieldTool } from './types';
 
@@ -108,6 +109,11 @@ export function FieldProvider({ children }: { children: ReactNode }) {
     setAlgoState(next);
     setToolState('add');
     setArmed(false);
+    // The field is the one thing on this site a visitor can actually play
+    // with, and switching algorithm is unambiguous evidence they did. No
+    // server request happens here, so without this the interaction leaves no
+    // trace at all.
+    trackEvent('field.algo', { algo: next });
   }, []);
 
   const setCfg = useCallback(

@@ -37,6 +37,27 @@ function addCsrfToken(config: InternalAxiosRequestConfig): InternalAxiosRequestC
 }
 
 /**
+ * Tells the backend which page made this call.
+ *
+ * The server-observed measurement tier counts a visit from the content
+ * requests a page cannot render without — but `GET /api/portfolio` alone does
+ * not say whether the visitor is on `/` or on `/work/mlmp`. A query parameter
+ * carries that; a custom header would force a CORS preflight on every
+ * cross-origin GET and cost a round trip before first paint. An ad blocker
+ * cannot strip it without breaking the request it rides on, which is the whole
+ * point of measuring here instead of from a tracker script.
+ *
+ * `pathname` only, no hash: the two origins that use axios are router-based,
+ * and the backend strips fragments anyway. The beacon in `analytics/track.ts`
+ * deliberately does the opposite, because the apps launcher routes on `#/`.
+ */
+function addPagePath(config: InternalAxiosRequestConfig): InternalAxiosRequestConfig {
+  if (typeof window === 'undefined') return config;
+  config.params = { ...(config.params ?? {}), _p: window.location.pathname };
+  return config;
+}
+
+/**
  * Handle 401 errors by attempting token refresh
  */
 export function createAuthErrorHandler(client: AxiosInstance) {
@@ -66,6 +87,7 @@ export function createAuthErrorHandler(client: AxiosInstance) {
  */
 function applyInterceptors(client: AxiosInstance): void {
   client.interceptors.request.use(addCsrfToken, (e) => Promise.reject(e));
+  client.interceptors.request.use(addPagePath, (e) => Promise.reject(e));
   client.interceptors.response.use((r) => r, createAuthErrorHandler(client));
 }
 

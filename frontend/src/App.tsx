@@ -1,7 +1,9 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { GoogleReCaptchaProvider } from 'react-google-recaptcha-v3';
-import { Analytics } from '@vercel/analytics/react';
 import { useEffect, useState } from 'react';
+import { initAnalytics } from './analytics/track.ts';
+import { BACKEND_BEACON } from './analytics/endpoints.ts';
+import RouteViews from './analytics/RouteViews.tsx';
 import { ThemeProvider } from './contexts/ThemeContext.tsx';
 import { TabConfigProvider } from './contexts/TabConfigContext.tsx';
 import { useAuth } from './contexts/AuthContext.tsx';
@@ -45,6 +47,13 @@ function LegacyProjectRedirect() {
 }
 
 function App() {
+  // One call per page load. The visit itself is already counted server-side
+  // from the content requests below; this adds the engagement the server
+  // cannot see, and stays silent for a visitor who sends DNT or GPC.
+  useEffect(() => {
+    initAnalytics({ endpoint: BACKEND_BEACON });
+  }, []);
+
   return (
     <ThemeProvider>
     <TabConfigProvider>
@@ -57,6 +66,7 @@ function App() {
         }}
       >
         <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <RouteViews />
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route
@@ -81,7 +91,7 @@ function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Router>
-        <Analytics />
+
       </GoogleReCaptchaProvider>
     </TabConfigProvider>
     </ThemeProvider>

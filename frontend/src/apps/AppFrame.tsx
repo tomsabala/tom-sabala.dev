@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { trackEvent } from '../analytics/track.ts';
 import { appEntryUrl } from './registry.ts';
 import type { HostedApp } from './registry.ts';
 import ThemeToggle from './ThemeToggle.tsx';
@@ -70,6 +71,18 @@ function AppFrame({ app, index }: { app: HostedApp; index: number }) {
   // for as long as the unit is open. `attempt` re-reads it after a retry.
   const kind = useInstanceKind(app.slug, app.kind === 'service', attempt);
   const durability = kind ? DURABILITY[kind] : null;
+
+  // Recorded once the broker has answered with `kind`, not on mount: the whole
+  // value of this event is the durability of the instance the visitor actually
+  // got — ephemeral tmpfs, persistent volume, or the shared one — and before
+  // the answer arrives that is unknown rather than 'anon'.
+  const mode = app.kind === 'service' ? app.mode : 'bundle';
+  useEffect(() => {
+    if (!kind) return;
+    trackEvent('apps.open', { slug: app.slug, kind, mode });
+    // Values, not the `app` object: a manifest refetch would hand back a new
+    // object for the same unit and emit a duplicate open.
+  }, [app.slug, mode, kind]);
 
   const idx = unitIndex(index);
   const strip: StripChip[] = [
